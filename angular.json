@@ -21,10 +21,8 @@
             ],
             "tsConfig": "tsconfig.app.json",
             "assets": [
-              {
-                "glob": "**/*",
-                "input": "public"
-              }
+              "src/favicon.ico",
+              "src/assets"
             ],
             "styles": [
               "@angular/material/prebuilt-themes/rose-red.css",
@@ -57,6 +55,13 @@
               "optimization": false,
               "extractLicenses": false,
               "sourceMap": true
+            },
+            "development-browser": {
+              "optimization": false,
+              "extractLicenses": false,
+              "sourceMap": true,
+              "outputMode": "static",
+              "ssr": false
             }
           },
           "defaultConfiguration": "production"
@@ -68,7 +73,7 @@
               "buildTarget": "front-diplomado:build:production"
             },
             "development": {
-              "buildTarget": "front-diplomado:build:development"
+              "buildTarget": "front-diplomado:build:development-browser"
             }
           },
           "defaultConfiguration": "development"
@@ -99,5 +104,8 @@
         }
       }
     }
+  },
+  "cli": {
+    "analytics": "e03c2d23-c388-499b-bc4e-b511d2618529"
   }
 }
