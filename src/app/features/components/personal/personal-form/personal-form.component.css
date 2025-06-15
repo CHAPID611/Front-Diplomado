@@ -1,0 +1,328 @@
+.personal-form-container {
+  max-width: 800px;
+  width: 100%;
+}
+
+h2[mat-dialog-title] {
+  background: var(--gradient-red, linear-gradient(135deg, #c62828 0%, #b71c1c 100%));
+  color: white;
+  margin: -24px -24px 24px -24px;
+  padding: 20px 24px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  border-radius: 4px 4px 0 0;
+}
+
+h2[mat-dialog-title] mat-icon {
+  font-size: 24px;
+  width: 24px;
+  height: 24px;
+}
+
+.step-content {
+  padding: 20px 0;
+  min-height: 400px;
+}
+
+.form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+.full-width {
+  width: 100%;
+  margin-bottom: 16px;
+}
+
+.step-actions {
+  display: flex;
+  gap: 12px;
+  margin-top: 24px;
+  padding-top: 16px;
+  border-top: 1px solid var(--border-light, #e9ecef);
+}
+
+.step-actions button {
+  border-radius: 6px;
+  font-weight: 500;
+  text-transform: none;
+  padding: 0 24px;
+  height: 40px;
+}
+
+h3 {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--primary-red, #c62828);
+  margin: 0 0 16px 0;
+  font-size: 18px;
+  font-weight: 600;
+}
+
+h3 mat-icon {
+  font-size: 20px;
+  width: 20px;
+  height: 20px;
+}
+
+.subtitle {
+  color: var(--text-secondary, #6c757d);
+  margin-bottom: 24px;
+  font-size: 14px;
+  line-height: 1.4;
+}
+
+.cualidades-section {
+  margin-bottom: 32px;
+  background: var(--bg-secondary, #f8f9fa);
+  padding: 20px;
+  border-radius: 8px;
+  border: 1px solid var(--border-light, #e9ecef);
+  border-left: 4px solid var(--primary-red, #c62828);
+}
+
+.cualidades-section h4 {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--text-primary, #2c3e50);
+  margin: 0 0 16px 0;
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.cualidades-section h4 mat-icon {
+  color: var(--primary-red, #c62828);
+  font-size: 18px;
+  width: 18px;
+  height: 18px;
+}
+
+.cualidades-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 12px;
+}
+
+.cualidades-grid mat-checkbox {
+  padding: 8px;
+  border-radius: 4px;
+  transition: background-color 0.2s ease;
+  background: var(--bg-primary, #ffffff);
+  border: 1px solid var(--border-light, #e9ecef);
+}
+
+.cualidades-grid mat-checkbox:hover {
+  background: var(--bg-light, #f1f3f4);
+  border-color: var(--primary-red, #c62828);
+}
+
+.cualidades-grid mat-checkbox.mat-mdc-checkbox-checked {
+  background: var(--primary-red-subtle, rgba(198, 40, 40, 0.08));
+  border-color: var(--primary-red, #c62828);
+}
+
+.warning-message {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: #fff3cd;
+  color: #856404;
+  padding: 12px 16px;
+  border-radius: 6px;
+  border: 1px solid #ffeaa7;
+  margin: 16px 0;
+  font-size: 14px;
+}
+
+.warning-message mat-icon {
+  color: #f39c12;
+  font-size: 18px;
+  width: 18px;
+  height: 18px;
+}
+
+/* Personalización de Angular Material */
+::ng-deep .mat-mdc-form-field {
+  margin-bottom: 0;
+}
+
+::ng-deep .mat-mdc-form-field .mat-mdc-text-field-wrapper {
+  border-radius: 6px;
+}
+
+::ng-deep .mat-mdc-form-field.mat-focused .mat-mdc-form-field-focus-overlay {
+  background-color: rgba(198, 40, 40, 0.04);
+}
+
+::ng-deep .mat-mdc-form-field.mat-focused .mat-mdc-floating-label {
+  color: var(--primary-red, #c62828);
+}
+
+::ng-deep .mat-mdc-select-panel {
+  border-radius: 6px;
+}
+
+::ng-deep .mat-mdc-option.mdc-list-item--selected:not(.mdc-list-item--disabled) {
+  background-color: rgba(198, 40, 40, 0.08);
+}
+
+::ng-deep .mat-mdc-option:hover:not(.mdc-list-item--disabled) {
+  background-color: rgba(198, 40, 40, 0.04);
+}
+
+::ng-deep .mat-step-header .mat-step-icon-selected {
+  background-color: var(--primary-red, #c62828);
+  color: white;
+}
+
+::ng-deep .mat-step-header .mat-step-icon-state-done {
+  background-color: var(--success, #28a745);
+  color: white;
+}
+
+::ng-deep .mat-step-header .mat-step-icon {
+  background-color: var(--text-secondary, #6c757d);
+  color: white;
+}
+
+::ng-deep .mat-mdc-checkbox {
+  --mdc-checkbox-selected-checkmark-color: #ffffff;
+  --mdc-checkbox-selected-focus-icon-color: var(--primary-red, #c62828);
+  --mdc-checkbox-selected-hover-icon-color: var(--primary-red, #c62828);
+  --mdc-checkbox-selected-icon-color: var(--primary-red, #c62828);
+}
+
+::ng-deep .mat-mdc-dialog-actions {
+  padding: 24px;
+  background: var(--bg-secondary, #f8f9fa);
+  border-top: 1px solid var(--border-light, #e9ecef);
+  margin: 16px -24px -24px -24px;
+  display: flex;
+  justify-content: center;
+  gap: 16px;
+}
+
+::ng-deep .mat-mdc-dialog-actions button {
+  border-radius: 8px;
+  font-weight: 500;
+  text-transform: none;
+  padding: 0 24px;
+  height: 44px;
+  min-width: 120px;
+}
+
+::ng-deep .mat-mdc-dialog-container {
+  overflow: hidden !important;
+  max-height: 90vh;
+}
+
+::ng-deep .mat-mdc-dialog-surface {
+  overflow: hidden !important;
+  max-height: 90vh;
+  max-width: 90vw;
+}
+
+::ng-deep .mat-mdc-dialog-content {
+  max-height: 60vh;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 0 24px;
+  scrollbar-width: thin;
+  scrollbar-color: #c62828 #f1f1f1;
+}
+
+/* Custom scrollbar para webkit browsers */
+::ng-deep .mat-mdc-dialog-content::-webkit-scrollbar {
+  width: 6px;
+}
+
+::ng-deep .mat-mdc-dialog-content::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 3px;
+}
+
+::ng-deep .mat-mdc-dialog-content::-webkit-scrollbar-thumb {
+  background: #c62828;
+  border-radius: 3px;
+}
+
+::ng-deep .mat-mdc-dialog-content::-webkit-scrollbar-thumb:hover {
+  background: #b71c1c;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .personal-form-container {
+    max-width: 100%;
+    min-height: auto;
+  }
+
+  h2[mat-dialog-title] {
+    font-size: 18px;
+    padding: 16px 20px;
+    margin: -20px -20px 20px -20px;
+  }
+
+  .form-row {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+
+  .step-content {
+    padding: 16px 0;
+    min-height: auto;
+  }
+
+  .cualidades-section {
+    padding: 16px;
+    margin-bottom: 24px;
+  }
+
+  .cualidades-grid {
+    grid-template-columns: 1fr;
+    gap: 8px;
+  }
+
+  .step-actions {
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .step-actions button {
+    width: 100%;
+  }
+
+  ::ng-deep .mat-mdc-dialog-content {
+    padding: 0 20px;
+  }
+
+  ::ng-deep .mat-mdc-dialog-actions {
+    padding: 16px 20px;
+    margin: 0 -20px -20px -20px;
+  }
+}
+
+/* Control global del dialog */
+::ng-deep .cdk-overlay-container {
+  overflow: hidden;
+}
+
+::ng-deep .cdk-global-overlay-wrapper {
+  overflow: hidden;
+}
+
+::ng-deep .mat-mdc-dialog-container {
+  overflow: hidden !important;
+  max-height: 90vh;
+}
+
+::ng-deep .mat-mdc-dialog-surface {
+  overflow: hidden !important;
+  max-height: 90vh;
+  max-width: 90vw;
+} 

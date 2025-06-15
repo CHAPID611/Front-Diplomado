@@ -1,0 +1,80 @@
+<div class="dashboard-container">
+  <!-- Tarjetas de resumen -->
+  <div class="summary-cards">
+    <mat-card class="summary-card">
+      <mat-card-content>
+        <div class="card-content">
+          <mat-icon class="card-icon">local_fire_department</mat-icon>
+          <div class="card-info">
+            <h3>Total Emergencias</h3>
+            <p class="number">{{totalEmergencies}}</p>
+          </div>
+        </div>
+      </mat-card-content>
+    </mat-card>
+
+    <mat-card class="summary-card">
+      <mat-card-content>
+        <div class="card-content">
+          <mat-icon class="card-icon">warning</mat-icon>
+          <div class="card-info">
+            <h3>Emergencias Activas</h3>
+            <p class="number">{{activeEmergencies}}</p>
+          </div>
+        </div>
+      </mat-card-content>
+    </mat-card>
+  </div>
+
+  <!-- Estadísticas y últimas emergencias -->
+  <div class="dashboard-main">
+    <mat-card class="stats-card">
+      <mat-card-header>
+        <mat-card-title>Emergencias por Tipo</mat-card-title>
+      </mat-card-header>
+      <mat-card-content>
+        <div class="emergency-types">
+          <div *ngFor="let type of emergencyTypes" class="type-item">
+            <div class="type-info">
+              <h4>{{type.tipo}}</h4>
+              <p class="type-count">{{type.cantidad}} emergencias</p>
+            </div>
+            <div class="type-bar">
+              <div class="bar-fill" [style.width.%]="(type.cantidad / totalEmergencies) * 100"></div>
+            </div>
+          </div>
+        </div>
+      </mat-card-content>
+    </mat-card>
+
+    <mat-card class="latest-emergencies">
+      <mat-card-header>
+        <mat-card-title>Últimas Emergencias</mat-card-title>
+      </mat-card-header>
+      <mat-card-content>
+        <mat-list>
+          <mat-list-item *ngFor="let emergency of latestEmergencies">
+            <div class="emergency-item">
+              <div class="emergency-info">
+                <h4>{{emergency.tipo}}</h4>
+                <p>{{emergency.direccion}}</p>
+                <small>{{emergency.fecha | date:'short'}}</small>
+              </div>
+              <div class="emergency-status">
+                <mat-chip 
+                  [ngClass]="{
+                    'emergency-active': emergency.estado === 'activa',
+                    'emergency-process': emergency.estado === 'en_proceso', 
+                    'emergency-resolved': emergency.estado === 'resuelta'
+                  }"
+                  selected>
+                  {{getStatusText(emergency.estado)}}
+                </mat-chip>
+              </div>
+            </div>
+          </mat-list-item>
+        </mat-list>
+      </mat-card-content>
+    </mat-card>
+  </div>
+</div>

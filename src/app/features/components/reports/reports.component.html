@@ -1,0 +1,304 @@
+<div class="reports-container">
+  <div class="reports-header">
+    <h1>
+      <mat-icon style="font-size: 2rem; vertical-align: middle; margin-right: 8px;">assessment</mat-icon>
+      Reportes y Estadísticas
+    </h1>
+    <p>Análisis detallado del desempeño del sistema de emergencias</p>
+  </div>
+
+  <!-- Filtros -->
+  <mat-card class="filters-card">
+    <mat-card-header>
+      <mat-card-title>
+        <mat-icon style="vertical-align: middle; margin-right: 8px;">search</mat-icon>
+        Filtros de Análisis
+      </mat-card-title>
+    </mat-card-header>
+    <mat-card-content>
+      <form [formGroup]="filtersForm" class="filters-form">
+        <div class="filter-row">
+          <mat-form-field appearance="outline">
+            <mat-label>Período</mat-label>
+            <mat-select formControlName="period">
+              <mat-option value="7days">Últimos 7 días</mat-option>
+              <mat-option value="30days">Últimos 30 días</mat-option>
+              <mat-option value="3months">Últimos 3 meses</mat-option>
+              <mat-option value="year">Último año</mat-option>
+              <mat-option value="custom">Período personalizado</mat-option>
+            </mat-select>
+          </mat-form-field>
+
+          <mat-form-field appearance="outline" *ngIf="filtersForm.get('period')?.value === 'custom'">
+            <mat-label>Fecha inicio</mat-label>
+            <input matInput [matDatepicker]="startPicker" formControlName="startDate">
+            <mat-datepicker-toggle matIconSuffix [for]="startPicker"></mat-datepicker-toggle>
+            <mat-datepicker #startPicker></mat-datepicker>
+          </mat-form-field>
+
+          <mat-form-field appearance="outline" *ngIf="filtersForm.get('period')?.value === 'custom'">
+            <mat-label>Fecha fin</mat-label>
+            <input matInput [matDatepicker]="endPicker" formControlName="endDate">
+            <mat-datepicker-toggle matIconSuffix [for]="endPicker"></mat-datepicker-toggle>
+            <mat-datepicker #endPicker></mat-datepicker>
+          </mat-form-field>
+
+          <mat-form-field appearance="outline">
+            <mat-label>Tipo de emergencia</mat-label>
+            <mat-select formControlName="emergencyType">
+              <mat-option value="all">Todos los tipos</mat-option>
+              <mat-option value="incendio">Incendio estructural</mat-option>
+              <mat-option value="rescate">Rescate vehicular</mat-option>
+              <mat-option value="emergencia_medica">Emergencia médica</mat-option>
+              <mat-option value="materiales_peligrosos">Materiales peligrosos</mat-option>
+              <mat-option value="inundacion">Inundación</mat-option>
+            </mat-select>
+          </mat-form-field>
+
+          <button mat-raised-button color="primary" (click)="applyFilters()" class="apply-btn">
+            <mat-icon>search</mat-icon>
+            Aplicar Filtros
+          </button>
+        </div>
+      </form>
+    </mat-card-content>
+  </mat-card>
+
+  <!-- Resumen ejecutivo -->
+  <div class="summary-stats">
+    <mat-card class="stat-card primary">
+      <div class="stat-content">
+        <mat-icon class="stat-icon">local_fire_department</mat-icon>
+        <div class="stat-info">
+          <h3>Total Emergencias</h3>
+          <p class="stat-number">{{ reportData.totalEmergencies }}</p>
+          <small>en el período seleccionado</small>
+        </div>
+      </div>
+    </mat-card>
+
+    <mat-card class="stat-card success">
+      <div class="stat-content">
+        <mat-icon class="stat-icon">timer</mat-icon>
+        <div class="stat-info">
+          <h3>Tiempo Promedio</h3>
+          <p class="stat-number">{{ reportData.responseTime }}min</p>
+          <small>tiempo de respuesta</small>
+        </div>
+      </div>
+    </mat-card>
+
+    <mat-card class="stat-card warning">
+      <div class="stat-content">
+        <mat-icon class="stat-icon">check_circle</mat-icon>
+        <div class="stat-info">
+          <h3>Tasa de Éxito</h3>
+          <p class="stat-number">{{ reportData.successRate }}%</p>
+          <small>emergencias resueltas</small>
+        </div>
+      </div>
+    </mat-card>
+
+    <mat-card class="stat-card info">
+      <div class="stat-content">
+        <mat-icon class="stat-icon">trending_up</mat-icon>
+        <div class="stat-info">
+          <h3>Tipo Más Común</h3>
+          <p class="stat-text">{{ reportData.mostCommonType }}</p>
+          <small>tipo de emergencia</small>
+        </div>
+      </div>
+    </mat-card>
+  </div>
+
+  <!-- Tabs para diferentes reportes -->
+  <mat-tab-group class="reports-tabs">
+    <mat-tab>
+      <ng-template mat-tab-label>
+        <mat-icon style="margin-right: 8px;">bar_chart</mat-icon>
+        Estadísticas por Tipo
+      </ng-template>
+      <div class="tab-content">
+        <mat-card>
+          <mat-card-header>
+            <mat-card-title>Distribución por Tipo de Emergencia</mat-card-title>
+            <mat-card-subtitle>Análisis detallado por categoría</mat-card-subtitle>
+          </mat-card-header>
+          <mat-card-content>
+            <div class="emergency-types-grid">
+              <div *ngFor="let stat of emergencyTypesStats" class="type-stat-card">
+                <div class="type-header">
+                  <h4>{{ getEmergencyTypeLabel(stat.type) }}</h4>
+                  <mat-chip [ngClass]="'chip-' + stat.type">{{ stat.count }} casos</mat-chip>
+                </div>
+                <div class="type-metrics">
+                  <div class="metric">
+                    <span class="metric-label">Porcentaje:</span>
+                    <span class="metric-value">{{ stat.percentage }}%</span>
+                  </div>
+                  <div class="metric">
+                    <span class="metric-label">Tiempo promedio:</span>
+                    <span class="metric-value">{{ stat.avgResponseTime }}min</span>
+                  </div>
+                </div>
+                <div class="percentage-bar">
+                  <div class="bar-fill" [style.width.%]="stat.percentage"></div>
+                </div>
+              </div>
+            </div>
+          </mat-card-content>
+        </mat-card>
+      </div>
+    </mat-tab>
+
+    <mat-tab>
+      <ng-template mat-tab-label>
+        <mat-icon style="margin-right: 8px;">calendar_month</mat-icon>
+        Tendencias Mensuales
+      </ng-template>
+      <div class="tab-content">
+        <mat-card>
+          <mat-card-header>
+            <mat-card-title>Evolución Mensual</mat-card-title>
+            <mat-card-subtitle>Tendencias y patrones temporales</mat-card-subtitle>
+          </mat-card-header>
+          <mat-card-content>
+            <mat-table [dataSource]="monthlyStats" class="monthly-table">
+              <ng-container matColumnDef="month">
+                <mat-header-cell *matHeaderCellDef>Mes</mat-header-cell>
+                <mat-cell *matCellDef="let element">{{ element.month }}</mat-cell>
+              </ng-container>
+
+              <ng-container matColumnDef="emergencies">
+                <mat-header-cell *matHeaderCellDef>Total Emergencias</mat-header-cell>
+                <mat-cell *matCellDef="let element">
+                  <span class="metric-badge">{{ element.emergencies }}</span>
+                </mat-cell>
+              </ng-container>
+
+              <ng-container matColumnDef="resolved">
+                <mat-header-cell *matHeaderCellDef>Resueltas</mat-header-cell>
+                <mat-cell *matCellDef="let element">
+                  <span class="metric-badge success">{{ element.resolved }}</span>
+                </mat-cell>
+              </ng-container>
+
+              <ng-container matColumnDef="avgResponseTime">
+                <mat-header-cell *matHeaderCellDef>Tiempo Promedio</mat-header-cell>
+                <mat-cell *matCellDef="let element">
+                  <span class="metric-badge warning">{{ element.avgResponseTime }}min</span>
+                </mat-cell>
+              </ng-container>
+
+              <ng-container matColumnDef="efficiency">
+                <mat-header-cell *matHeaderCellDef>Eficiencia</mat-header-cell>
+                <mat-cell *matCellDef="let element">
+                  <div class="efficiency-indicator">
+                    <div class="efficiency-bar">
+                      <div class="efficiency-fill" [style.width.%]="(element.resolved / element.emergencies) * 100"></div>
+                    </div>
+                    <span>{{ ((element.resolved / element.emergencies) * 100).toFixed(1) }}%</span>
+                  </div>
+                </mat-cell>
+              </ng-container>
+
+              <mat-header-row *matHeaderRowDef="displayedColumns"></mat-header-row>
+              <mat-row *matRowDef="let row; columns: displayedColumns;"></mat-row>
+            </mat-table>
+          </mat-card-content>
+        </mat-card>
+      </div>
+    </mat-tab>
+
+    <mat-tab>
+      <ng-template mat-tab-label>
+        <mat-icon style="margin-right: 8px;">schedule</mat-icon>
+        Análisis de Tiempos
+      </ng-template>
+      <div class="tab-content">
+        <mat-card>
+          <mat-card-header>
+            <mat-card-title>Análisis de Tiempos de Respuesta</mat-card-title>
+            <mat-card-subtitle>Métricas de eficiencia operativa</mat-card-subtitle>
+          </mat-card-header>
+          <mat-card-content>
+            <div class="time-analysis-grid">
+              <div class="time-metric">
+                <h4>
+                  <mat-icon style="font-size: 16px; vertical-align: middle; margin-right: 4px;">gps_fixed</mat-icon>
+                  Tiempo Objetivo
+                </h4>
+                <p class="time-value target">≤ 8min</p>
+                <small>Meta institucional</small>
+              </div>
+              <div class="time-metric">
+                <h4>
+                  <mat-icon style="font-size: 16px; vertical-align: middle; margin-right: 4px;">flash_on</mat-icon>
+                  Tiempo Mínimo
+                </h4>
+                <p class="time-value best">3.2min</p>
+                <small>Mejor registro</small>
+              </div>
+              <div class="time-metric">
+                <h4>
+                  <mat-icon style="font-size: 16px; vertical-align: middle; margin-right: 4px;">analytics</mat-icon>
+                  Tiempo Promedio
+                </h4>
+                <p class="time-value average">{{ reportData.responseTime }}min</p>
+                <small>Promedio general</small>
+              </div>
+              <div class="time-metric">
+                <h4>
+                  <mat-icon style="font-size: 16px; vertical-align: middle; margin-right: 4px;">warning</mat-icon>
+                  Tiempo Máximo
+                </h4>
+                <p class="time-value worst">23.5min</p>
+                <small>Caso más largo</small>
+              </div>
+            </div>
+
+            <mat-divider></mat-divider>
+
+            <div class="performance-indicators">
+              <h4>
+                <mat-icon style="font-size: 20px; vertical-align: middle; margin-right: 8px;">trending_up</mat-icon>
+                Indicadores de Rendimiento
+              </h4>
+              <div class="indicators-grid">
+                <div class="indicator">
+                  <span class="indicator-label">Respuestas dentro del objetivo:</span>
+                  <div class="indicator-bar">
+                    <div class="indicator-fill success" style="width: 73%"></div>
+                    <span class="indicator-text">73%</span>
+                  </div>
+                </div>
+                <div class="indicator">
+                  <span class="indicator-label">Mejora vs. mes anterior:</span>
+                  <div class="indicator-bar">
+                    <div class="indicator-fill info" style="width: 15%"></div>
+                    <span class="indicator-text">+15%</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </mat-card-content>
+        </mat-card>
+      </div>
+    </mat-tab>
+  </mat-tab-group>
+
+  <!-- Acciones de reporte -->
+  <div class="report-actions">
+    <button mat-raised-button color="primary" 
+      (click)="exportReport('pdf')" 
+      [disabled]="isGeneratingPdf">
+      <mat-icon *ngIf="!isGeneratingPdf">picture_as_pdf</mat-icon>
+      <mat-icon *ngIf="isGeneratingPdf" class="spinner">refresh</mat-icon>
+      {{ isGeneratingPdf ? 'Generando PDF...' : 'Exportar PDF' }}
+    </button>
+    <button mat-raised-button (click)="printReport()">
+      <mat-icon>print</mat-icon>
+      Imprimir
+    </button>
+  </div>
+</div> 

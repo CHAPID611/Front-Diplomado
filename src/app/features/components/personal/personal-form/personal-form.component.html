@@ -1,0 +1,343 @@
+<div class="personal-form-container">
+  <h2 mat-dialog-title>
+    <mat-icon>{{ isEditMode ? 'edit' : 'person_add' }}</mat-icon>
+    {{ isEditMode ? 'Editar Personal' : 'Registrar Nuevo Personal' }}
+  </h2>
+
+  <mat-dialog-content>
+    <form [formGroup]="personalForm" (ngSubmit)="onSubmit()">
+      
+      <mat-stepper #stepper orientation="vertical" linear="false">
+        
+        <!-- Paso 1: Datos Personales -->
+        <mat-step label="Datos Personales">
+          <ng-template matStepContent>
+            <div class="step-content">
+              
+              <div class="form-row">
+                <mat-form-field appearance="outline">
+                  <mat-label>Cédula</mat-label>
+                  <input matInput formControlName="cedula" required>
+                  <mat-icon matSuffix>badge</mat-icon>
+                  <mat-error *ngIf="personalForm.get('cedula')?.invalid && personalForm.get('cedula')?.touched">
+                    {{ getErrorMessage('cedula') }}
+                  </mat-error>
+                </mat-form-field>
+
+                <mat-form-field appearance="outline">
+                  <mat-label>Tipo de Sangre</mat-label>
+                  <mat-select formControlName="tipoSangre" required>
+                    <mat-option *ngFor="let tipo of tiposSangre" [value]="tipo">
+                      {{ tipo }}
+                    </mat-option>
+                  </mat-select>
+                  <mat-icon matSuffix>bloodtype</mat-icon>
+                </mat-form-field>
+              </div>
+
+              <div class="form-row">
+                <mat-form-field appearance="outline">
+                  <mat-label>Nombres</mat-label>
+                  <input matInput formControlName="nombres" required>
+                  <mat-icon matSuffix>person</mat-icon>
+                  <mat-error *ngIf="personalForm.get('nombres')?.invalid && personalForm.get('nombres')?.touched">
+                    {{ getErrorMessage('nombres') }}
+                  </mat-error>
+                </mat-form-field>
+
+                <mat-form-field appearance="outline">
+                  <mat-label>Apellidos</mat-label>
+                  <input matInput formControlName="apellidos" required>
+                  <mat-icon matSuffix>person</mat-icon>
+                  <mat-error *ngIf="personalForm.get('apellidos')?.invalid && personalForm.get('apellidos')?.touched">
+                    {{ getErrorMessage('apellidos') }}
+                  </mat-error>
+                </mat-form-field>
+              </div>
+
+              <div class="form-row">
+                <mat-form-field appearance="outline">
+                  <mat-label>Fecha de Nacimiento</mat-label>
+                  <input matInput [matDatepicker]="birthPicker" formControlName="fechaNacimiento" required>
+                  <mat-datepicker-toggle matIconSuffix [for]="birthPicker"></mat-datepicker-toggle>
+                  <mat-datepicker #birthPicker></mat-datepicker>
+                </mat-form-field>
+
+                <mat-form-field appearance="outline">
+                  <mat-label>Teléfono</mat-label>
+                  <input matInput formControlName="telefono" placeholder="3001234567" required>
+                  <mat-icon matSuffix>phone</mat-icon>
+                  <mat-error *ngIf="personalForm.get('telefono')?.invalid && personalForm.get('telefono')?.touched">
+                    {{ getErrorMessage('telefono') }}
+                  </mat-error>
+                </mat-form-field>
+              </div>
+
+              <mat-form-field appearance="outline" class="full-width">
+                <mat-label>Email</mat-label>
+                <input matInput type="email" formControlName="email" required>
+                <mat-icon matSuffix>email</mat-icon>
+                <mat-error *ngIf="personalForm.get('email')?.invalid && personalForm.get('email')?.touched">
+                  {{ getErrorMessage('email') }}
+                </mat-error>
+              </mat-form-field>
+
+              <mat-form-field appearance="outline" class="full-width">
+                <mat-label>Dirección</mat-label>
+                <textarea matInput formControlName="direccion" rows="2" required></textarea>
+                <mat-icon matSuffix>location_on</mat-icon>
+              </mat-form-field>
+
+              <div class="step-actions">
+                <button mat-raised-button color="primary" matStepperNext>Siguiente</button>
+              </div>
+            </div>
+          </ng-template>
+        </mat-step>
+
+        <!-- Paso 2: Datos Laborales -->
+        <mat-step label="Información Laboral">
+          <ng-template matStepContent>
+            <div class="step-content">
+              
+              <div class="form-row">
+                <mat-form-field appearance="outline">
+                  <mat-label>Cargo</mat-label>
+                  <mat-select formControlName="cargo" required>
+                    <mat-option *ngFor="let cargo of data.cargos" [value]="cargo.id">
+                      {{ cargo.nombre }}
+                    </mat-option>
+                  </mat-select>
+                  <mat-icon matSuffix>work</mat-icon>
+                </mat-form-field>
+
+                <mat-form-field appearance="outline">
+                  <mat-label>Rango</mat-label>
+                  <mat-select formControlName="rango" required>
+                    <mat-option *ngFor="let rango of data.rangos" [value]="rango.id">
+                      {{ rango.nombre }}
+                    </mat-option>
+                  </mat-select>
+                  <mat-icon matSuffix>military_tech</mat-icon>
+                </mat-form-field>
+              </div>
+
+              <div class="form-row">
+                <mat-form-field appearance="outline">
+                  <mat-label>Fecha de Ingreso</mat-label>
+                  <input matInput [matDatepicker]="ingressPicker" formControlName="fechaIngreso" required>
+                  <mat-datepicker-toggle matIconSuffix [for]="ingressPicker"></mat-datepicker-toggle>
+                  <mat-datepicker #ingressPicker></mat-datepicker>
+                </mat-form-field>
+
+                <mat-form-field appearance="outline">
+                  <mat-label>Años de Experiencia</mat-label>
+                  <input matInput type="number" formControlName="experienciaAnios" min="0" required>
+                  <mat-icon matSuffix>schedule</mat-icon>
+                </mat-form-field>
+              </div>
+
+              <mat-form-field appearance="outline" class="full-width">
+                <mat-label>Estado</mat-label>
+                <mat-select formControlName="estado" required>
+                  <mat-option *ngFor="let estado of estados" [value]="estado.value">
+                    {{ estado.label }}
+                  </mat-option>
+                </mat-select>
+                <mat-icon matSuffix>info</mat-icon>
+              </mat-form-field>
+
+              <mat-form-field appearance="outline" class="full-width">
+                <mat-label>Observaciones</mat-label>
+                <textarea matInput formControlName="observaciones" rows="3" 
+                  placeholder="Especialidades, certificaciones, notas adicionales..."></textarea>
+                <mat-icon matSuffix>note</mat-icon>
+              </mat-form-field>
+
+              <div class="step-actions">
+                <button mat-button matStepperPrevious>Anterior</button>
+                <button mat-raised-button color="primary" matStepperNext>Siguiente</button>
+              </div>
+            </div>
+          </ng-template>
+        </mat-step>
+
+        <!-- Paso 3: Cualidades y Competencias -->
+        <mat-step label="Cualidades y Competencias">
+          <ng-template matStepContent>
+            <div class="step-content">
+              
+              <h3>
+                <mat-icon>star</mat-icon>
+                Selecciona las cualidades y competencias del personal
+              </h3>
+              <p class="subtitle">Estas cualidades determinan en qué tipos de emergencias puede participar.</p>
+
+              <!-- Cualidades Médicas -->
+              <div class="cualidades-section" *ngIf="getCualidadesByCategoria('medica').length > 0">
+                <h4>
+                  <mat-icon>local_hospital</mat-icon>
+                  Competencias Médicas
+                </h4>
+                <div class="cualidades-grid">
+                  <mat-checkbox 
+                    *ngFor="let cualidad of getCualidadesByCategoria('medica')"
+                    [checked]="isCualidadSelected(cualidad.id)"
+                    (change)="onCualidadChange(cualidad.id, $event.checked)"
+                    [matTooltip]="cualidad.descripcion">
+                    {{ cualidad.nombre }}
+                  </mat-checkbox>
+                </div>
+              </div>
+
+              <!-- Cualidades de Rescate -->
+              <div class="cualidades-section" *ngIf="getCualidadesByCategoria('rescate').length > 0">
+                <h4>
+                  <mat-icon>safety_divider</mat-icon>
+                  Operaciones de Rescate
+                </h4>
+                <div class="cualidades-grid">
+                  <mat-checkbox 
+                    *ngFor="let cualidad of getCualidadesByCategoria('rescate')"
+                    [checked]="isCualidadSelected(cualidad.id)"
+                    (change)="onCualidadChange(cualidad.id, $event.checked)"
+                    [matTooltip]="cualidad.descripcion">
+                    {{ cualidad.nombre }}
+                  </mat-checkbox>
+                </div>
+              </div>
+
+              <!-- Cualidades Técnicas -->
+              <div class="cualidades-section" *ngIf="getCualidadesByCategoria('tecnica').length > 0">
+                <h4>
+                  <mat-icon>engineering</mat-icon>
+                  Competencias Técnicas
+                </h4>
+                <div class="cualidades-grid">
+                  <mat-checkbox 
+                    *ngFor="let cualidad of getCualidadesByCategoria('tecnica')"
+                    [checked]="isCualidadSelected(cualidad.id)"
+                    (change)="onCualidadChange(cualidad.id, $event.checked)"
+                    [matTooltip]="cualidad.descripcion">
+                    {{ cualidad.nombre }}
+                  </mat-checkbox>
+                </div>
+              </div>
+
+              <!-- Cualidades Operativas -->
+              <div class="cualidades-section" *ngIf="getCualidadesByCategoria('operativa').length > 0">
+                <h4>
+                  <mat-icon>settings</mat-icon>
+                  Habilidades Operativas
+                </h4>
+                <div class="cualidades-grid">
+                  <mat-checkbox 
+                    *ngFor="let cualidad of getCualidadesByCategoria('operativa')"
+                    [checked]="isCualidadSelected(cualidad.id)"
+                    (change)="onCualidadChange(cualidad.id, $event.checked)"
+                    [matTooltip]="cualidad.descripcion">
+                    {{ cualidad.nombre }}
+                  </mat-checkbox>
+                </div>
+              </div>
+
+              <!-- Cualidades Administrativas -->
+              <div class="cualidades-section" *ngIf="getCualidadesByCategoria('administrativa').length > 0">
+                <h4>
+                  <mat-icon>admin_panel_settings</mat-icon>
+                  Competencias Administrativas
+                </h4>
+                <div class="cualidades-grid">
+                  <mat-checkbox 
+                    *ngFor="let cualidad of getCualidadesByCategoria('administrativa')"
+                    [checked]="isCualidadSelected(cualidad.id)"
+                    (change)="onCualidadChange(cualidad.id, $event.checked)"
+                    [matTooltip]="cualidad.descripcion">
+                    {{ cualidad.nombre }}
+                  </mat-checkbox>
+                </div>
+              </div>
+
+              <div *ngIf="cualidadesSeleccionadas.length === 0" class="warning-message">
+                <mat-icon>warning</mat-icon>
+                Debe seleccionar al menos una cualidad
+              </div>
+
+              <div class="step-actions">
+                <button mat-button matStepperPrevious>Anterior</button>
+                <button mat-raised-button color="primary" matStepperNext>Siguiente</button>
+              </div>
+            </div>
+          </ng-template>
+        </mat-step>
+
+        <!-- Paso 4: Contacto de Emergencia -->
+        <mat-step label="Contacto de Emergencia">
+          <ng-template matStepContent>
+            <div class="step-content">
+              
+              <h3>
+                <mat-icon>emergency</mat-icon>
+                Contacto de Emergencia
+              </h3>
+              <p class="subtitle">Información de la persona a contactar en caso de emergencia.</p>
+
+              <mat-form-field appearance="outline" class="full-width">
+                <mat-label>Nombre Completo</mat-label>
+                <input matInput formControlName="contactoNombre" required>
+                <mat-icon matSuffix>person</mat-icon>
+                <mat-error *ngIf="personalForm.get('contactoNombre')?.invalid && personalForm.get('contactoNombre')?.touched">
+                  {{ getErrorMessage('contactoNombre') }}
+                </mat-error>
+              </mat-form-field>
+
+              <div class="form-row">
+                <mat-form-field appearance="outline">
+                  <mat-label>Parentesco</mat-label>
+                  <mat-select formControlName="contactoParentesco" required>
+                    <mat-option value="padre">Padre</mat-option>
+                    <mat-option value="madre">Madre</mat-option>
+                    <mat-option value="esposo">Esposo</mat-option>
+                    <mat-option value="esposa">Esposa</mat-option>
+                    <mat-option value="hermano">Hermano</mat-option>
+                    <mat-option value="hermana">Hermana</mat-option>
+                    <mat-option value="hijo">Hijo</mat-option>
+                    <mat-option value="hija">Hija</mat-option>
+                    <mat-option value="otro">Otro</mat-option>
+                  </mat-select>
+                  <mat-icon matSuffix>family_restroom</mat-icon>
+                </mat-form-field>
+
+                <mat-form-field appearance="outline">
+                  <mat-label>Teléfono</mat-label>
+                  <input matInput formControlName="contactoTelefono" placeholder="3001234567" required>
+                  <mat-icon matSuffix>phone</mat-icon>
+                  <mat-error *ngIf="personalForm.get('contactoTelefono')?.invalid && personalForm.get('contactoTelefono')?.touched">
+                    {{ getErrorMessage('contactoTelefono') }}
+                  </mat-error>
+                </mat-form-field>
+              </div>
+
+              <div class="step-actions">
+                <button mat-button matStepperPrevious>Anterior</button>
+                <button mat-raised-button color="primary" matStepperNext>Finalizar</button>
+              </div>
+            </div>
+          </ng-template>
+        </mat-step>
+
+      </mat-stepper>
+
+    </form>
+  </mat-dialog-content>
+
+  <mat-dialog-actions align="end">
+    <button mat-button (click)="onCancel()">Cancelar</button>
+    <button mat-raised-button color="primary" 
+      [disabled]="personalForm.invalid || cualidadesSeleccionadas.length === 0"
+      (click)="onSubmit()">
+      <mat-icon>save</mat-icon>
+      {{ isEditMode ? 'Actualizar' : 'Registrar' }}
+    </button>
+  </mat-dialog-actions>
+</div> 

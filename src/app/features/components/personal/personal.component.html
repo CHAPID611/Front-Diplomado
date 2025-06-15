@@ -1,0 +1,330 @@
+<div class="personal-container">
+  <!-- Header -->
+  <div class="personal-header">
+    <h1>
+      <mat-icon>people</mat-icon>
+      Gestión de Personal
+    </h1>
+    <p>Administración del personal del Cuerpo de Bomberos</p>
+  </div>
+
+  <!-- Estadísticas -->
+  <div class="stats-cards" *ngIf="stats">
+    <mat-card class="stat-card primary">
+      <div class="stat-content">
+        <mat-icon class="stat-icon">people</mat-icon>
+        <div class="stat-info">
+          <h3>Total Personal</h3>
+          <p class="stat-number">{{ stats.totalPersonal }}</p>
+          <small>miembros registrados</small>
+        </div>
+      </div>
+    </mat-card>
+
+    <mat-card class="stat-card success">
+      <div class="stat-content">
+        <mat-icon class="stat-icon">check_circle</mat-icon>
+        <div class="stat-info">
+          <h3>Personal Activo</h3>
+          <p class="stat-number">{{ stats.personalActivo }}</p>
+          <small>en servicio</small>
+        </div>
+      </div>
+    </mat-card>
+
+    <mat-card class="stat-card warning">
+      <div class="stat-content">
+        <mat-icon class="stat-icon">schedule</mat-icon>
+        <div class="stat-info">
+          <h3>En Licencia</h3>
+          <p class="stat-number">{{ stats.personalEnLicencia }}</p>
+          <small>temporalmente ausentes</small>
+        </div>
+      </div>
+    </mat-card>
+
+    <mat-card class="stat-card info">
+      <div class="stat-content">
+        <mat-icon class="stat-icon">trending_up</mat-icon>
+        <div class="stat-info">
+          <h3>Experiencia Promedio</h3>
+          <p class="stat-number">{{ stats.promedioExperiencia | number:'1.1-1' }}</p>
+          <small>años de experiencia</small>
+        </div>
+      </div>
+    </mat-card>
+  </div>
+
+  <!-- Tabs principales -->
+  <mat-tab-group class="personal-tabs">
+    
+    <!-- Tab: Lista de Personal -->
+    <mat-tab>
+      <ng-template mat-tab-label>
+        <mat-icon>list</mat-icon>
+        Lista de Personal
+      </ng-template>
+      
+      <div class="tab-content">
+        <!-- Filtros y Acciones -->
+        <mat-card class="filters-card">
+          <mat-card-content>
+            <form [formGroup]="filterForm" class="filters-form">
+              <div class="filter-row">
+                <mat-form-field appearance="outline">
+                  <mat-label>Buscar</mat-label>
+                  <input matInput formControlName="search" 
+                    placeholder="Nombre, cédula, email...">
+                  <mat-icon matSuffix>search</mat-icon>
+                </mat-form-field>
+
+                <mat-form-field appearance="outline">
+                  <mat-label>Cargo</mat-label>
+                  <mat-select formControlName="cargo">
+                    <mat-option value="">Todos los cargos</mat-option>
+                    <mat-option *ngFor="let cargo of cargos" [value]="cargo.id">
+                      {{ cargo.nombre }}
+                    </mat-option>
+                  </mat-select>
+                </mat-form-field>
+
+                <mat-form-field appearance="outline">
+                  <mat-label>Estado</mat-label>
+                  <mat-select formControlName="estado">
+                    <mat-option value="">Todos los estados</mat-option>
+                    <mat-option value="activo">Activo</mat-option>
+                    <mat-option value="inactivo">Inactivo</mat-option>
+                    <mat-option value="licencia">En Licencia</mat-option>
+                  </mat-select>
+                </mat-form-field>
+
+                <mat-form-field appearance="outline">
+                  <mat-label>Rango</mat-label>
+                  <mat-select formControlName="rango">
+                    <mat-option value="">Todos los rangos</mat-option>
+                    <mat-option *ngFor="let rango of rangos" [value]="rango.id">
+                      {{ rango.nombre }}
+                    </mat-option>
+                  </mat-select>
+                </mat-form-field>
+              </div>
+
+              <div class="actions-row">
+                <button mat-raised-button color="primary" (click)="openPersonalForm()">
+                  <mat-icon>person_add</mat-icon>
+                  Registrar Personal
+                </button>
+                
+                <button mat-stroked-button (click)="clearFilters()">
+                  <mat-icon>clear</mat-icon>
+                  Limpiar Filtros
+                </button>
+                
+                <button mat-stroked-button (click)="exportData()">
+                  <mat-icon>download</mat-icon>
+                  Exportar
+                </button>
+              </div>
+            </form>
+          </mat-card-content>
+        </mat-card>
+
+        <!-- Tabla de Personal -->
+        <mat-card class="table-card">
+          <mat-card-content>
+            <div class="table-header">
+              <h3>Personal Registrado ({{ filteredPersonal.length }})</h3>
+            </div>
+
+            <div class="table-container">
+              <mat-table [dataSource]="filteredPersonal" class="personal-table">
+                
+                <!-- Columna Foto/Avatar -->
+                <ng-container matColumnDef="foto">
+                  <mat-header-cell *matHeaderCellDef></mat-header-cell>
+                  <mat-cell *matCellDef="let persona">
+                    <div class="avatar">
+                      <mat-icon>person</mat-icon>
+                    </div>
+                  </mat-cell>
+                </ng-container>
+
+                <!-- Columna Nombre -->
+                <ng-container matColumnDef="nombre">
+                  <mat-header-cell *matHeaderCellDef>Nombre</mat-header-cell>
+                  <mat-cell *matCellDef="let persona">
+                    <div class="person-info">
+                      <div class="name">{{ persona.nombres }} {{ persona.apellidos }}</div>
+                      <div class="details">{{ persona.cedula }} • {{ persona.email }}</div>
+                    </div>
+                  </mat-cell>
+                </ng-container>
+
+                <!-- Columna Cargo -->
+                <ng-container matColumnDef="cargo">
+                  <mat-header-cell *matHeaderCellDef>Cargo</mat-header-cell>
+                  <mat-cell *matCellDef="let persona">
+                    <div class="cargo-info">
+                      <div class="cargo">{{ getNombreCargo(persona.cargo) }}</div>
+                      <div class="phone">{{ persona.telefono }}</div>
+                    </div>
+                  </mat-cell>
+                </ng-container>
+
+                <!-- Columna Rango -->
+                <ng-container matColumnDef="rango">
+                  <mat-header-cell *matHeaderCellDef>Rango</mat-header-cell>
+                  <mat-cell *matCellDef="let persona">
+                    <div class="rango-badge">
+                      {{ getNombreRango(persona.rango) }}
+                    </div>
+                  </mat-cell>
+                </ng-container>
+
+                <!-- Columna Estado -->
+                <ng-container matColumnDef="estado">
+                  <mat-header-cell *matHeaderCellDef>Estado</mat-header-cell>
+                  <mat-cell *matCellDef="let persona">
+                    <mat-chip [ngClass]="'estado-' + persona.estado" selected>
+                      {{ getEstadoLabel(persona.estado) }}
+                    </mat-chip>
+                  </mat-cell>
+                </ng-container>
+
+                <!-- Columna Experiencia -->
+                <ng-container matColumnDef="experiencia">
+                  <mat-header-cell *matHeaderCellDef>Experiencia</mat-header-cell>
+                  <mat-cell *matCellDef="let persona">
+                    <div class="experience">
+                      <strong>{{ persona.experienciaAnios }}</strong> años
+                    </div>
+                  </mat-cell>
+                </ng-container>
+
+                <!-- Columna Cualidades -->
+                <ng-container matColumnDef="cualidades">
+                  <mat-header-cell *matHeaderCellDef>Cualidades</mat-header-cell>
+                  <mat-cell *matCellDef="let persona">
+                    <div class="cualidades-list">
+                      <mat-chip 
+                        *ngFor="let cualidad of persona.cualidades.slice(0, 2)" 
+                        class="cualidad-chip"
+                        [matTooltip]="getNombreCualidad(cualidad)">
+                        {{ getNombreCualidad(cualidad) }}
+                      </mat-chip>
+                      <mat-chip 
+                        *ngIf="persona.cualidades.length > 2" 
+                        class="more-chip"
+                        [matTooltip]="'Ver todas las cualidades'">
+                        +{{ persona.cualidades.length - 2 }}
+                      </mat-chip>
+                    </div>
+                  </mat-cell>
+                </ng-container>
+
+                <!-- Columna Acciones -->
+                <ng-container matColumnDef="acciones">
+                  <mat-header-cell *matHeaderCellDef>Acciones</mat-header-cell>
+                  <mat-cell *matCellDef="let persona">
+                    <button mat-icon-button [matMenuTriggerFor]="actionMenu">
+                      <mat-icon>more_vert</mat-icon>
+                    </button>
+                    <mat-menu #actionMenu="matMenu">
+                      <button mat-menu-item (click)="openPersonalForm(persona)">
+                        <mat-icon>edit</mat-icon>
+                        <span>Editar</span>
+                      </button>
+                      <button mat-menu-item>
+                        <mat-icon>visibility</mat-icon>
+                        <span>Ver Detalles</span>
+                      </button>
+                      <mat-divider></mat-divider>
+                      <button mat-menu-item (click)="deletePersonal(persona)" class="delete-action">
+                        <mat-icon>delete</mat-icon>
+                        <span>Eliminar</span>
+                      </button>
+                    </mat-menu>
+                  </mat-cell>
+                </ng-container>
+
+                <mat-header-row *matHeaderRowDef="displayedColumns"></mat-header-row>
+                <mat-row *matRowDef="let row; columns: displayedColumns;"></mat-row>
+              </mat-table>
+
+              <div *ngIf="filteredPersonal.length === 0" class="no-data">
+                <mat-icon>people_outline</mat-icon>
+                <h3>No se encontró personal</h3>
+                <p>No hay personal que coincida con los filtros aplicados.</p>
+              </div>
+            </div>
+          </mat-card-content>
+        </mat-card>
+      </div>
+    </mat-tab>
+
+    <!-- Tab: Estadísticas Detalladas -->
+    <mat-tab>
+      <ng-template mat-tab-label>
+        <mat-icon>analytics</mat-icon>
+        Estadísticas
+      </ng-template>
+      
+      <div class="tab-content" *ngIf="stats">
+        <div class="stats-grid">
+          
+          <!-- Distribución por Cargo -->
+          <mat-card class="stats-detail-card">
+            <mat-card-header>
+              <mat-card-title>
+                <mat-icon>work</mat-icon>
+                Distribución por Cargo
+              </mat-card-title>
+            </mat-card-header>
+            <mat-card-content>
+              <div class="cargo-stats">
+                <div *ngFor="let cargo of cargos" class="cargo-stat-item">
+                  <div class="cargo-stat-info">
+                    <span class="cargo-name">{{ cargo.nombre }}</span>
+                    <span class="cargo-count">{{ stats.distribucuionPorCargo[cargo.id] || 0 }}</span>
+                  </div>
+                  <div class="cargo-bar">
+                    <div class="cargo-fill" 
+                      [style.width.%]="((stats.distribucuionPorCargo[cargo.id] || 0) / stats.totalPersonal) * 100">
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </mat-card-content>
+          </mat-card>
+
+          <!-- Cualidades Más Comunes -->
+          <mat-card class="stats-detail-card">
+            <mat-card-header>
+              <mat-card-title>
+                <mat-icon>star</mat-icon>
+                Cualidades Más Comunes
+              </mat-card-title>
+            </mat-card-header>
+            <mat-card-content>
+              <div class="cualidades-stats">
+                <div *ngFor="let cualidad of stats.cualidadesMasComunes" class="cualidad-stat-item">
+                  <div class="cualidad-stat-info">
+                    <span class="cualidad-name">{{ getNombreCualidad(cualidad.cualidad) }}</span>
+                    <span class="cualidad-count">{{ cualidad.cantidad }} personas</span>
+                  </div>
+                  <div class="cualidad-bar">
+                    <div class="cualidad-fill" 
+                      [style.width.%]="(cualidad.cantidad / stats.totalPersonal) * 100">
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </mat-card-content>
+          </mat-card>
+          
+        </div>
+      </div>
+    </mat-tab>
+
+  </mat-tab-group>
+</div> 
