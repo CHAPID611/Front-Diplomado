@@ -1,0 +1,43 @@
+<div class="login-single-column-container">
+  <div class="login-header">
+    <h1>Sistema de Gestión de Emergencias</h1>
+    <!-- Aquí irá el logo -->
+    <img src="/assets/logo.png" alt="Logo Bomberos Mocoa" class="bomberos-logo">
+  </div>
+  
+  <div class="login-content-area">
+    <mat-card class="login-card">
+      <mat-card-header>
+        <mat-card-title>Iniciar Sesión</mat-card-title>
+      </mat-card-header>
+
+      <mat-card-content>
+        <form [formGroup]="loginForm" (submit)="onSubmit()">
+          <mat-form-field appearance="fill">
+            <mat-label>Usuario*</mat-label>
+            <input matInput formControlName="usuario" placeholder="Ingresa tu usuario" required>
+            <mat-error *ngIf="loginForm.get('usuario')?.invalid">{{ getErrorMessage('usuario') }}</mat-error>
+          </mat-form-field>
+
+          <mat-form-field appearance="fill">
+            <mat-label>Contraseña</mat-label>
+            <input matInput formControlName="password" [type]="hide ? 'password' : 'text'" required placeholder="Ingresa tu contraseña">
+            <button mat-icon-button matSuffix (click)="hide = !hide" [attr.aria-label]="'Hide password'" [attr.aria-pressed]="hide" type="button">
+              <mat-icon>{{hide ? 'visibility_off' : 'visibility'}}</mat-icon>
+            </button>
+            <mat-error *ngIf="loginForm.get('password')?.invalid && loginForm.get('password')?.touched">
+              {{ getErrorMessage('password') }}
+            </mat-error>
+          </mat-form-field>
+
+          <div class="button-container">
+            <button mat-raised-button color="primary" type="submit" [disabled]="loginForm.invalid || loading">
+              <span *ngIf="!loading">INGRESAR</span>
+              <mat-spinner *ngIf="loading" [diameter]="24"></mat-spinner>
+            </button>
+          </div>
+        </form>
+      </mat-card-content>
+    </mat-card>
+  </div>
+</div> 
