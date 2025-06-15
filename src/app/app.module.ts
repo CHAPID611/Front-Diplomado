@@ -1,19 +1,22 @@
 import { NgModule } from '@angular/core';
 import { BrowserModule } from '@angular/platform-browser';
+import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
 import { ReactiveFormsModule } from '@angular/forms';
 import { HttpClientModule, HTTP_INTERCEPTORS } from '@angular/common/http';
-import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
 
 // Angular Material
 import { MatCardModule } from '@angular/material/card';
 import { MatInputModule } from '@angular/material/input';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
+import { MatListModule } from '@angular/material/list';
+import { MatChipsModule } from '@angular/material/chips';
 import { MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 
 // Components
 import { AppComponent } from './app.component';
+import { DashboardComponent } from './features/components/dashboard/dashboard.component';
 import { FeaturesModule } from './features/features.module';
 
 // Services
@@ -22,18 +25,21 @@ import { AuthInterceptor } from './core/interceptors/auth.interceptor';
 
 @NgModule({
   declarations: [
-    AppComponent
+    AppComponent,
+    DashboardComponent
   ],
   imports: [
     BrowserModule,
-    FeaturesModule,
+    BrowserAnimationsModule,
     ReactiveFormsModule,
     HttpClientModule,
-    BrowserAnimationsModule,
+    FeaturesModule,
     MatCardModule,
     MatInputModule,
     MatButtonModule,
     MatIconModule,
+    MatListModule,
+    MatChipsModule,
     MatSnackBarModule,
     MatProgressSpinnerModule
   ],
@@ -43,4 +49,4 @@ import { AuthInterceptor } from './core/interceptors/auth.interceptor';
   ],
   bootstrap: [AppComponent]
 })
-export class AppModule { } 
+export class AppModule { }

@@ -1,4 +1,408 @@
 /* You can add global styles to this file, and also import other style files */
+@import '@angular/material/prebuilt-themes/azure-blue.css';
 
-html, body { height: 100%; }
-body { margin: 0; font-family: Roboto, "Helvetica Neue", sans-serif; }
+:root {
+  /* Nueva paleta de colores elegante y discreta */
+  --primary-red: #c62828;           /* Rojo principal más sutil */
+  --primary-red-dark: #b71c1c;      /* Rojo oscuro para hovers */
+  --primary-red-light: #d32f2f;     /* Rojo claro para acentos */
+  --primary-red-subtle: rgba(198, 40, 40, 0.08); /* Rojo muy sutil para backgrounds */
+  
+  /* Colores neutros */
+  --text-primary: #2c3e50;          /* Texto principal (gris oscuro) */
+  --text-secondary: #6c757d;        /* Texto secundario (gris medio) */
+  --text-muted: #495057;            /* Texto tenue */
+  
+  /* Backgrounds */
+  --bg-primary: #ffffff;            /* Fondo principal blanco */
+  --bg-secondary: #f8f9fa;          /* Fondo secundario gris muy claro */
+  --bg-light: #f1f3f4;              /* Fondo claro */
+  --bg-dark: #343a40;               /* Fondo oscuro */
+  
+  /* Bordes */
+  --border-light: #e9ecef;          /* Borde claro */
+  --border-medium: #dee2e6;         /* Borde medio */
+  --border-dark: #adb5bd;           /* Borde oscuro */
+  
+  /* Estados */
+  --success: #28a745;               /* Verde éxito */
+  --warning: #ffc107;               /* Amarillo advertencia */
+  --danger: #dc3545;                /* Rojo peligro */
+  --info: #17a2b8;                  /* Azul información */
+  
+  /* Sombras */
+  --shadow-sm: 0 2px 4px rgba(0, 0, 0, 0.05);
+  --shadow-md: 0 4px 8px rgba(0, 0, 0, 0.1);
+  --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.12);
+  --shadow-hover: 0 6px 20px rgba(198, 40, 40, 0.15);
+  
+  /* Gradientes sutiles */
+  --gradient-primary: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
+  --gradient-red: linear-gradient(135deg, #c62828 0%, #b71c1c 100%);
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html, body {
+  height: 100%;
+  font-family: 'Roboto', sans-serif;
+  color: var(--text-primary);
+  background-color: var(--bg-secondary);
+}
+
+body {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+/* Personalización de scrollbars */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--bg-light);
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--text-secondary);
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--primary-red);
+}
+
+/* Typography */
+h1, h2, h3, h4, h5, h6 {
+  color: var(--text-primary);
+  font-weight: 600;
+  margin-bottom: 0.5rem;
+}
+
+h1 { font-size: 2rem; }
+h2 { font-size: 1.75rem; }
+h3 { font-size: 1.5rem; }
+h4 { font-size: 1.25rem; }
+h5 { font-size: 1.1rem; }
+h6 { font-size: 1rem; }
+
+p {
+  color: var(--text-muted);
+  margin-bottom: 1rem;
+}
+
+/* Material Design Components Customization */
+
+/* Cards */
+::ng-deep .mat-mdc-card {
+  border-radius: 12px !important;
+  box-shadow: var(--shadow-md) !important;
+  transition: box-shadow 0.3s ease !important;
+  background: var(--bg-primary) !important;
+  border: 1px solid var(--border-light) !important;
+}
+
+::ng-deep .mat-mdc-card:hover {
+  box-shadow: var(--shadow-lg) !important;
+}
+
+::ng-deep .mat-mdc-card-header {
+  padding: 20px 24px !important;
+  background: var(--gradient-primary) !important;
+  border-bottom: 2px solid var(--primary-red) !important;
+  border-radius: 12px 12px 0 0 !important;
+}
+
+::ng-deep .mat-mdc-card-title {
+  color: var(--primary-red) !important;
+  font-weight: 600 !important;
+  font-size: 1.5rem !important;
+}
+
+::ng-deep .mat-mdc-card-subtitle {
+  color: var(--text-secondary) !important;
+}
+
+::ng-deep .mat-mdc-card-content {
+  padding: 20px 24px !important;
+}
+
+/* Buttons */
+::ng-deep .mat-mdc-button,
+::ng-deep .mat-mdc-raised-button,
+::ng-deep .mat-mdc-fab {
+  border-radius: 6px !important;
+  font-weight: 500 !important;
+  text-transform: none !important;
+  transition: all 0.3s ease !important;
+}
+
+::ng-deep .mat-mdc-raised-button.mat-primary {
+  background-color: var(--primary-red) !important;
+  color: white !important;
+}
+
+::ng-deep .mat-mdc-raised-button.mat-primary:hover {
+  background-color: var(--primary-red-dark) !important;
+  box-shadow: var(--shadow-hover) !important;
+}
+
+::ng-deep .mat-mdc-button {
+  color: var(--text-secondary) !important;
+}
+
+::ng-deep .mat-mdc-button:hover {
+  background-color: var(--bg-secondary) !important;
+  color: var(--text-primary) !important;
+}
+
+::ng-deep .mat-mdc-fab {
+  background-color: var(--primary-red) !important;
+  color: white !important;
+}
+
+::ng-deep .mat-mdc-fab:hover {
+  background-color: var(--primary-red-dark) !important;
+  box-shadow: var(--shadow-hover) !important;
+}
+
+/* Form Fields */
+::ng-deep .mat-mdc-form-field {
+  margin-bottom: 16px !important;
+}
+
+::ng-deep .mat-mdc-form-field .mat-mdc-text-field-wrapper {
+  border-radius: 6px !important;
+}
+
+::ng-deep .mat-mdc-form-field.mat-focused .mat-mdc-form-field-focus-overlay {
+  background-color: var(--primary-red-subtle) !important;
+}
+
+::ng-deep .mat-mdc-form-field.mat-focused .mat-mdc-floating-label {
+  color: var(--primary-red) !important;
+}
+
+::ng-deep .mat-mdc-form-field .mat-mdc-input-element {
+  color: var(--text-primary) !important;
+}
+
+/* Select */
+::ng-deep .mat-mdc-select-panel {
+  border-radius: 6px !important;
+  box-shadow: var(--shadow-lg) !important;
+}
+
+::ng-deep .mat-mdc-option.mdc-list-item--selected:not(.mdc-list-item--disabled) {
+  background-color: var(--primary-red-subtle) !important;
+  color: var(--primary-red) !important;
+}
+
+::ng-deep .mat-mdc-option:hover:not(.mdc-list-item--disabled) {
+  background-color: var(--bg-secondary) !important;
+}
+
+/* Checkboxes */
+::ng-deep .mat-mdc-checkbox .mdc-checkbox {
+  --mdc-checkbox-selected-checkmark-color: white !important;
+  --mdc-checkbox-selected-focus-icon-color: var(--primary-red) !important;
+  --mdc-checkbox-selected-hover-icon-color: var(--primary-red) !important;
+  --mdc-checkbox-selected-icon-color: var(--primary-red) !important;
+}
+
+/* Chips */
+::ng-deep .mat-mdc-chip.emergency-active {
+  background-color: var(--danger) !important;
+  color: white !important;
+}
+
+::ng-deep .mat-mdc-chip.emergency-process {
+  background-color: var(--warning) !important;
+  color: white !important;
+}
+
+::ng-deep .mat-mdc-chip.emergency-resolved {
+  background-color: var(--success) !important;
+  color: white !important;
+}
+
+::ng-deep .mat-mdc-chip {
+  border-radius: 16px !important;
+  font-weight: 500 !important;
+}
+
+/* Stepper */
+::ng-deep .mat-stepper-vertical {
+  background: transparent !important;
+}
+
+::ng-deep .mat-step-header {
+  background: var(--bg-primary) !important;
+  border-radius: 8px !important;
+  margin: 4px 0 !important;
+  border: 1px solid var(--border-light) !important;
+  transition: all 0.3s ease !important;
+}
+
+::ng-deep .mat-step-header.cdk-keyboard-focused,
+::ng-deep .mat-step-header.cdk-program-focused,
+::ng-deep .mat-step-header:hover {
+  background: var(--bg-secondary) !important;
+  border-color: var(--primary-red) !important;
+}
+
+::ng-deep .mat-step-header .mat-step-icon-selected {
+  background-color: var(--primary-red) !important;
+  color: white !important;
+}
+
+::ng-deep .mat-step-header .mat-step-icon-state-done {
+  background-color: var(--success) !important;
+  color: white !important;
+}
+
+::ng-deep .mat-step-header .mat-step-icon {
+  background-color: var(--text-secondary) !important;
+  color: white !important;
+}
+
+::ng-deep .mat-step-label {
+  color: var(--text-primary) !important;
+  font-weight: 500 !important;
+}
+
+/* Dividers */
+::ng-deep .mat-divider {
+  border-top-color: var(--border-light) !important;
+  margin: 24px 0 !important;
+}
+
+/* Icons */
+::ng-deep .mat-icon {
+  color: var(--text-secondary) !important;
+}
+
+::ng-deep .mat-icon.primary {
+  color: var(--primary-red) !important;
+}
+
+/* Lists */
+::ng-deep .mat-mdc-list-item {
+  transition: background-color 0.3s ease !important;
+}
+
+::ng-deep .mat-mdc-list-item:hover {
+  background-color: var(--bg-secondary) !important;
+}
+
+/* Snackbars */
+::ng-deep .success-snackbar {
+  background-color: var(--success) !important;
+  color: white !important;
+}
+
+::ng-deep .error-snackbar {
+  background-color: var(--danger) !important;
+  color: white !important;
+}
+
+::ng-deep .warning-snackbar {
+  background-color: var(--warning) !important;
+  color: var(--text-primary) !important;
+}
+
+::ng-deep .info-snackbar {
+  background-color: var(--info) !important;
+  color: white !important;
+}
+
+/* Toolbar */
+::ng-deep .mat-toolbar {
+  background-color: var(--primary-red) !important;
+  color: white !important;
+  box-shadow: var(--shadow-md) !important;
+}
+
+::ng-deep .mat-toolbar .mat-icon {
+  color: white !important;
+}
+
+/* Menu */
+::ng-deep .mat-mdc-menu-panel {
+  border-radius: 8px !important;
+  box-shadow: var(--shadow-lg) !important;
+  border: 1px solid var(--border-light) !important;
+}
+
+/* Tables */
+::ng-deep .mat-mdc-table {
+  background: var(--bg-primary) !important;
+  border-radius: 8px !important;
+  overflow: hidden !important;
+  box-shadow: var(--shadow-sm) !important;
+}
+
+::ng-deep .mat-mdc-header-row {
+  background-color: var(--bg-secondary) !important;
+}
+
+::ng-deep .mat-mdc-header-cell {
+  color: var(--text-primary) !important;
+  font-weight: 600 !important;
+}
+
+::ng-deep .mat-mdc-row:hover {
+  background-color: var(--bg-secondary) !important;
+}
+
+/* Progress bars */
+::ng-deep .mat-mdc-progress-bar .mdc-linear-progress__bar .mdc-linear-progress__bar-inner {
+  background-color: var(--primary-red) !important;
+}
+
+/* Utility classes */
+.text-primary { color: var(--text-primary) !important; }
+.text-secondary { color: var(--text-secondary) !important; }
+.text-muted { color: var(--text-muted) !important; }
+.text-success { color: var(--success) !important; }
+.text-warning { color: var(--warning) !important; }
+.text-danger { color: var(--danger) !important; }
+.text-info { color: var(--info) !important; }
+
+.bg-primary { background-color: var(--bg-primary) !important; }
+.bg-secondary { background-color: var(--bg-secondary) !important; }
+.bg-light { background-color: var(--bg-light) !important; }
+.bg-dark { background-color: var(--bg-dark) !important; }
+
+.border-primary { border-color: var(--primary-red) !important; }
+.border-light { border-color: var(--border-light) !important; }
+
+.shadow-sm { box-shadow: var(--shadow-sm) !important; }
+.shadow-md { box-shadow: var(--shadow-md) !important; }
+.shadow-lg { box-shadow: var(--shadow-lg) !important; }
+
+/* Responsive utilities */
+@media (max-width: 768px) {
+  ::ng-deep .mat-mdc-card-header {
+    padding: 16px 20px !important;
+  }
+
+  ::ng-deep .mat-mdc-card-content {
+    padding: 16px 20px !important;
+  }
+
+  h1 { font-size: 1.75rem; }
+  h2 { font-size: 1.5rem; }
+  h3 { font-size: 1.25rem; }
+  h4 { font-size: 1.1rem; }
+  h5 { font-size: 1rem; }
+  h6 { font-size: 0.9rem; }
+}
