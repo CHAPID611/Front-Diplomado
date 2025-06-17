@@ -14,12 +14,11 @@ import { MatDividerModule } from '@angular/material/divider';
 import { MatStepperModule } from '@angular/material/stepper';
 import { MatTooltipModule } from '@angular/material/tooltip';
 
-import { Personal, Cualidad, Cargo, Rango } from '../../../../core/interfaces/personal.interface';
+import { Personal, Cualidad, Rango } from '../../../../core/interfaces/personal.interface';
 import { PersonalService } from '../../../../core/services/personal.service';
 
 interface DialogData {
   personal?: Personal;
-  cargos: Cargo[];
   rangos: Rango[];
   cualidades: Cualidad[];
 }
@@ -48,7 +47,7 @@ interface DialogData {
 })
 export class PersonalFormComponent implements OnInit {
   personalForm: FormGroup;
-  tiposSangre: string[] = [];
+  tiposSangre: any[] = [];
   estados: Array<{value: string, label: string}> = [];
   cualidadesSeleccionadas: string[] = [];
   isEditMode = false;
@@ -61,14 +60,27 @@ export class PersonalFormComponent implements OnInit {
   ) {
     this.isEditMode = !!data.personal;
     this.personalForm = this.createForm();
-    this.tiposSangre = this.personalService.getTiposSangre();
-    this.estados = this.personalService.getEstados();
+    this.loadConstantData();
   }
 
   ngOnInit() {
     if (this.data.personal) {
       this.loadPersonalData();
     }
+  }
+
+  loadConstantData() {
+    // Cargar tipos de sangre
+    this.personalService.getTiposSangre().subscribe({
+      next: (tipos) => this.tiposSangre = tipos,
+      error: () => this.tiposSangre = this.personalService.getTiposSangreStatic().map(tipo => ({ bloodType: tipo }))
+    });
+
+    // Cargar estados
+    this.personalService.getEstados().subscribe({
+      next: (estados) => this.estados = estados.map(e => ({ value: e.state.toLowerCase(), label: e.state })),
+      error: () => this.estados = this.personalService.getEstadosStatic()
+    });
   }
 
   createForm(): FormGroup {
@@ -84,7 +96,6 @@ export class PersonalFormComponent implements OnInit {
       tipoSangre: ['', Validators.required],
       
       // Datos laborales
-      cargo: ['', Validators.required],
       rango: ['', Validators.required],
       fechaIngreso: ['', Validators.required],
       estado: ['activo', Validators.required],
@@ -111,7 +122,6 @@ export class PersonalFormComponent implements OnInit {
       email: personal.email,
       direccion: personal.direccion,
       tipoSangre: personal.tipoSangre,
-      cargo: personal.cargo,
       rango: personal.rango,
       fechaIngreso: personal.fechaIngreso,
       estado: personal.estado,
@@ -157,7 +167,6 @@ export class PersonalFormComponent implements OnInit {
         email: formValue.email,
         direccion: formValue.direccion,
         tipoSangre: formValue.tipoSangre,
-        cargo: formValue.cargo,
         rango: formValue.rango,
         fechaIngreso: formValue.fechaIngreso,
         estado: formValue.estado,

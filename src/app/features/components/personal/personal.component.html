@@ -78,15 +78,7 @@
                   <mat-icon matSuffix>search</mat-icon>
                 </mat-form-field>
 
-                <mat-form-field appearance="outline">
-                  <mat-label>Cargo</mat-label>
-                  <mat-select formControlName="cargo">
-                    <mat-option value="">Todos los cargos</mat-option>
-                    <mat-option *ngFor="let cargo of cargos" [value]="cargo.id">
-                      {{ cargo.nombre }}
-                    </mat-option>
-                  </mat-select>
-                </mat-form-field>
+
 
                 <mat-form-field appearance="outline">
                   <mat-label>Estado</mat-label>
@@ -160,16 +152,7 @@
                   </mat-cell>
                 </ng-container>
 
-                <!-- Columna Cargo -->
-                <ng-container matColumnDef="cargo">
-                  <mat-header-cell *matHeaderCellDef>Cargo</mat-header-cell>
-                  <mat-cell *matCellDef="let persona">
-                    <div class="cargo-info">
-                      <div class="cargo">{{ getNombreCargo(persona.cargo) }}</div>
-                      <div class="phone">{{ persona.telefono }}</div>
-                    </div>
-                  </mat-cell>
-                </ng-container>
+
 
                 <!-- Columna Rango -->
                 <ng-container matColumnDef="rango">
@@ -272,24 +255,24 @@
       <div class="tab-content" *ngIf="stats">
         <div class="stats-grid">
           
-          <!-- Distribución por Cargo -->
+          <!-- Distribución por Rango -->
           <mat-card class="stats-detail-card">
             <mat-card-header>
               <mat-card-title>
-                <mat-icon>work</mat-icon>
-                Distribución por Cargo
+                <mat-icon>military_tech</mat-icon>
+                Distribución por Rango
               </mat-card-title>
             </mat-card-header>
             <mat-card-content>
-              <div class="cargo-stats">
-                <div *ngFor="let cargo of cargos" class="cargo-stat-item">
-                  <div class="cargo-stat-info">
-                    <span class="cargo-name">{{ cargo.nombre }}</span>
-                    <span class="cargo-count">{{ stats.distribucuionPorCargo[cargo.id] || 0 }}</span>
+              <div class="rango-stats">
+                <div *ngFor="let rango of rangos" class="rango-stat-item">
+                  <div class="rango-stat-info">
+                    <span class="rango-name">{{ rango.rangeName || rango.nombre }}</span>
+                    <span class="rango-count">{{ stats.distribucuionPorCargo[rango.rangeId || rango.id] || 0 }}</span>
                   </div>
-                  <div class="cargo-bar">
-                    <div class="cargo-fill" 
-                      [style.width.%]="((stats.distribucuionPorCargo[cargo.id] || 0) / stats.totalPersonal) * 100">
+                  <div class="rango-bar">
+                    <div class="rango-fill" 
+                      [style.width.%]="((stats.distribucuionPorCargo[rango.rangeId || rango.id] || 0) / stats.totalPersonal) * 100">
                     </div>
                   </div>
                 </div>

@@ -16,7 +16,7 @@ import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatDividerModule } from '@angular/material/divider';
 import { FormBuilder, FormGroup, ReactiveFormsModule } from '@angular/forms';
 
-import { Personal, PersonalStats, Cualidad, Cargo, Rango } from '../../../core/interfaces/personal.interface';
+import { Personal, PersonalStats, Cualidad, Rango } from '../../../core/interfaces/personal.interface';
 import { PersonalService } from '../../../core/services/personal.service';
 import { PersonalFormComponent } from './personal-form/personal-form.component';
 
@@ -48,11 +48,10 @@ export class PersonalComponent implements OnInit {
   personal: Personal[] = [];
   filteredPersonal: Personal[] = [];
   stats: PersonalStats | null = null;
-  cualidades: Cualidad[] = [];
-  cargos: Cargo[] = [];
-  rangos: Rango[] = [];
+  cualidades: any[] = [];
+  rangos: any[] = [];
   
-  displayedColumns: string[] = ['foto', 'nombre', 'cargo', 'rango', 'estado', 'experiencia', 'cualidades', 'acciones'];
+  displayedColumns: string[] = ['foto', 'nombre', 'rango', 'estado', 'experiencia', 'cualidades', 'acciones'];
   
   filterForm: FormGroup;
   loading = false;
@@ -65,7 +64,6 @@ export class PersonalComponent implements OnInit {
   ) {
     this.filterForm = this.fb.group({
       search: [''],
-      cargo: [''],
       estado: [''],
       rango: ['']
     });
@@ -96,10 +94,6 @@ export class PersonalComponent implements OnInit {
       this.cualidades = cualidades;
     });
 
-    this.personalService.getCargos().subscribe(cargos => {
-      this.cargos = cargos;
-    });
-
     this.personalService.getRangos().subscribe(rangos => {
       this.rangos = rangos;
     });
@@ -120,11 +114,10 @@ export class PersonalComponent implements OnInit {
         persona.cedula.includes(filters.search) ||
         persona.email.toLowerCase().includes(filters.search.toLowerCase());
       
-      const matchesCargo = !filters.cargo || persona.cargo === filters.cargo;
       const matchesEstado = !filters.estado || persona.estado === filters.estado;
       const matchesRango = !filters.rango || persona.rango === filters.rango;
 
-      return matchesSearch && matchesCargo && matchesEstado && matchesRango;
+      return matchesSearch && matchesEstado && matchesRango;
     });
   }
 
@@ -133,7 +126,7 @@ export class PersonalComponent implements OnInit {
       width: '800px',
       maxWidth: '95vw',
       maxHeight: '95vh',
-      data: { personal, cargos: this.cargos, rangos: this.rangos, cualidades: this.cualidades }
+      data: { personal, rangos: this.rangos, cualidades: this.cualidades }
     });
 
     dialogRef.afterClosed().subscribe(result => {
@@ -177,11 +170,6 @@ export class PersonalComponent implements OnInit {
         }
       });
     }
-  }
-
-  getNombreCargo(cargoId: string): string {
-    const cargo = this.cargos.find(c => c.id === cargoId);
-    return cargo ? cargo.nombre : cargoId;
   }
 
   getNombreRango(rangoId: string): string {

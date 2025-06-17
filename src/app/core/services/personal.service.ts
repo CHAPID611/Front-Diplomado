@@ -1,504 +1,394 @@
 import { Injectable } from '@angular/core';
-import { Observable, of } from 'rxjs';
-import { Personal, Cualidad, Cargo, Rango, PersonalStats } from '../interfaces/personal.interface';
+import { HttpClient, HttpHeaders } from '@angular/common/http';
+import { Observable, of, map, catchError, throwError } from 'rxjs';
+import { Personal, Cualidad, Rango, PersonalStats } from '../interfaces/personal.interface';
+import { AuthService } from './auth.service';
+import { environment } from '../../../environments/environment';
+
+// DTOs para el backend
+interface CreatePersonalBackendDto {
+  userId: number;
+  bloodTypeId: number;
+  firstName: string;
+  secondName?: string;
+  firstLastName: string;
+  secondLastName?: string;
+  idNumber: string;
+  birthDate: string;
+  address: string;
+  phoneNumber: string;
+  competencias: number[];
+  emergencyContact: {
+    name: string;
+    relationship: string;
+    mobilePhone: string;
+  };
+  employmentData: {
+    rangeId: number;
+    stateId: number;
+    admissionDate: string;
+    yearsOfExperience: number;
+    observations?: string;
+  };
+}
+
+interface BloodType {
+  bloodTypeId: number;
+  bloodType: string;
+}
+
+interface Estado {
+  stateId: number;
+  state: string;
+}
+
+interface RangoBackend {
+  rangeId: number;
+  rangeName: string;
+}
+
+interface CompetenciaBackend {
+  competenciaId: number;
+  competenciaName: string;
+  category: string;
+}
 
 @Injectable({
   providedIn: 'root'
 })
 export class PersonalService {
-  
-  private mockPersonal: Personal[] = [
-    {
-      id: 1,
-      cedula: '12345678',
-      nombres: 'Carlos Eduardo',
-      apellidos: 'González Morales',
-      fechaNacimiento: new Date('1985-03-15'),
-      telefono: '3101234567',
-      email: 'carlos.gonzalez@bomberos.gov.co',
-      direccion: 'Calle 45 #23-15, Barrio Centro',
-      tipoSangre: 'O+',
-      cargo: 'capitan',
-      rango: 'capitan',
-      fechaIngreso: new Date('2010-01-15'),
-      estado: 'activo',
-      cualidades: ['liderazgo', 'rescate_acuatico', 'primeros_auxilios', 'manejo_materiales_peligrosos'],
-      experienciaAnios: 14,
-      observaciones: 'Especialista en rescate acuático. Instructor certificado.',
-      contactoEmergencia: {
-        nombre: 'María González',
-        parentesco: 'Esposa',
-        telefono: '3109876543'
-      }
-    },
-    {
-      id: 2,
-      cedula: '87654321',
-      nombres: 'Ana Sofía',
-      apellidos: 'Rodríguez Pérez',
-      fechaNacimiento: new Date('1990-07-22'),
-      telefono: '3202345678',
-      email: 'ana.rodriguez@bomberos.gov.co',
-      direccion: 'Carrera 12 #34-56, Barrio Norte',
-      tipoSangre: 'A+',
-      cargo: 'bombero',
-      rango: 'bombero_profesional',
-      fechaIngreso: new Date('2015-06-01'),
-      estado: 'activo',
-      cualidades: ['paramedicina', 'rescate_urbano', 'primeros_auxilios'],
-      experienciaAnios: 9,
-      observaciones: 'Paramédica certificada. Especialista en emergencias médicas.',
-      contactoEmergencia: {
-        nombre: 'José Rodríguez',
-        parentesco: 'Padre',
-        telefono: '3108765432'
-      }
-    },
-    {
-      id: 3,
-      cedula: '11223344',
-      nombres: 'Miguel Ángel',
-      apellidos: 'Fernández López',
-      fechaNacimiento: new Date('1982-11-30'),
-      telefono: '3153456789',
-      email: 'miguel.fernandez@bomberos.gov.co',
-      direccion: 'Avenida 68 #12-34, Barrio Sur',
-      tipoSangre: 'B+',
-      cargo: 'teniente',
-      rango: 'teniente',
-      fechaIngreso: new Date('2008-03-20'),
-      estado: 'activo',
-      cualidades: ['instructor', 'rescate_vehicular', 'manejo_materiales_peligrosos', 'liderazgo'],
-      experienciaAnios: 16,
-      observaciones: 'Instructor en rescate vehicular. 16 años de experiencia.',
-      contactoEmergencia: {
-        nombre: 'Laura Fernández',
-        parentesco: 'Esposa',
-        telefono: '3157654321'
-      }
-    },
-    {
-      id: 4,
-      cedula: '55667788',
-      nombres: 'Diana Patricia',
-      apellidos: 'Vargas Ruiz',
-      fechaNacimiento: new Date('1988-05-18'),
-      telefono: '3004567890',
-      email: 'diana.vargas@bomberos.gov.co',
-      direccion: 'Calle 78 #45-23, Barrio Este',
-      tipoSangre: 'AB+',
-      cargo: 'bombero',
-      rango: 'bombero_voluntario',
-      fechaIngreso: new Date('2018-09-10'),
-      estado: 'licencia',
-      cualidades: ['primeros_auxilios', 'comunicaciones'],
-      experienciaAnios: 6,
-      observaciones: 'En licencia de maternidad. Regreso programado para febrero.',
-      contactoEmergencia: {
-        nombre: 'Carlos Vargas',
-        parentesco: 'Hermano',
-        telefono: '3006543210'
-      }
-    },
-    {
-      id: 5,
-      cedula: '22334455',
-      nombres: 'Luis Fernando',
-      apellidos: 'Martínez Silva',
-      fechaNacimiento: new Date('1987-12-08'),
-      telefono: '3125678901',
-      email: 'luis.martinez@bomberos.gov.co',
-      direccion: 'Calle 90 #15-27, Barrio Chapinero',
-      tipoSangre: 'O-',
-      cargo: 'sargento',
-      rango: 'sargento',
-      fechaIngreso: new Date('2012-05-15'),
-      estado: 'activo',
-      cualidades: ['rescate_acuatico', 'conduccion_emergencia', 'primeros_auxilios', 'liderazgo'],
-      experienciaAnios: 12,
-      observaciones: 'Especialista en rescate acuático y conducción de emergencia. Supervisor nocturno.',
-      contactoEmergencia: {
-        nombre: 'Sandra Martínez',
-        parentesco: 'Esposa',
-        telefono: '3124567890'
-      }
-    },
-    {
-      id: 6,
-      cedula: '33445566',
-      nombres: 'Carmen Elena',
-      apellidos: 'Jiménez Torres',
-      fechaNacimiento: new Date('1992-04-14'),
-      telefono: '3186789012',
-      email: 'carmen.jimenez@bomberos.gov.co',
-      direccion: 'Carrera 45 #67-89, Barrio La Candelaria',
-      tipoSangre: 'A-',
-      cargo: 'bombero',
-      rango: 'bombero_profesional',
-      fechaIngreso: new Date('2017-08-22'),
-      estado: 'activo',
-      cualidades: ['paramedicina', 'rescate_urbano', 'comunicaciones', 'primeros_auxilios'],
-      experienciaAnios: 7,
-      observaciones: 'Paramédica con especialización en trauma. Operadora de comunicaciones.',
-      contactoEmergencia: {
-        nombre: 'Roberto Jiménez',
-        parentesco: 'Padre',
-        telefono: '3185678901'
-      }
-    },
-    {
-      id: 7,
-      cedula: '44556677',
-      nombres: 'Alejandro',
-      apellidos: 'Ramírez Castillo',
-      fechaNacimiento: new Date('1983-09-25'),
-      telefono: '3147890123',
-      email: 'alejandro.ramirez@bomberos.gov.co',
-      direccion: 'Avenida 19 #23-45, Barrio Zona Rosa',
-      tipoSangre: 'B-',
-      cargo: 'cabo',
-      rango: 'cabo',
-      fechaIngreso: new Date('2009-11-10'),
-      estado: 'activo',
-      cualidades: ['rescate_vehicular', 'manejo_materiales_peligrosos', 'primeros_auxilios', 'instructor'],
-      experienciaAnios: 15,
-      observaciones: 'Especialista en materiales peligrosos. Instructor certificado en HAZMAT.',
-      contactoEmergencia: {
-        nombre: 'Patricia Ramírez',
-        parentesco: 'Hermana',
-        telefono: '3146789012'
-      }
-    },
-    {
-      id: 8,
-      cedula: '55667700',
-      nombres: 'Mónica',
-      apellidos: 'Herrera Díaz',
-      fechaNacimiento: new Date('1989-01-30'),
-      telefono: '3108901234',
-      email: 'monica.herrera@bomberos.gov.co',
-      direccion: 'Calle 127 #8-15, Barrio Usaquén',
-      tipoSangre: 'AB-',
-      cargo: 'bombero',
-      rango: 'bombero_auxiliar',
-      fechaIngreso: new Date('2020-02-14'),
-      estado: 'activo',
-      cualidades: ['primeros_auxilios', 'comunicaciones'],
-      experienciaAnios: 4,
-      observaciones: 'Bombera auxiliar en proceso de certificación profesional.',
-      contactoEmergencia: {
-        nombre: 'Diego Herrera',
-        parentesco: 'Esposo',
-        telefono: '3107890123'
-      }
-    },
-    {
-      id: 9,
-      cedula: '66778899',
-      nombres: 'Jorge Esteban',
-      apellidos: 'Mendoza Ruiz',
-      fechaNacimiento: new Date('1986-06-18'),
-      telefono: '3169012345',
-      email: 'jorge.mendoza@bomberos.gov.co',
-      direccion: 'Carrera 30 #45-67, Barrio Teusaquillo',
-      tipoSangre: 'O+',
-      cargo: 'bombero',
-      rango: 'bombero_profesional',
-      fechaIngreso: new Date('2014-03-08'),
-      estado: 'activo',
-      cualidades: ['rescate_acuatico', 'conduccion_emergencia', 'primeros_auxilios'],
-      experienciaAnios: 10,
-      observaciones: 'Conductor especializado. Certificado en rescate acuático nivel avanzado.',
-      contactoEmergencia: {
-        nombre: 'Ana Mendoza',
-        parentesco: 'Madre',
-        telefono: '3168901234'
-      }
-    },
-    {
-      id: 10,
-      cedula: '77889900',
-      nombres: 'Paola Andrea',
-      apellidos: 'Castro Moreno',
-      fechaNacimiento: new Date('1991-11-12'),
-      telefono: '3120123456',
-      email: 'paola.castro@bomberos.gov.co',
-      direccion: 'Calle 63 #11-28, Barrio Chapinero Norte',
-      tipoSangre: 'A+',
-      cargo: 'bombero',
-      rango: 'bombero_voluntario',
-      fechaIngreso: new Date('2019-07-19'),
-      estado: 'activo',
-      cualidades: ['primeros_auxilios', 'comunicaciones'],
-      experienciaAnios: 5,
-      observaciones: 'Bombera voluntaria estudiante de enfermería. Turno de fines de semana.',
-      contactoEmergencia: {
-        nombre: 'María Castro',
-        parentesco: 'Madre',
-        telefono: '3119012345'
-      }
-    },
-    {
-      id: 11,
-      cedula: '88990011',
-      nombres: 'Ricardo',
-      apellidos: 'Sánchez Vega',
-      fechaNacimiento: new Date('1984-02-28'),
-      telefono: '3181234567',
-      email: 'ricardo.sanchez@bomberos.gov.co',
-      direccion: 'Avenida 68 #89-12, Barrio Engativá',
-      tipoSangre: 'B+',
-      cargo: 'teniente',
-      rango: 'teniente',
-      fechaIngreso: new Date('2007-09-12'),
-      estado: 'activo',
-      cualidades: ['liderazgo', 'instructor', 'rescate_urbano', 'manejo_materiales_peligrosos'],
-      experienciaAnios: 17,
-      observaciones: 'Jefe de turno diurno. Instructor en rescate urbano y colapso estructural.',
-      contactoEmergencia: {
-        nombre: 'Luz Sánchez',
-        parentesco: 'Esposa',
-        telefono: '3180123456'
-      }
-    },
-    {
-      id: 12,
-      cedula: '99001122',
-      nombres: 'Andrea Milena',
-      apellidos: 'Ospina León',
-      fechaNacimiento: new Date('1993-08-07'),
-      telefono: '3142345678',
-      email: 'andrea.ospina@bomberos.gov.co',
-      direccion: 'Calle 170 #45-23, Barrio Suba',
-      tipoSangre: 'O-',
-      cargo: 'bombero',
-      rango: 'bombero_profesional',
-      fechaIngreso: new Date('2018-01-25'),
-      estado: 'activo',
-      cualidades: ['paramedicina', 'primeros_auxilios', 'rescate_vehicular'],
-      experienciaAnios: 6,
-      observaciones: 'Paramédica especializada en emergencias pediátricas.',
-      contactoEmergencia: {
-        nombre: 'Carlos Ospina',
-        parentesco: 'Padre',
-        telefono: '3141234567'
-      }
-    },
-    {
-      id: 13,
-      cedula: '10203040',
-      nombres: 'Fernando',
-      apellidos: 'Aguilar Rojas',
-      fechaNacimiento: new Date('1988-05-22'),
-      telefono: '3203456789',
-      email: 'fernando.aguilar@bomberos.gov.co',
-      direccion: 'Carrera 7 #123-45, Barrio Centro',
-      tipoSangre: 'AB+',
-      cargo: 'mayor',
-      rango: 'mayor',
-      fechaIngreso: new Date('2005-04-18'),
-      estado: 'activo',
-      cualidades: ['liderazgo', 'instructor', 'manejo_materiales_peligrosos', 'rescate_acuatico'],
-      experienciaAnios: 19,
-      observaciones: 'Jefe de distrito. 19 años de experiencia. Especialista en comando de incidentes.',
-      contactoEmergencia: {
-        nombre: 'Gloria Aguilar',
-        parentesco: 'Esposa',
-        telefono: '3202345678'
-      }
-    },
-    {
-      id: 14,
-      cedula: '20304050',
-      nombres: 'Sebastián',
-      apellidos: 'Torres Medina',
-      fechaNacimiento: new Date('1995-10-15'),
-      telefono: '3164567890',
-      email: 'sebastian.torres@bomberos.gov.co',
-      direccion: 'Calle 26 #68-90, Barrio San Rafael',
-      tipoSangre: 'A-',
-      cargo: 'bombero',
-      rango: 'bombero_auxiliar',
-      fechaIngreso: new Date('2021-06-10'),
-      estado: 'activo',
-      cualidades: ['primeros_auxilios', 'comunicaciones'],
-      experienciaAnios: 3,
-      observaciones: 'Bombero auxiliar recién graduado de la academia. En período de prueba.',
-      contactoEmergencia: {
-        nombre: 'Elena Torres',
-        parentesco: 'Madre',
-        telefono: '3163456789'
-      }
-    },
-    {
-      id: 15,
-      cedula: '30405060',
-      nombres: 'Valentina',
-      apellidos: 'Guerrero Pineda',
-      fechaNacimiento: new Date('1990-12-03'),
-      telefono: '3125678900',
-      email: 'valentina.guerrero@bomberos.gov.co',
-      direccion: 'Avenida 15 #34-56, Barrio Santa Fe',
-      tipoSangre: 'B-',
-      cargo: 'cabo',
-      rango: 'cabo',
-      fechaIngreso: new Date('2016-11-08'),
-      estado: 'activo',
-      cualidades: ['rescate_urbano', 'primeros_auxilios', 'conduccion_emergencia'],
-      experienciaAnios: 8,
-      observaciones: 'Cabo especialista en rescate urbano. Supervisora de equipo de rescate.',
-      contactoEmergencia: {
-        nombre: 'Andrés Guerrero',
-        parentesco: 'Hermano',
-        telefono: '3124567899'
-      }
-    }
-  ];
 
-  private mockCualidades: Cualidad[] = [
-    { id: 'primeros_auxilios', nombre: 'Primeros Auxilios', categoria: 'medica', descripcion: 'Atención básica de emergencias médicas' },
-    { id: 'paramedicina', nombre: 'Paramedicina', categoria: 'medica', descripcion: 'Atención médica avanzada prehospitalaria' },
-    { id: 'rescate_acuatico', nombre: 'Rescate Acuático', categoria: 'rescate', descripcion: 'Rescate en ambientes acuáticos' },
-    { id: 'rescate_urbano', nombre: 'Rescate Urbano', categoria: 'rescate', descripcion: 'Rescate en estructuras colapsadas' },
-    { id: 'rescate_vehicular', nombre: 'Rescate Vehicular', categoria: 'rescate', descripcion: 'Extracción de víctimas en accidentes vehiculares' },
-    { id: 'manejo_materiales_peligrosos', nombre: 'Materiales Peligrosos', categoria: 'tecnica', descripcion: 'Manejo de sustancias químicas peligrosas' },
-    { id: 'liderazgo', nombre: 'Liderazgo', categoria: 'administrativa', descripcion: 'Capacidad de liderar equipos de trabajo' },
-    { id: 'instructor', nombre: 'Instructor', categoria: 'administrativa', descripcion: 'Capacitación y entrenamiento de personal' },
-    { id: 'comunicaciones', nombre: 'Comunicaciones', categoria: 'operativa', descripcion: 'Manejo de equipos de comunicación' },
-    { id: 'conduccion_emergencia', nombre: 'Conducción de Emergencia', categoria: 'operativa', descripcion: 'Conducción de vehículos de emergencia' }
-  ];
+  private apiUrl = environment.apiUrl;
 
-  private mockCargos: Cargo[] = [
-    { id: 'bombero', nombre: 'Bombero', descripcion: 'Personal operativo básico' },
-    { id: 'cabo', nombre: 'Cabo', descripcion: 'Supervisor de grupo pequeño' },
-    { id: 'sargento', nombre: 'Sargento', descripcion: 'Supervisor de turno' },
-    { id: 'teniente', nombre: 'Teniente', descripcion: 'Jefe de compañía' },
-    { id: 'capitan', nombre: 'Capitán', descripcion: 'Jefe de estación' },
-    { id: 'mayor', nombre: 'Mayor', descripcion: 'Jefe de distrito' },
-    { id: 'comandante', nombre: 'Comandante', descripcion: 'Jefe general del cuerpo' }
-  ];
+  constructor(
+    private http: HttpClient,
+    private authService: AuthService
+  ) { }
 
-  private mockRangos: Rango[] = [
-    { id: 'bombero_voluntario', nombre: 'Bombero Voluntario', nivel: 1, descripcion: 'Personal voluntario en entrenamiento' },
-    { id: 'bombero_auxiliar', nombre: 'Bombero Auxiliar', nivel: 2, descripcion: 'Personal auxiliar con entrenamiento básico' },
-    { id: 'bombero_profesional', nombre: 'Bombero Profesional', nivel: 3, descripcion: 'Personal profesional operativo' },
-    { id: 'cabo', nombre: 'Cabo', nivel: 4, descripcion: 'Suboficial básico' },
-    { id: 'sargento', nombre: 'Sargento', nivel: 5, descripcion: 'Suboficial intermedio' },
-    { id: 'teniente', nombre: 'Teniente', nivel: 6, descripcion: 'Oficial básico' },
-    { id: 'capitan', nombre: 'Capitán', nivel: 7, descripcion: 'Oficial intermedio' },
-    { id: 'mayor', nombre: 'Mayor', nivel: 8, descripcion: 'Oficial superior' },
-    { id: 'comandante', nombre: 'Comandante', nivel: 9, descripcion: 'Oficial general' }
-  ];
-
-  constructor() { }
-
-  // Obtener todo el personal
+  // Métodos principales
   getPersonal(): Observable<Personal[]> {
-    return of(this.mockPersonal);
+    return this.http.get<any[]>(`${this.apiUrl}/personal`)
+      .pipe(
+        map(personalList => personalList.map(p => this.transformBackendToFrontend(p))),
+        catchError((error) => {
+          console.warn('Error al cargar personal desde backend, usando datos mock:', error);
+          return of(this.getMockPersonal());
+        })
+      );
   }
 
-  // Obtener personal por ID
   getPersonalById(id: number): Observable<Personal | undefined> {
-    const personal = this.mockPersonal.find(p => p.id === id);
-    return of(personal);
+    return this.http.get<any>(`${this.apiUrl}/personal/${id}`)
+      .pipe(
+        map(personal => this.transformBackendToFrontend(personal)),
+        catchError(this.handleError)
+      );
   }
 
-  // Crear nuevo personal
   createPersonal(personal: Personal): Observable<Personal> {
-    const newId = Math.max(...this.mockPersonal.map(p => p.id || 0)) + 1;
-    const newPersonal = { ...personal, id: newId };
-    this.mockPersonal.push(newPersonal);
-    return of(newPersonal);
-  }
-
-  // Actualizar personal
-  updatePersonal(id: number, personal: Personal): Observable<Personal> {
-    const index = this.mockPersonal.findIndex(p => p.id === id);
-    if (index !== -1) {
-      this.mockPersonal[index] = { ...personal, id };
-      return of(this.mockPersonal[index]);
+    const currentUser = this.authService.currentUserValue;
+    if (!currentUser) {
+      return throwError(() => new Error('Usuario no autenticado'));
     }
-    throw new Error('Personal no encontrado');
-  }
 
-  // Eliminar personal
-  deletePersonal(id: number): Observable<boolean> {
-    const index = this.mockPersonal.findIndex(p => p.id === id);
-    if (index !== -1) {
-      this.mockPersonal.splice(index, 1);
-      return of(true);
-    }
-    return of(false);
-  }
-
-  // Obtener cualidades disponibles
-  getCualidades(): Observable<Cualidad[]> {
-    return of(this.mockCualidades);
-  }
-
-  // Obtener cargos disponibles
-  getCargos(): Observable<Cargo[]> {
-    return of(this.mockCargos);
-  }
-
-  // Obtener rangos disponibles
-  getRangos(): Observable<Rango[]> {
-    return of(this.mockRangos);
-  }
-
-  // Obtener estadísticas del personal
-  getPersonalStats(): Observable<PersonalStats> {
-    const total = this.mockPersonal.length;
-    const activo = this.mockPersonal.filter(p => p.estado === 'activo').length;
-    const inactivo = this.mockPersonal.filter(p => p.estado === 'inactivo').length;
-    const licencia = this.mockPersonal.filter(p => p.estado === 'licencia').length;
+    const backendDto = this.transformFrontendToBackend(personal, currentUser.id);
     
-    const totalExperiencia = this.mockPersonal.reduce((sum, p) => sum + p.experienciaAnios, 0);
-    const promedioExperiencia = total > 0 ? totalExperiencia / total : 0;
-
-    // Distribución por cargo
-    const distribucuionPorCargo: { [cargo: string]: number } = {};
-    this.mockPersonal.forEach(p => {
-      distribucuionPorCargo[p.cargo] = (distribucuionPorCargo[p.cargo] || 0) + 1;
-    });
-
-    // Cualidades más comunes
-    const cualidadesCount: { [cualidad: string]: number } = {};
-    this.mockPersonal.forEach(p => {
-      p.cualidades.forEach(c => {
-        cualidadesCount[c] = (cualidadesCount[c] || 0) + 1;
-      });
-    });
-
-    const cualidadesMasComunes = Object.entries(cualidadesCount)
-      .map(([cualidad, cantidad]) => ({ cualidad, cantidad }))
-      .sort((a, b) => b.cantidad - a.cantidad)
-      .slice(0, 5);
-
-    const stats: PersonalStats = {
-      totalPersonal: total,
-      personalActivo: activo,
-      personalInactivo: inactivo,
-      personalEnLicencia: licencia,
-      promedioExperiencia,
-      distribucuionPorCargo,
-      cualidadesMasComunes
-    };
-
-    return of(stats);
+    return this.http.post<any>(`${this.apiUrl}/personal`, backendDto)
+      .pipe(
+        map(response => this.transformBackendToFrontend(response)),
+        catchError(this.handleError)
+      );
   }
 
-  // Tipos de sangre disponibles
-  getTiposSangre(): string[] {
+  updatePersonal(id: number, personal: Personal): Observable<Personal> {
+    const currentUser = this.authService.currentUserValue;
+    if (!currentUser) {
+      return throwError(() => new Error('Usuario no autenticado'));
+    }
+
+    const backendDto = this.transformFrontendToBackend(personal, currentUser.id);
+    
+    return this.http.put<any>(`${this.apiUrl}/personal/${id}`, backendDto)
+      .pipe(
+        map(response => this.transformBackendToFrontend(response)),
+        catchError(this.handleError)
+      );
+  }
+
+  deletePersonal(id: number): Observable<boolean> {
+    return this.http.delete(`${this.apiUrl}/personal/${id}`)
+      .pipe(
+        map(() => true),
+        catchError(this.handleError)
+      );
+  }
+
+  // Métodos para obtener datos de constantes
+  getTiposSangre(): Observable<BloodType[]> {
+    return this.http.get<BloodType[]>(`${this.apiUrl}/constantes/tipos-sangre`)
+      .pipe(
+        catchError(() => {
+          const mockTypes: BloodType[] = this.getTiposSangreStatic().map((tipo, index) => ({
+            bloodTypeId: index + 1,
+            bloodType: tipo
+          }));
+          return of(mockTypes);
+        })
+      );
+  }
+
+  getEstados(): Observable<Estado[]> {
+    return this.http.get<Estado[]>(`${this.apiUrl}/constantes/estados`)
+      .pipe(
+        catchError(() => {
+          const mockStates: Estado[] = this.getEstadosStatic().map((estado, index) => ({
+            stateId: index + 1,
+            state: estado.label
+          }));
+          return of(mockStates);
+        })
+      );
+  }
+
+  getRangos(): Observable<RangoBackend[]> {
+    return this.http.get<RangoBackend[]>(`${this.apiUrl}/constantes/rangos`)
+      .pipe(
+        catchError(() => {
+          const mockRangos: RangoBackend[] = [
+            { rangeId: 1, rangeName: 'Bombero Auxiliar' },
+            { rangeId: 2, rangeName: 'Bombero Profesional' },
+            { rangeId: 3, rangeName: 'Cabo' },
+            { rangeId: 4, rangeName: 'Sargento' },
+            { rangeId: 5, rangeName: 'Teniente' },
+            { rangeId: 6, rangeName: 'Capitán' },
+            { rangeId: 7, rangeName: 'Mayor' }
+          ];
+          return of(mockRangos);
+        })
+      );
+  }
+
+  getCualidades(): Observable<CompetenciaBackend[]> {
+    return this.http.get<CompetenciaBackend[]>(`${this.apiUrl}/competencias`)
+      .pipe(
+        catchError(() => {
+          const mockCualidades: CompetenciaBackend[] = [
+            { competenciaId: 1, competenciaName: 'Primeros Auxilios', category: 'medica' },
+            { competenciaId: 2, competenciaName: 'Paramedicina', category: 'medica' },
+            { competenciaId: 3, competenciaName: 'Rescate Urbano', category: 'rescate' },
+            { competenciaId: 4, competenciaName: 'Rescate Acuático', category: 'rescate' },
+            { competenciaId: 5, competenciaName: 'Rescate Vehicular', category: 'rescate' },
+            { competenciaId: 6, competenciaName: 'Liderazgo', category: 'administrativa' },
+            { competenciaId: 7, competenciaName: 'Instructor', category: 'administrativa' },
+            { competenciaId: 8, competenciaName: 'Comunicaciones', category: 'tecnica' },
+            { competenciaId: 9, competenciaName: 'Manejo Materiales Peligrosos', category: 'tecnica' },
+            { competenciaId: 10, competenciaName: 'Conducción Emergencia', category: 'operativa' }
+          ];
+          return of(mockCualidades);
+        })
+      );
+  }
+
+  getCualidadesAgrupadas(): Observable<{[categoria: string]: CompetenciaBackend[]}> {
+    return this.http.get<{[categoria: string]: CompetenciaBackend[]}>(`${this.apiUrl}/competencias/agrupadas`)
+      .pipe(catchError(this.handleError));
+  }
+
+  // Métodos de transformación
+  private transformFrontendToBackend(personal: Personal, userId: number): CreatePersonalBackendDto {
+    // Separar nombres y apellidos
+    const nombres = personal.nombres.trim().split(' ');
+    const apellidos = personal.apellidos.trim().split(' ');
+
+    return {
+      userId: userId,
+      bloodTypeId: Number(personal.tipoSangre), // Asumiendo que tipoSangre será un ID
+      firstName: nombres[0],
+      secondName: nombres.length > 1 ? nombres.slice(1).join(' ') : undefined,
+      firstLastName: apellidos[0],
+      secondLastName: apellidos.length > 1 ? apellidos.slice(1).join(' ') : undefined,
+      idNumber: personal.cedula,
+      birthDate: personal.fechaNacimiento.toISOString().split('T')[0],
+      address: personal.direccion,
+      phoneNumber: personal.telefono,
+      competencias: personal.cualidades.map(c => Number(c)),
+      emergencyContact: {
+        name: personal.contactoEmergencia.nombre,
+        relationship: personal.contactoEmergencia.parentesco,
+        mobilePhone: personal.contactoEmergencia.telefono
+      },
+      employmentData: {
+        rangeId: Number(personal.rango),
+        stateId: this.getStateIdFromString(personal.estado),
+        admissionDate: personal.fechaIngreso.toISOString().split('T')[0],
+        yearsOfExperience: personal.experienciaAnios,
+        observations: personal.observaciones
+      }
+    };
+  }
+
+  private transformBackendToFrontend(backendPersonal: any): Personal {
+    return {
+      id: backendPersonal.personalId,
+      cedula: backendPersonal.idNumber,
+      nombres: [backendPersonal.firstName, backendPersonal.secondName].filter(Boolean).join(' '),
+      apellidos: [backendPersonal.firstLastName, backendPersonal.secondLastName].filter(Boolean).join(' '),
+      fechaNacimiento: new Date(backendPersonal.birthDate),
+      telefono: backendPersonal.phoneNumber,
+      email: backendPersonal.user?.email || '',
+      direccion: backendPersonal.address,
+      tipoSangre: backendPersonal.bloodTypeEntity?.bloodType || '',
+      rango: backendPersonal.employmentDataEntity?.range?.rangeName || '',
+      fechaIngreso: new Date(backendPersonal.employmentDataEntity?.admissionDate),
+      estado: this.getStateStringFromId(backendPersonal.employmentDataEntity?.stateId),
+      cualidades: backendPersonal.peopleCompetencias?.map((pc: any) => pc.competencia.competenciaName) || [],
+      experienciaAnios: backendPersonal.employmentDataEntity?.yearsOfExperience || 0,
+      observaciones: backendPersonal.employmentDataEntity?.observations,
+      contactoEmergencia: {
+        nombre: backendPersonal.emergencyContact?.name || '',
+        parentesco: backendPersonal.emergencyContact?.relationship || '',
+        telefono: backendPersonal.emergencyContact?.mobilePhone || ''
+      }
+    };
+  }
+
+  // Métodos auxiliares
+  private getStateIdFromString(estado: string): number {
+    const stateMap: {[key: string]: number} = {
+      'activo': 1,
+      'inactivo': 2,
+      'licencia': 3
+    };
+    return stateMap[estado] || 1;
+  }
+
+  private getStateStringFromId(stateId: number): 'activo' | 'inactivo' | 'licencia' {
+    const stateMap: {[key: number]: 'activo' | 'inactivo' | 'licencia'} = {
+      1: 'activo',
+      2: 'inactivo',
+      3: 'licencia'
+    };
+    return stateMap[stateId] || 'activo';
+  }
+
+
+
+  private handleError = (error: any): Observable<never> => {
+    console.error('Error en PersonalService:', error);
+    let errorMessage = 'Error desconocido';
+    
+    if (error.error?.message) {
+      errorMessage = error.error.message;
+    } else if (error.message) {
+      errorMessage = error.message;
+    }
+    
+    return throwError(() => new Error(errorMessage));
+  }
+
+  // Métodos para compatibilidad con datos estáticos (fallback)
+  getTiposSangreStatic(): string[] {
     return ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'];
   }
 
-  // Estados disponibles
-  getEstados(): Array<{value: string, label: string}> {
+  getEstadosStatic(): Array<{value: string, label: string}> {
     return [
       { value: 'activo', label: 'Activo' },
       { value: 'inactivo', label: 'Inactivo' },
       { value: 'licencia', label: 'En Licencia' }
     ];
+  }
+
+  getMockPersonal(): Personal[] {
+    return [
+      {
+        id: 1,
+        cedula: '12345678',
+        nombres: 'Carlos Eduardo',
+        apellidos: 'González Morales',
+        fechaNacimiento: new Date('1985-03-15'),
+        telefono: '3101234567',
+        email: 'carlos.gonzalez@bomberos.gov.co',
+        direccion: 'Calle 45 #23-15, Barrio Centro',
+        tipoSangre: 'O+',
+        rango: 'Capitán',
+        fechaIngreso: new Date('2010-01-15'),
+        estado: 'activo',
+        cualidades: ['liderazgo', 'rescate_acuatico', 'primeros_auxilios'],
+        experienciaAnios: 14,
+        observaciones: 'Especialista en rescate acuático. Instructor certificado.',
+        contactoEmergencia: {
+          nombre: 'María González',
+          parentesco: 'Esposa',
+          telefono: '3109876543'
+        }
+      },
+      {
+        id: 2,
+        cedula: '87654321',
+        nombres: 'Ana Sofía',
+        apellidos: 'Rodríguez Pérez',
+        fechaNacimiento: new Date('1990-07-22'),
+        telefono: '3202345678',
+        email: 'ana.rodriguez@bomberos.gov.co',
+        direccion: 'Carrera 12 #34-56, Barrio Norte',
+        tipoSangre: 'A+',
+        rango: 'Bombero Profesional',
+        fechaIngreso: new Date('2015-06-01'),
+        estado: 'activo',
+        cualidades: ['paramedicina', 'rescate_urbano', 'primeros_auxilios'],
+        experienciaAnios: 9,
+        observaciones: 'Paramédica certificada. Especialista en emergencias médicas.',
+        contactoEmergencia: {
+          nombre: 'José Rodríguez',
+          parentesco: 'Padre',
+          telefono: '3108765432'
+        }
+      }
+    ];
+  }
+
+  // Método para estadísticas (implementación básica)
+  getPersonalStats(): Observable<PersonalStats> {
+    return this.getPersonal().pipe(
+      map(personalList => {
+        const total = personalList.length;
+        const activos = personalList.filter(p => p.estado === 'activo').length;
+        const inactivos = personalList.filter(p => p.estado === 'inactivo').length;
+        const enLicencia = personalList.filter(p => p.estado === 'licencia').length;
+        
+        const promedioExperiencia = personalList.reduce((sum, p) => sum + p.experienciaAnios, 0) / total;
+        
+        const distribucuionPorRango: { [rango: string]: number } = {};
+        personalList.forEach(p => {
+          distribucuionPorRango[p.rango] = (distribucuionPorRango[p.rango] || 0) + 1;
+        });
+
+        const cualidadesMasComunes: { cualidad: string; cantidad: number }[] = [];
+        const cualidadesCount: { [cualidad: string]: number } = {};
+        personalList.forEach(p => {
+          p.cualidades.forEach(c => {
+            cualidadesCount[c] = (cualidadesCount[c] || 0) + 1;
+          });
+        });
+
+        Object.entries(cualidadesCount)
+          .sort(([,a], [,b]) => b - a)
+          .slice(0, 5)
+          .forEach(([cualidad, cantidad]) => {
+            cualidadesMasComunes.push({ cualidad, cantidad });
+          });
+
+        return {
+          totalPersonal: total,
+          personalActivo: activos,
+          personalInactivo: inactivos,
+          personalEnLicencia: enLicencia,
+          promedioExperiencia: Math.round(promedioExperiencia * 100) / 100,
+          distribucuionPorCargo: distribucuionPorRango,
+          cualidadesMasComunes
+        };
+      })
+    );
   }
 } 

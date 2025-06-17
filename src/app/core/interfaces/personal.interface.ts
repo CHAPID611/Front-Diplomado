@@ -8,7 +8,6 @@ export interface Personal {
   email: string;
   direccion: string;
   tipoSangre: string;
-  cargo: string;
   rango: string;
   fechaIngreso: Date;
   estado: 'activo' | 'inactivo' | 'licencia';
@@ -32,11 +31,7 @@ export interface Cualidad {
   descripcion: string;
 }
 
-export interface Cargo {
-  id: string;
-  nombre: string;
-  descripcion: string;
-}
+
 
 export interface Rango {
   id: string;

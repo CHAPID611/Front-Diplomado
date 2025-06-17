@@ -27,8 +27,8 @@
                 <mat-form-field appearance="outline">
                   <mat-label>Tipo de Sangre</mat-label>
                   <mat-select formControlName="tipoSangre" required>
-                    <mat-option *ngFor="let tipo of tiposSangre" [value]="tipo">
-                      {{ tipo }}
+                    <mat-option *ngFor="let tipo of tiposSangre" [value]="tipo.bloodTypeId || tipo">
+                      {{ tipo.bloodType || tipo }}
                     </mat-option>
                   </mat-select>
                   <mat-icon matSuffix>bloodtype</mat-icon>
@@ -100,27 +100,15 @@
           <ng-template matStepContent>
             <div class="step-content">
               
-              <div class="form-row">
-                <mat-form-field appearance="outline">
-                  <mat-label>Cargo</mat-label>
-                  <mat-select formControlName="cargo" required>
-                    <mat-option *ngFor="let cargo of data.cargos" [value]="cargo.id">
-                      {{ cargo.nombre }}
-                    </mat-option>
-                  </mat-select>
-                  <mat-icon matSuffix>work</mat-icon>
-                </mat-form-field>
-
-                <mat-form-field appearance="outline">
-                  <mat-label>Rango</mat-label>
-                  <mat-select formControlName="rango" required>
-                    <mat-option *ngFor="let rango of data.rangos" [value]="rango.id">
-                      {{ rango.nombre }}
-                    </mat-option>
-                  </mat-select>
-                  <mat-icon matSuffix>military_tech</mat-icon>
-                </mat-form-field>
-              </div>
+              <mat-form-field appearance="outline" class="full-width">
+                <mat-label>Rango</mat-label>
+                <mat-select formControlName="rango" required>
+                  <mat-option *ngFor="let rango of data.rangos" [value]="rango.id">
+                    {{ rango.nombre }}
+                  </mat-option>
+                </mat-select>
+                <mat-icon matSuffix>military_tech</mat-icon>
+              </mat-form-field>
 
               <div class="form-row">
                 <mat-form-field appearance="outline">
