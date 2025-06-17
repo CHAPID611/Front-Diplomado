@@ -1,4 +1,4 @@
-import { Component } from '@angular/core';
+import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { MatToolbarModule } from '@angular/material/toolbar';
 import { MatSidenavModule } from '@angular/material/sidenav';
@@ -7,7 +7,8 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatListModule } from '@angular/material/list';
 import { MatDividerModule } from '@angular/material/divider';
 import { MatMenuModule } from '@angular/material/menu';
-import { RouterOutlet, RouterModule } from '@angular/router';
+import { RouterOutlet, RouterModule, Router } from '@angular/router';
+import { AuthService } from '../../../core/services/auth.service';
 
 @Component({
   selector: 'app-layout',
@@ -47,24 +48,24 @@ import { RouterOutlet, RouterModule } from '@angular/router';
             <span matListItemTitle>Dashboard</span>
           </a>
           
-          <a mat-list-item routerLink="/emergencias" (click)="drawer.close()" routerLinkActive="active">
+          <a mat-list-item routerLink="/dashboard/emergencias" (click)="drawer.close()" routerLinkActive="active">
             <mat-icon matListItemIcon>local_fire_department</mat-icon>
             <span matListItemTitle>Emergencias</span>
           </a>
           
-          <a mat-list-item routerLink="/reportes" (click)="drawer.close()" routerLinkActive="active">
+          <a mat-list-item *ngIf="userRole === 'admin'" routerLink="/dashboard/reportes" (click)="drawer.close()" routerLinkActive="active">
             <mat-icon matListItemIcon>assessment</mat-icon>
             <span matListItemTitle>Reportes</span>
           </a>
           
-          <a mat-list-item routerLink="/personal" (click)="drawer.close()" routerLinkActive="active">
+          <a mat-list-item *ngIf="userRole === 'admin'" routerLink="/dashboard/personal" (click)="drawer.close()" routerLinkActive="active">
             <mat-icon matListItemIcon>people</mat-icon>
             <span matListItemTitle>Personal</span>
           </a>
           
           <mat-divider class="menu-divider"></mat-divider>
           
-          <a mat-list-item routerLink="/configuracion" (click)="drawer.close()" routerLinkActive="active">
+          <a mat-list-item *ngIf="userRole === 'admin'" routerLink="/configuracion" (click)="drawer.close()" routerLinkActive="active">
             <mat-icon matListItemIcon>settings</mat-icon>
             <span matListItemTitle>Configuración</span>
           </a>
@@ -372,9 +373,18 @@ import { RouterOutlet, RouterModule } from '@angular/router';
     }
   `]
 })
-export class LayoutComponent {
+export class LayoutComponent implements OnInit {
+  userRole: string = '';
+
+  constructor(private authService: AuthService, private router: Router) { }
+
+  ngOnInit(): void {
+    this.userRole = this.authService.getUserRole();
+    console.log('LayoutComponent: Rol de usuario en ngOnInit:', this.userRole);
+  }
+
   logout() {
-    // TODO: Implementar lógica de logout
-    console.log('Cerrando sesión...');
+    this.authService.logout();
+    this.router.navigate(['/login']);
   }
 } 

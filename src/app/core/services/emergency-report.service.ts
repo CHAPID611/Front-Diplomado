@@ -1,11 +1,15 @@
 import { Injectable } from '@angular/core';
+import { HttpClient } from '@angular/common/http';
 import { Observable, of } from 'rxjs';
 import { EmergencyReport, TipoEmergencia, PersonalDisponible, VehiculoDisponible } from '../interfaces/emergency-report.interface';
+import { environment } from '../../../environments/environment';
 
 @Injectable({
   providedIn: 'root'
 })
 export class EmergencyReportService {
+
+  private apiUrl = environment.apiUrl;
 
   // Datos mock para el formulario
   private tiposEmergencia: TipoEmergencia[] = [
@@ -33,7 +37,7 @@ export class EmergencyReportService {
   ];
 
   private vehiculosDisponibles: VehiculoDisponible[] = [
-    { id: 'v1', nombre: 'Autobomba AB-01', tipo: 'autobomba', disponible: true },
+    { id: 'v1', nombre: 'AM - 1', tipo: 'ambulancia', disponible: true },
     { id: 'v2', nombre: 'Autobomba AB-02', tipo: 'autobomba', disponible: true },
     { id: 'v3', nombre: 'Ambulancia AMB-01', tipo: 'ambulancia', disponible: true },
     { id: 'v4', nombre: 'Vehículo de Rescate VR-01', tipo: 'rescate', disponible: true },
@@ -41,7 +45,7 @@ export class EmergencyReportService {
     { id: 'v6', nombre: 'Vehículo de Comando VC-01', tipo: 'otro', disponible: true }
   ];
 
-  constructor() { }
+  constructor(private http: HttpClient) { }
 
   getTiposEmergencia(): Observable<TipoEmergencia[]> {
     return of(this.tiposEmergencia);
@@ -114,9 +118,8 @@ export class EmergencyReportService {
     reporte.fechaCreacion = new Date();
     reporte.estado = 'enviado';
     
-    // Aquí se haría la llamada al backend
-    console.log('Guardando reporte:', reporte);
-    
-    return of(reporte);
+    // Aquí se hace la llamada al backend
+    console.log('Enviando reporte al backend:', reporte);
+    return this.http.post<EmergencyReport>(`${this.apiUrl}/emergencies`, reporte);
   }
 } 

@@ -21,6 +21,9 @@ export interface EmergencyReport {
   horaRegresoEstacion: string;
   horaRegresoEstacionDescripcion: string;
   
+  // Nuevos eventos adicionales
+  eventosAdicionales?: EventoAdicional[];
+  
   // Personal y recursos
   unidades: string[];
   guardia: string[];
@@ -39,6 +42,10 @@ export interface EmergencyReport {
   creadoPor?: string;
   fechaCreacion?: Date;
   estado?: 'borrador' | 'enviado' | 'aprobado';
+  
+  eventosAdicionalesSalida: { hora: string; descripcion: string }[];
+  eventosAdicionalesLlegadaEscena: { hora: string; descripcion: string }[];
+  eventosAdicionalesLlegadaHospital: { hora: string; descripcion: string }[];
 }
 
 export interface TipoEmergencia {
@@ -70,4 +77,9 @@ export interface EvidenciaFotograficaData {
   // Para almacenamiento, se podría agregar también:
   // base64Data?: string; // Si se quiere almacenar en base64
   // url?: string; // Si se almacena en un servidor de archivos
+}
+
+export interface EventoAdicional {
+  hora: string;
+  descripcion: string;
 } 
