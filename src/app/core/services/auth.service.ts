@@ -18,6 +18,9 @@ export class AuthService {
     private http: HttpClient,
     @Inject(PLATFORM_ID) private platformId: Object
   ) {
+    // Limpiar la autenticación al iniciar la aplicación
+    this.clearAuth();
+    
     // Acceder a localStorage solo si se está ejecutando en el navegador
     if (isPlatformBrowser(this.platformId)) {
       this.currentUserSubject = new BehaviorSubject<any>(JSON.parse(localStorage.getItem(this.USER_KEY) || 'null'));
@@ -26,6 +29,14 @@ export class AuthService {
       this.currentUserSubject = new BehaviorSubject<any>(null);
     }
     this.currentUser = this.currentUserSubject.asObservable();
+  }
+
+  private clearAuth(): void {
+    if (isPlatformBrowser(this.platformId)) {
+      localStorage.removeItem(this.TOKEN_KEY);
+      localStorage.removeItem(this.USER_KEY);
+    }
+    this.currentUserSubject?.next(null);
   }
 
   public get currentUserValue() {
@@ -41,6 +52,8 @@ export class AuthService {
             localStorage.setItem(this.TOKEN_KEY, response.token);
             localStorage.setItem(this.USER_KEY, JSON.stringify(response.user));
             this.currentUserSubject.next(response.user);
+            console.log('AuthService: Usuario guardado en localStorage:', response.user);
+            console.log('AuthService: Rol del usuario guardado:', response.user.role);
           }
         })
       );
@@ -64,10 +77,55 @@ export class AuthService {
   }
 
   isAuthenticated(): boolean {
-    return !!this.getToken();
+    const token = this.getToken();
+    console.log('AuthService: Verificando autenticación. Token obtenido:', token ? 'Existe' : 'No existe');
+
+    if (!token) {
+      console.log('AuthService: No hay token. Usuario NO autenticado.');
+      return false;
+    }
+    
+    try {
+      const tokenPayload = JSON.parse(atob(token.split('.')[1]));
+      const expirationDate = new Date(tokenPayload.exp * 1000);
+      const isTokenValid = expirationDate > new Date();
+      
+      console.log('AuthService: Token decodificado. Fecha de expiración:', expirationDate);
+      console.log('AuthService: Token válido (no expirado):', isTokenValid);
+      
+      if (!isTokenValid) {
+        console.log('AuthService: Token expirado. Realizando logout.');
+        this.logout(); // Asegurarse de que el token expirado se elimine
+      }
+      
+      return isTokenValid;
+    } catch (error) {
+      console.error('AuthService: Error al decodificar o validar el token:', error);
+      this.logout(); // Limpiar el estado en caso de token corrupto
+      return false;
+    }
   }
 
   getUserRole(): string {
-    return this.currentUserValue?.role || '';
+    const user = this.currentUserValue; 
+    let role = '';
+    console.log('AuthService: En getUserRole - Objeto de usuario:', user);
+
+    if (user && user.roles) {
+      console.log('AuthService: En getUserRole - Array de roles:', user.roles);
+      if (user.roles.length > 0) {
+        console.log('AuthService: En getUserRole - Primer elemento del array roles:', user.roles[0]);
+        // Intentar extraer el rol de diferentes maneras, si la primera falla
+        if (typeof user.roles[0] === 'string') {
+          role = user.roles[0];
+        } else if (user.roles[0] && user.roles[0].name) {
+          role = user.roles[0].name;
+        } else if (user.roles[0] && user.roles[0].role) { // Si el campo es 'role' en lugar de 'name'
+          role = user.roles[0].role;
+        }
+      }
+    }
+    console.log('AuthService: Rol final obtenido:', role);
+    return role;
   }
 } 

@@ -58,9 +58,8 @@ export class LoginComponent implements OnInit {
   }
 
   ngOnInit(): void {
-    if (this.authService.isAuthenticated()) {
-      this.redirectBasedOnRole();
-    }
+    // Limpiar cualquier estado de autenticación previo
+    this.authService.logout();
   }
 
   onSubmit(): void {
@@ -91,13 +90,13 @@ export class LoginComponent implements OnInit {
     const role = this.authService.getUserRole();
     switch (role) {
       case 'admin':
-        this.router.navigate(['/admin']);
+        this.router.navigate(['/dashboard']);
         break;
       case 'user':
-        this.router.navigate(['/user']);
+        this.router.navigate(['/dashboard']);
         break;
       default:
-        this.router.navigate(['/']);
+        this.router.navigate(['/dashboard']);
     }
   }
 
