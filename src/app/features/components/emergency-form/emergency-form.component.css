@@ -762,8 +762,8 @@
 /* Estilo para el botón de agregar nuevo formulario */
 .add-form-btn {
   position: absolute;
-  top: 25px;
-  right: 25px;
+  top: 20px;
+  right: 20px;
   z-index: 10;
   box-shadow: 0 4px 12px rgba(198, 40, 40, 0.9);
 }
