@@ -1,11 +1,11 @@
 import { Injectable } from '@angular/core';
-import { Emergency } from '../interfaces/emergency.interface';
+import { EmergencyOld } from '../interfaces/emergency.interface';
 
 @Injectable({
   providedIn: 'root'
 })
 export class DashboardService {
-  private mockEmergencies: Emergency[] = [
+  private mockEmergencies: EmergencyOld[] = [
     // Emergencias recientes (últimas 24 horas)
     {
       id: 1,
@@ -246,7 +246,7 @@ export class DashboardService {
     return this.mockEmergencies.length;
   }
 
-  getLatestEmergencies(): Emergency[] {
+  getLatestEmergencies(): EmergencyOld[] {
     return this.mockEmergencies
       .sort((a, b) => b.fecha.getTime() - a.fecha.getTime())
       .slice(0, 8);
@@ -289,7 +289,7 @@ export class DashboardService {
     return Math.round((sum / responseTimes.length) * 10) / 10;
   }
 
-  getEmergenciesToday(): Emergency[] {
+  getEmergenciesToday(): EmergencyOld[] {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     const tomorrow = new Date(today);
@@ -300,14 +300,14 @@ export class DashboardService {
     );
   }
 
-  getEmergenciesThisWeek(): Emergency[] {
+  getEmergenciesThisWeek(): EmergencyOld[] {
     const now = new Date();
     const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
     
     return this.mockEmergencies.filter(e => e.fecha >= weekAgo);
   }
 
-  getEmergenciesThisMonth(): Emergency[] {
+  getEmergenciesThisMonth(): EmergencyOld[] {
     const now = new Date();
     const monthAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
     

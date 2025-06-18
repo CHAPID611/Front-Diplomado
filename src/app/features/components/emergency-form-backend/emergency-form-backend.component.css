@@ -84,6 +84,72 @@
   --mdc-checkbox-selected-icon-color: #c62828;
 }
 
+/* Estilos para eventos adicionales */
+.additional-events-section {
+  margin: 16px 0;
+  border: 1px dashed #c62828;
+  border-radius: 8px;
+  padding: 16px;
+  background: #fff8f8;
+}
+
+/* Indicador para campos de hora requeridos */
+.additional-events-section input[type="time"]:invalid {
+  border: 2px solid #f44336;
+  background-color: #ffebee;
+}
+
+.additional-events-section input[type="time"]:invalid::before {
+  content: "⚠️ Hora requerida";
+  position: absolute;
+  top: -25px;
+  left: 0;
+  color: #f44336;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.additional-events-section .mat-mdc-form-field.mat-form-field-invalid .mat-mdc-text-field-wrapper {
+  border: 2px solid #f44336;
+}
+
+.additional-events-section .mat-mdc-form-field.mat-form-field-invalid .mat-mdc-floating-label {
+  color: #f44336 !important;
+}
+
+.add-event-btn {
+  width: 100%;
+  margin-top: 8px;
+  background-color: #c62828;
+  color: white;
+}
+
+.add-event-btn:hover {
+  background-color: #b71c1c;
+}
+
+.remove-btn {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  z-index: 10;
+  background-color: #ffffff;
+  border: 1px solid #f44336;
+}
+
+.remove-btn:hover {
+  background-color: #ffebee;
+}
+
+.additional-events-section .time-section {
+  position: relative;
+  margin: 16px 0;
+  padding: 16px;
+  border: 1px solid #e0e0e0;
+  border-radius: 4px;
+  background: #ffffff;
+}
+
 .time-section {
   background: #ffffff;
   padding: 20px;
@@ -200,51 +266,50 @@
 }
 
 .upload-area {
-  border: 2px dashed #c62828;
-  border-radius: 12px;
-  padding: 40px 20px;
+  border: 2px dashed #ccc;
+  border-radius: 8px;
+  padding: 40px;
   text-align: center;
   cursor: pointer;
   transition: all 0.3s ease;
   background: #fafafa;
-  position: relative;
 }
 
 .upload-area:hover {
-  border-color: #b71c1c;
-  background: #f5f5f5;
+  border-color: #2196f3;
+  background: #f0f8ff;
   transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(198, 40, 40, 0.2);
+  box-shadow: 0 4px 12px rgba(33, 150, 243, 0.15);
 }
 
 .upload-area.uploading {
+  border-color: #4caf50;
+  background: #f1f8e9;
   pointer-events: none;
-  opacity: 0.7;
-  border-color: #9e9e9e;
 }
 
 .upload-icon {
   font-size: 48px;
-  color: #c62828;
+  color: #9e9e9e;
   margin-bottom: 16px;
 }
 
 .upload-area h4 {
-  color: #2c3e50;
+  color: #333;
   margin: 0 0 8px 0;
   font-size: 18px;
-  font-weight: 600;
+  font-weight: 500;
 }
 
 .upload-area p {
-  color: #6c757d;
+  color: #666;
   margin: 0;
   font-size: 14px;
 }
 
 .upload-info {
-  margin-top: 12px;
   text-align: center;
+  margin-top: 12px;
 }
 
 .upload-info small {
@@ -252,7 +317,7 @@
   align-items: center;
   justify-content: center;
   gap: 6px;
-  color: #6c757d;
+  color: #666;
   font-size: 12px;
 }
 
@@ -262,7 +327,7 @@
 }
 
 .photos-section {
-  margin: 32px 0;
+  margin: 24px 0;
 }
 
 .photos-section h4 {
@@ -270,11 +335,11 @@
   align-items: center;
   gap: 8px;
   color: #2c3e50;
-  margin: 0 0 20px 0;
+  margin: 0 0 16px 0;
   font-size: 16px;
   font-weight: 600;
-  border-bottom: 2px solid #c62828;
   padding-bottom: 8px;
+  border-bottom: 2px solid #c62828;
 }
 
 .photos-section mat-icon {
@@ -286,13 +351,13 @@
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
   gap: 20px;
-  margin-top: 20px;
+  margin: 16px 0;
 }
 
 .photo-card {
-  background: #ffffff;
-  border-radius: 12px;
+  background: #fff;
   border: 1px solid #e9ecef;
+  border-radius: 8px;
   overflow: hidden;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
   transition: transform 0.2s ease, box-shadow 0.2s ease;
@@ -325,16 +390,21 @@
   position: absolute;
   top: 8px;
   right: 8px;
-  background: rgba(220, 53, 69, 0.9);
+  background: rgba(244, 67, 54, 0.9);
   color: white;
-  -webkit-backdrop-filter: blur(4px);
-  backdrop-filter: blur(4px);
-  transition: all 0.2s ease;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+
+.photo-card:hover .delete-btn {
+  opacity: 1;
 }
 
 .delete-btn:hover {
-  background: rgba(220, 53, 69, 1);
-  transform: scale(1.1);
+  background: #f44336;
 }
 
 .photo-info {
@@ -345,27 +415,26 @@
   display: flex;
   align-items: center;
   gap: 6px;
-  color: #2c3e50;
   font-weight: 500;
+  color: #333;
+  margin-bottom: 8px;
   font-size: 14px;
-  margin-bottom: 4px;
-  word-break: break-all;
+  word-break: break-word;
 }
 
 .file-name mat-icon {
-  color: #6c757d;
-  font-size: 16px;
+  color: #2196f3;
+  font-size: 18px;
 }
 
 .file-size {
-  color: #6c757d;
+  color: #666;
   font-size: 12px;
   margin-bottom: 12px;
 }
 
 .photo-info .description-field {
   width: 100%;
-  margin: 0;
 }
 
 .validation-message {
@@ -373,8 +442,8 @@
   align-items: center;
   gap: 8px;
   padding: 12px 16px;
-  border-radius: 8px;
-  margin: 20px 0;
+  border-radius: 6px;
+  margin: 16px 0;
   font-size: 14px;
   font-weight: 500;
   border: 1px solid;
@@ -382,8 +451,8 @@
 
 .validation-message.success {
   background: #d4edda;
-  color: #155724;
   border-color: #c3e6cb;
+  color: #155724;
 }
 
 .validation-message.success mat-icon {
@@ -392,8 +461,8 @@
 
 .validation-message.error {
   background: #f8d7da;
-  color: #721c24;
   border-color: #f5c6cb;
+  color: #721c24;
 }
 
 .validation-message.error mat-icon {
@@ -403,36 +472,34 @@
 .step-actions {
   display: flex;
   gap: 12px;
-  margin-top: 32px;
+  margin-top: 24px;
   padding-top: 20px;
   border-top: 1px solid #e9ecef;
 }
 
 .step-actions button {
-  border-radius: 6px;
-  font-weight: 500;
-  text-transform: none;
-  padding: 0 24px;
+  min-width: 120px;
   height: 40px;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
 }
 
 .step-actions .mat-mdc-raised-button.mat-primary {
-  background-color: #c62828;
+  background: #c62828;
   color: white;
 }
 
 .step-actions .mat-mdc-raised-button.mat-primary:hover {
-  background-color: #b71c1c;
-  box-shadow: 0 4px 12px rgba(198, 40, 40, 0.3);
+  background: #b71c1c;
 }
 
 .step-actions .mat-mdc-button {
-  color: #6c757d;
+  color: #666;
 }
 
 .step-actions .mat-mdc-button:hover {
-  background-color: #f8f9fa;
-  color: #495057;
+  background: #f5f5f5;
 }
 
 .preview-section {
@@ -440,84 +507,114 @@
   padding: 20px;
   border-radius: 8px;
   margin: 20px 0;
-  border: 1px solid #e9ecef;
+  border-left: 4px solid #17a2b8;
 }
 
 .preview-section h4 {
-  color: #2c3e50;
-  margin-bottom: 16px;
+  color: #17a2b8;
+  margin: 0 0 16px 0;
+  font-size: 16px;
   font-weight: 600;
 }
 
 .description-preview {
   background: #ffffff;
-  padding: 20px;
+  padding: 16px;
   border-radius: 6px;
   border: 1px solid #dee2e6;
-  max-height: 400px;
+  max-height: 300px;
   overflow-y: auto;
-  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.1);
 }
 
 .description-preview pre {
   white-space: pre-wrap;
-  font-family: 'Roboto', sans-serif;
-  font-size: 14px;
-  line-height: 1.6;
+  word-wrap: break-word;
   margin: 0;
-  color: #495057;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  font-size: 14px;
+  line-height: 1.5;
+  color: #333;
 }
 
 .debug-section {
-  background: #f8f9fa;
+  background: #fff3cd;
   padding: 20px;
   border-radius: 8px;
   margin: 20px 0;
-  border: 1px solid #dee2e6;
+  border-left: 4px solid #ffc107;
+  border: 1px solid #ffeaa7;
 }
 
 .debug-section h4 {
+  color: #856404;
   margin: 0 0 16px 0;
-  color: #6c757d;
   font-size: 16px;
   font-weight: 600;
 }
 
 .debug-section p {
   margin: 8px 0;
-  font-size: 13px;
-  font-family: 'Courier New', monospace;
-  color: #495057;
+  color: #856404;
+  font-size: 14px;
 }
 
 .debug-values {
-  margin-top: 16px;
-  padding: 16px;
   background: #ffffff;
-  border-radius: 4px;
-  border-left: 3px solid #6c757d;
-  border: 1px solid #dee2e6;
+  padding: 12px;
+  border-radius: 6px;
+  border: 1px solid #ffd32a;
+  margin-top: 12px;
 }
 
 .debug-values p {
   margin: 4px 0;
+  font-family: 'Courier New', monospace;
   font-size: 12px;
 }
 
 .debug-section h5 {
+  color: #856404;
   margin: 16px 0 8px 0;
-  color: #6c757d;
   font-size: 14px;
   font-weight: 600;
+  border-bottom: 1px solid #ffd32a;
+  padding-bottom: 4px;
 }
 
-/* Estilos para Angular Material */
+.error-item {
+  background: #ffebee;
+  padding: 8px;
+  margin: 4px 0;
+  border-radius: 4px;
+  border-left: 3px solid #f44336;
+  font-size: 14px;
+}
+
+.debug-values h5 {
+  color: #c62828;
+  margin: 16px 0 8px 0;
+  font-size: 16px;
+  font-weight: 600;
+  border-bottom: 2px solid #c62828;
+  padding-bottom: 4px;
+}
+
+.debug-values p {
+  margin: 8px 0;
+  padding: 4px 8px;
+  background: #f8f9fa;
+  border-radius: 4px;
+  border-left: 3px solid #c62828;
+  font-family: 'Courier New', monospace;
+  font-size: 13px;
+}
+
 ::ng-deep .mat-mdc-form-field {
-  margin-bottom: 16px;
+  width: 100%;
 }
 
 ::ng-deep .mat-mdc-form-field .mat-mdc-text-field-wrapper {
-  border-radius: 6px;
+  background-color: #fafafa;
 }
 
 ::ng-deep .mat-mdc-form-field.mat-focused .mat-mdc-form-field-focus-overlay {
@@ -529,11 +626,11 @@
 }
 
 ::ng-deep .mat-mdc-select-panel {
-  border-radius: 6px;
+  border-radius: 8px;
 }
 
 ::ng-deep .mat-mdc-option.mdc-list-item--selected:not(.mdc-list-item--disabled) {
-  background-color: rgba(198, 40, 40, 0.08);
+  background-color: rgba(198, 40, 40, 0.1);
 }
 
 ::ng-deep .mat-mdc-option:hover:not(.mdc-list-item--disabled) {
@@ -546,13 +643,13 @@
 }
 
 ::ng-deep .mat-step-header .mat-step-icon-state-done {
-  background-color: #28a745;
+  background-color: #4caf50;
   color: white;
 }
 
 ::ng-deep .mat-step-header .mat-step-icon {
-  background-color: #6c757d;
-  color: white;
+  background-color: #e0e0e0;
+  color: #666;
 }
 
 ::ng-deep .mat-divider {
@@ -560,56 +657,50 @@
   margin: 24px 0;
 }
 
-/* Estilos para resumen de evidencias en revisión */
+/* Estilos para el resumen de evidencias */
 .evidencias-summary {
   background: #f8f9fa;
   padding: 20px;
   border-radius: 8px;
   margin: 20px 0;
-  border: 1px solid #e9ecef;
-  border-left: 4px solid #2196f3;
+  border-left: 4px solid #17a2b8;
 }
 
 .evidencias-summary h4 {
   display: flex;
   align-items: center;
   gap: 8px;
-  color: #2c3e50;
+  color: #17a2b8;
   margin: 0 0 16px 0;
   font-size: 16px;
   font-weight: 600;
-  border-bottom: 2px solid #2196f3;
   padding-bottom: 8px;
+  border-bottom: 2px solid #17a2b8;
 }
 
 .evidencias-summary mat-icon {
-  color: #2196f3;
-  font-size: 18px;
+  color: #17a2b8;
+  font-size: 20px;
 }
 
 .evidencias-grid-summary {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
   gap: 16px;
-  margin-top: 16px;
+  margin: 16px 0;
 }
 
 .evidencia-summary-item {
-  display: flex;
-  gap: 12px;
   background: #ffffff;
-  padding: 12px;
-  border-radius: 8px;
   border: 1px solid #dee2e6;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  border-radius: 6px;
+  overflow: hidden;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.1);
 }
 
 .evidencia-thumb {
   position: relative;
-  flex-shrink: 0;
-  width: 60px;
-  height: 60px;
-  border-radius: 6px;
+  height: 120px;
   overflow: hidden;
   background: #f8f9fa;
 }
@@ -622,38 +713,37 @@
 
 .foto-number {
   position: absolute;
-  top: 2px;
-  right: 2px;
-  background: rgba(198, 40, 40, 0.9);
+  top: 6px;
+  left: 6px;
+  background: rgba(0, 0, 0, 0.7);
   color: white;
-  font-size: 10px;
+  padding: 4px 8px;
+  border-radius: 12px;
+  font-size: 12px;
   font-weight: bold;
-  padding: 2px 6px;
-  border-radius: 3px;
-  min-width: 16px;
-  text-align: center;
 }
 
 .evidencia-info-summary {
-  flex: 1;
-  min-width: 0;
+  padding: 12px;
 }
 
 .file-name-summary {
+  font-size: 12px;
   font-weight: 500;
-  font-size: 13px;
-  color: #2c3e50;
+  color: #333;
   margin-bottom: 4px;
-  word-break: break-all;
-  line-height: 1.3;
+  word-break: break-word;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
 }
 
 .file-description-summary {
-  font-size: 12px;
-  color: #6c757d;
+  font-size: 11px;
+  color: #666;
+  margin-bottom: 6px;
   font-style: italic;
-  margin-bottom: 4px;
-  line-height: 1.3;
   display: -webkit-box;
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
@@ -661,9 +751,8 @@
 }
 
 .file-size-summary {
-  font-size: 11px;
-  color: #9e9e9e;
-  font-weight: 500;
+  font-size: 10px;
+  color: #999;
 }
 
 @media (max-width: 768px) {
@@ -673,14 +762,11 @@
   }
 
   .form-card {
-    box-shadow: none;
-    border: none;
-    border-radius: 0;
+    border-radius: 8px;
   }
 
   .mat-mdc-card-header {
     padding: 16px;
-    border-radius: 0;
   }
 
   .step-content {
@@ -702,18 +788,17 @@
   }
 
   .turno-section, .time-section, .personal-section {
-    margin: 16px 0;
     padding: 16px;
+    margin: 16px 0;
   }
 
-  /* Responsive para evidencias fotográficas */
   .photos-grid {
     grid-template-columns: 1fr;
     gap: 16px;
   }
 
   .upload-area {
-    padding: 30px 15px;
+    padding: 24px 16px;
   }
 
   .upload-icon {
@@ -725,7 +810,6 @@
   }
 
   .evidencias-info {
-    margin: 16px 0;
     padding: 12px;
   }
 
@@ -737,45 +821,38 @@
     padding: 12px;
   }
 
-  /* Responsive para resumen de evidencias */
   .evidencias-grid-summary {
-    grid-template-columns: 1fr;
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
     gap: 12px;
   }
 
-  .evidencia-summary-item {
-    padding: 10px;
-    gap: 10px;
-  }
-
   .evidencia-thumb {
-    width: 50px;
-    height: 50px;
+    height: 100px;
   }
 
   .evidencias-summary {
-    margin: 16px 0;
     padding: 16px;
   }
 }
 
-/* Estilo para el botón de agregar nuevo formulario */
 .add-form-btn {
   position: absolute;
-  top: 20px;
-  right: 20px;
+  top: 12px;
+  right: 12px;
   z-index: 10;
-  box-shadow: 0 4px 12px rgba(198, 40, 40, 0.9);
+  background: rgba(255, 255, 255, 0.9);
+  color: #c62828;
+  border: 2px solid #c62828;
 }
 
 .add-form-btn:hover {
+  background: #c62828;
+  color: white;
   transform: scale(1.1);
-  box-shadow: 0 6px 16px rgba(198, 40, 40, 0.4);
 }
 
-/* Estilos para las pestañas de emergencia */
 .emergency-tabs {
-  margin-top: 10px;
+  margin-bottom: 20px;
 }
 
 .emergency-tabs .mat-mdc-tab-header {
@@ -783,34 +860,111 @@
 }
 
 .emergency-tabs .mat-mdc-tab-label {
-  min-width: 200px;
-  padding: 12px 16px;
-  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 150px;
 }
 
 .emergency-tabs .mat-mdc-tab-label.mdc-tab--active {
-  background-color: rgba(198, 40, 40, 0.1);
+  color: #c62828;
 }
 
 .close-tab-btn {
-  position: absolute;
-  top: 4px;
-  right: 4px;
-  width: 20px !important;
-  height: 20px !important;
-  line-height: 20px !important;
-  font-size: 12px !important;
-  background-color: rgba(220, 53, 69, 0.1);
-  color: #dc3545;
+  width: 20px;
+  height: 20px;
+  line-height: 1;
+  color: #666;
+  opacity: 0.7;
+  transition: all 0.2s ease;
+  margin-left: 8px;
+  background: transparent;
+  border: none;
+  cursor: pointer;
 }
 
 .close-tab-btn:hover {
-  background-color: rgba(220, 53, 69, 0.2);
-  transform: scale(1.1);
+  opacity: 1;
+  color: #c62828;
+  transform: scale(1.2);
 }
 
 .close-tab-btn mat-icon {
-  font-size: 14px;
-  width: 14px;
-  height: 14px;
+  font-size: 16px;
+}
+
+/* Estilos para campos de hora - formato 24 horas */
+input[type="time"] {
+  /* Forzar formato 24 horas */
+  -webkit-appearance: none;
+  -moz-appearance: textfield;
+  appearance: none;
+  
+  /* Asegurar que se muestre en formato 24h */
+  format: "24h";
+  
+  /* Estilos visuales */
+  font-family: 'Roboto Mono', monospace;
+  font-weight: 500;
+  letter-spacing: 1px;
+  
+  /* Cursor pointer para indicar que es clickeable */
+  cursor: pointer;
+}
+
+/* Tooltip mejorado para Ctrl+Click */
+input[type="time"]:hover {
+  background-color: rgba(0, 123, 255, 0.05);
+  border-color: #007bff;
+  transition: all 0.2s ease;
+}
+
+/* Indicador visual cuando se hace hover */
+input[type="time"]::before {
+  content: attr(title);
+  position: absolute;
+  top: -25px;
+  left: 0;
+  background: rgba(0, 0, 0, 0.8);
+  color: white;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 11px;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s ease;
+  z-index: 1000;
+}
+
+input[type="time"]:hover::before {
+  opacity: 1;
+}
+
+/* Remover estilos AM/PM en WebKit */
+input[type="time"]::-webkit-datetime-edit-ampm-field {
+  display: none;
+}
+
+/* Asegurar que el formato sea consistente */
+input[type="time"]::-webkit-datetime-edit {
+  display: flex;
+  align-items: center;
+}
+
+/* Estilo para campos cuando tienen valor */
+input[type="time"]:valid {
+  background-color: rgba(76, 175, 80, 0.05);
+  border-left: 3px solid #4caf50;
+}
+
+/* Animación suave para cambios de valor */
+input[type="time"] {
+  transition: all 0.3s ease;
+}
+
+/* Efecto focus mejorado */
+input[type="time"]:focus {
+  box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.25);
+  border-color: #007bff;
+  outline: none;
 }

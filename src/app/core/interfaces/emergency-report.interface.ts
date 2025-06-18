@@ -30,7 +30,7 @@ export interface EmergencyReport {
   vehiculo: string;
   
   // Turno
-  turno: number | 'sin_convenio';
+  turno: number | 'sin_convenio' | 'false';
   
   // Evidencias fotográficas
   evidenciasFotograficas?: EvidenciaFotograficaData[];
@@ -43,6 +43,7 @@ export interface EmergencyReport {
   fechaCreacion?: Date;
   estado?: 'borrador' | 'enviado' | 'aprobado';
   
+  // Eventos adicionales para cronología completa
   eventosAdicionalesSalida: { hora: string; descripcion: string }[];
   eventosAdicionalesLlegadaEscena: { hora: string; descripcion: string }[];
   eventosAdicionalesLlegadaHospital: { hora: string; descripcion: string }[];

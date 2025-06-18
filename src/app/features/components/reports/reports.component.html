@@ -31,14 +31,14 @@
 
           <mat-form-field appearance="outline" *ngIf="filtersForm.get('period')?.value === 'custom'">
             <mat-label>Fecha inicio</mat-label>
-            <input matInput [matDatepicker]="startPicker" formControlName="startDate">
+            <input matInput [matDatepicker]="startPicker" formControlName="startDate" placeholder="Seleccionar fecha de inicio">
             <mat-datepicker-toggle matIconSuffix [for]="startPicker"></mat-datepicker-toggle>
             <mat-datepicker #startPicker></mat-datepicker>
           </mat-form-field>
 
           <mat-form-field appearance="outline" *ngIf="filtersForm.get('period')?.value === 'custom'">
             <mat-label>Fecha fin</mat-label>
-            <input matInput [matDatepicker]="endPicker" formControlName="endDate">
+            <input matInput [matDatepicker]="endPicker" formControlName="endDate" placeholder="Seleccionar fecha de fin">
             <mat-datepicker-toggle matIconSuffix [for]="endPicker"></mat-datepicker-toggle>
             <mat-datepicker #endPicker></mat-datepicker>
           </mat-form-field>
@@ -47,11 +47,9 @@
             <mat-label>Tipo de emergencia</mat-label>
             <mat-select formControlName="emergencyType">
               <mat-option value="all">Todos los tipos</mat-option>
-              <mat-option value="incendio">Incendio estructural</mat-option>
-              <mat-option value="rescate">Rescate vehicular</mat-option>
-              <mat-option value="emergencia_medica">Emergencia médica</mat-option>
-              <mat-option value="materiales_peligrosos">Materiales peligrosos</mat-option>
-              <mat-option value="inundacion">Inundación</mat-option>
+              <mat-option *ngFor="let type of emergencyTypes" [value]="type.emergencyTypeId">
+                {{ type.emergencyType }}
+              </mat-option>
             </mat-select>
           </mat-form-field>
 

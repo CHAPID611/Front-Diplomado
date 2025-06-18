@@ -128,4 +128,8 @@ export class AuthService {
     console.log('AuthService: Rol final obtenido:', role);
     return role;
   }
+
+  getCurrentUser(): any {
+    return this.currentUserValue;
+  }
 } 
