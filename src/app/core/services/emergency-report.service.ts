@@ -1,125 +1,216 @@
 import { Injectable } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
-import { Observable, of } from 'rxjs';
-import { EmergencyReport, TipoEmergencia, PersonalDisponible, VehiculoDisponible } from '../interfaces/emergency-report.interface';
+import { HttpClient, HttpHeaders } from '@angular/common/http';
+import { Observable, throwError } from 'rxjs';
+import { map, catchError } from 'rxjs/operators';
+import { Emergency, EmergencyType, CreateNovelty, EmergencyFile } from '../interfaces/emergency.interface';
 import { environment } from '../../../environments/environment';
 
 @Injectable({
   providedIn: 'root'
 })
-export class EmergencyReportService {
-
+export class EmergencyService {
   private apiUrl = environment.apiUrl;
 
-  // Datos mock para el formulario
-  private tiposEmergencia: TipoEmergencia[] = [
-    { id: 'incendio_estructural', nombre: 'Incendio Estructural', categoria: 'incendio' },
-    { id: 'incendio_vehicular', nombre: 'Incendio Vehicular', categoria: 'incendio' },
-    { id: 'incendio_forestal', nombre: 'Incendio Forestal', categoria: 'incendio' },
-    { id: 'rescate_vehicular', nombre: 'Rescate Vehicular', categoria: 'rescate' },
-    { id: 'rescate_altura', nombre: 'Rescate en Altura', categoria: 'rescate' },
-    { id: 'rescate_agua', nombre: 'Rescate Acuático', categoria: 'rescate' },
-    { id: 'accidente_transito', nombre: 'Accidente de Tránsito', categoria: 'accidente' },
-    { id: 'emergencia_medica', nombre: 'Emergencia Médica', categoria: 'medica' },
-    { id: 'fuga_gas', nombre: 'Fuga de Gas', categoria: 'otra' },
-    { id: 'arbol_caido', nombre: 'Árbol Caído', categoria: 'otra' }
-  ];
-
-  private personalDisponible: PersonalDisponible[] = [
-    { id: 'p1', nombre: 'Carlos Rodríguez', cargo: 'Capitán', activo: true },
-    { id: 'p2', nombre: 'Ana García', cargo: 'Teniente', activo: true },
-    { id: 'p3', nombre: 'Luis Martínez', cargo: 'Sargento', activo: true },
-    { id: 'p4', nombre: 'María López', cargo: 'Bombero', activo: true },
-    { id: 'p5', nombre: 'Juan Pérez', cargo: 'Bombero', activo: true },
-    { id: 'p6', nombre: 'Sofia Herrera', cargo: 'Paramédico', activo: true },
-    { id: 'p7', nombre: 'Diego Torres', cargo: 'Conductor', activo: true },
-    { id: 'p8', nombre: 'Carmen Ruiz', cargo: 'Bombero', activo: false }
-  ];
-
-  private vehiculosDisponibles: VehiculoDisponible[] = [
-    { id: 'v1', nombre: 'AM - 1', tipo: 'ambulancia', disponible: true },
-    { id: 'v2', nombre: 'Autobomba AB-02', tipo: 'autobomba', disponible: true },
-    { id: 'v3', nombre: 'Ambulancia AMB-01', tipo: 'ambulancia', disponible: true },
-    { id: 'v4', nombre: 'Vehículo de Rescate VR-01', tipo: 'rescate', disponible: true },
-    { id: 'v5', nombre: 'Escalera E-01', tipo: 'escalera', disponible: false },
-    { id: 'v6', nombre: 'Vehículo de Comando VC-01', tipo: 'otro', disponible: true }
-  ];
-
-  constructor(private http: HttpClient) { }
-
-  getTiposEmergencia(): Observable<TipoEmergencia[]> {
-    return of(this.tiposEmergencia);
+  constructor(private http: HttpClient) { 
+    console.log('EmergencyService initialized with API URL:', this.apiUrl);
   }
 
-  getPersonalDisponible(): Observable<PersonalDisponible[]> {
-    return of(this.personalDisponible.filter(p => p.activo));
+  // Headers por defecto con el token JWT
+  private getHeaders(): HttpHeaders {
+    const token = localStorage.getItem('auth_token');
+    return new HttpHeaders({
+      'Content-Type': 'application/json',
+      'Authorization': token ? `Bearer ${token}` : ''
+    });
   }
 
-  getVehiculosDisponibles(): Observable<VehiculoDisponible[]> {
-    return of(this.vehiculosDisponibles.filter(v => v.disponible));
+  // Headers para FormData (sin Content-Type para que el browser lo maneje)
+  private getFormDataHeaders(): HttpHeaders {
+    const token = localStorage.getItem('auth_token');
+    return new HttpHeaders({
+      'Authorization': token ? `Bearer ${token}` : ''
+    });
   }
 
-  generarDescripcionDetallada(reporte: EmergencyReport): string {
-    const tipoEmergencia = this.tiposEmergencia.find(t => t.id === reporte.tipoEmergencia);
-    const vehiculo = this.vehiculosDisponibles.find(v => v.id === reporte.vehiculo);
+  // Obtener tipos de emergencia del backend
+  getEmergencyTypes(): Observable<EmergencyType[]> {
+    return this.http.get<EmergencyType[]>(`${this.apiUrl}/emergency-types`, {
+      headers: this.getHeaders()
+    }).pipe(
+      catchError(this.handleError)
+    );
+  }
+
+  // Crear nueva emergencia
+  createEmergency(emergency: Emergency, files?: EmergencyFile[]): Observable<any> {
+    console.log('EmergencyService - URL base:', this.apiUrl);
+    console.log('EmergencyService - URL completa:', `${this.apiUrl}/emergencias`);
+    console.log('EmergencyService - Datos recibidos:', emergency);
     
-    let descripcion = `REPORTE DE EMERGENCIA - ${tipoEmergencia?.nombre.toUpperCase()}\n\n`;
-    
-    descripcion += `INFORMACIÓN GENERAL:\n`;
-    descripcion += `• Fecha del reporte: ${new Date(reporte.fechaReporte).toLocaleDateString('es-ES')}\n`;
-    descripcion += `• Informado por: ${reporte.quienInforma}\n`;
-    descripcion += `• Tipo de emergencia: ${tipoEmergencia?.nombre}\n`;
-    descripcion += `• Ubicación: ${reporte.ubicacion}\n`;
-    descripcion += `• Turno: ${reporte.turno === 'sin_convenio' ? 'Sin convenio' : `Turno #${reporte.turno}`}\n`;
-    descripcion += `• Vehículo utilizado: ${vehiculo?.nombre}\n\n`;
-    
-    descripcion += `CRONOLOGÍA DE EVENTOS:\n`;
-    descripcion += `• ${reporte.horaReporte} - REPORTE: ${reporte.horaReporteDescripcion}\n`;
-    descripcion += `• ${reporte.horaSalida} - SALIDA: ${reporte.horaSalidaDescripcion}\n`;
-    descripcion += `• ${reporte.horaLlegadaEscena} - LLEGADA A ESCENA: ${reporte.horaLlegadaEscenaDescripcion}\n`;
-    
-    if (reporte.horaLlegadaHospital && reporte.horaLlegadaHospitalDescripcion) {
-      descripcion += `• ${reporte.horaLlegadaHospital} - LLEGADA A HOSPITAL: ${reporte.horaLlegadaHospitalDescripcion}\n`;
+    // Validar que los datos mínimos estén presentes
+    if (!emergency.informant || !emergency.ubication || !emergency.emergencyTypeId) {
+      return throwError(() => new Error('Faltan datos requeridos: informant, ubication, o emergencyTypeId'));
     }
     
-    descripcion += `• ${reporte.horaRegresoEstacion} - REGRESO A ESTACIÓN: ${reporte.horaRegresoEstacionDescripcion}\n\n`;
+    const formData = new FormData();
     
-    descripcion += `PERSONAL INTERVINIENTE:\n`;
-    descripcion += `• Unidades de respuesta: ${reporte.unidades.join(', ')}\n`;
-    descripcion += `• Personal de guardia: ${reporte.guardia.join(', ')}\n\n`;
-    
-    // Agregar evidencias fotográficas
-    if (reporte.evidenciasFotograficas && reporte.evidenciasFotograficas.length > 0) {
-      descripcion += `EVIDENCIAS FOTOGRÁFICAS:\n`;
-      descripcion += `• Total de fotografías: ${reporte.evidenciasFotograficas.length}\n`;
-      reporte.evidenciasFotograficas.forEach((evidencia, index) => {
-        descripcion += `• Foto ${index + 1}: ${evidencia.fileName}\n`;
-        if (evidencia.descripcion) {
-          descripcion += `  Descripción: ${evidencia.descripcion}\n`;
+    // Agregar los datos de la emergencia
+    Object.keys(emergency).forEach(key => {
+      const value = emergency[key as keyof Emergency];
+      if (value !== undefined && value !== null) {
+        try {
+          if (key === 'novedades' && Array.isArray(value)) {
+            formData.append(key, JSON.stringify(value));
+          } else {
+            formData.append(key, value.toString());
+          }
+          console.log(`FormData agregado - ${key}:`, value);
+        } catch (error) {
+          console.error(`Error agregando ${key} a FormData:`, error, 'Valor:', value);
         }
-        descripcion += `  Tamaño: ${(evidencia.fileSize / 1024 / 1024).toFixed(2)} MB\n`;
-        descripcion += `  Fecha: ${new Date(evidencia.fecha).toLocaleString('es-ES')}\n`;
+      } else {
+        console.warn(`Campo ${key} es undefined o null, se omite`);
+      }
+    });
+
+    // Agregar archivos si existen
+    if (files && files.length > 0) {
+      files.forEach((emergencyFile, index) => {
+        formData.append('file', emergencyFile.file);
+        if (emergencyFile.description) {
+          formData.append(`fileDescription_${index}`, emergencyFile.description);
+        }
       });
-      descripcion += `\n`;
     }
-    
-    const horaInicio = reporte.horaReporte;
-    const horaFin = reporte.horaRegresoEstacion;
-    descripcion += `DURACIÓN TOTAL: ${horaInicio} - ${horaFin}\n\n`;
-    
-    descripcion += `Reporte generado automáticamente el ${new Date().toLocaleString('es-ES')}`;
-    
-    return descripcion;
+
+    return this.http.post(`${this.apiUrl}/emergencias`, formData, {
+      headers: this.getFormDataHeaders()
+    }).pipe(
+      catchError(this.handleError)
+    );
   }
 
-  guardarReporte(reporte: EmergencyReport): Observable<EmergencyReport> {
-    // Generar descripción detallada
-    reporte.descripcionDetallada = this.generarDescripcionDetallada(reporte);
-    reporte.fechaCreacion = new Date();
-    reporte.estado = 'enviado';
-    
-    // Aquí se hace la llamada al backend
-    console.log('Enviando reporte al backend:', reporte);
-    return this.http.post<EmergencyReport>(`${this.apiUrl}/emergencies`, reporte);
+  // Obtener todas las emergencias
+  getAllEmergencies(filters?: any): Observable<Emergency[]> {
+    let params = '';
+    if (filters) {
+      const queryParams = new URLSearchParams();
+      Object.keys(filters).forEach(key => {
+        if (filters[key] !== undefined && filters[key] !== null) {
+          queryParams.append(key, filters[key].toString());
+        }
+      });
+      params = queryParams.toString() ? `?${queryParams.toString()}` : '';
+    }
+
+    return this.http.get<Emergency[]>(`${this.apiUrl}/emergencias${params}`, {
+      headers: this.getHeaders()
+    }).pipe(
+      catchError(this.handleError)
+    );
   }
-} 
+
+  // Obtener emergencia por ID
+  getEmergencyById(id: number): Observable<Emergency> {
+    return this.http.get<Emergency>(`${this.apiUrl}/emergencias/${id}`, {
+      headers: this.getHeaders()
+    }).pipe(
+      catchError(this.handleError)
+    );
+  }
+
+  // Actualizar emergencia
+  updateEmergency(id: number, emergency: Partial<Emergency>): Observable<Emergency> {
+    return this.http.put<Emergency>(`${this.apiUrl}/emergencias/${id}`, emergency, {
+      headers: this.getHeaders()
+    }).pipe(
+      catchError(this.handleError)
+    );
+  }
+
+  // Editar emergencia (PATCH)
+  editEmergency(id: number, changes: Partial<Emergency>): Observable<Emergency> {
+    return this.http.patch<Emergency>(`${this.apiUrl}/emergencias/${id}`, changes, {
+      headers: this.getHeaders()
+    }).pipe(
+      catchError(this.handleError)
+    );
+  }
+
+  // Eliminar emergencia
+  deleteEmergency(id: number): Observable<void> {
+    return this.http.delete<void>(`${this.apiUrl}/emergencias/${id}`, {
+      headers: this.getHeaders()
+    }).pipe(
+      catchError(this.handleError)
+    );
+  }
+
+  // Convertir datos del formulario frontend al formato backend
+  mapFormToBackend(formData: any): Emergency {
+    return {
+      userId: formData.userId || 1, // Debería venir del usuario logueado
+      emergencyTypeId: formData.tipoEmergencia,
+      emergencyDate: this.formatDateToISO(formData.fechaEmergencia),
+      informant: formData.quienInforma,
+      vehicle: formData.vehiculo,
+      ubication: formData.ubicacion,
+      turn: formData.turno,
+      reportTime: this.formatDateTimeToISO(formData.fechaEmergencia, formData.horaReporte),
+      reportTimeDescription: formData.horaReporteDescripcion,
+      departureTime: this.formatDateTimeToISO(formData.fechaEmergencia, formData.horaSalida),
+      departureTimeDescription: formData.horaSalidaDescripcion,
+      arrivalSceneTime: formData.horaLlegadaEscena ? 
+        this.formatDateTimeToISO(formData.fechaEmergencia, formData.horaLlegadaEscena) : undefined,
+      arrivalSceneTimeDescription: formData.horaLlegadaEscenaDescripcion,
+      arrivalHospitalTime: formData.horaLlegadaHospital ? 
+        this.formatDateTimeToISO(formData.fechaEmergencia, formData.horaLlegadaHospital) : undefined,
+      arrivalHospitalTimeDescription: formData.horaLlegadaHospitalDescripcion,
+      returnEstationTime: this.formatDateTimeToISO(formData.fechaEmergencia, formData.horaRegresoEstacion),
+      returnEstationTimeDescription: formData.horaRegresoEstacionDescripcion,
+      unitsResponse: Array.isArray(formData.unidades) ? formData.unidades.join(', ') : formData.unidades,
+      guardPersonnel: Array.isArray(formData.guardia) ? formData.guardia.join(', ') : formData.guardia,
+      novedades: formData.novedades?.map((nov: any) => ({
+        novelty: nov.tipo,
+        noveltyDate: this.formatDateToISO(nov.fecha),
+        description: nov.descripcion
+      }))
+    };
+  }
+
+  // Utilidades para formateo de fechas
+  private formatDateToISO(date: Date | string): string {
+    if (typeof date === 'string') {
+      return new Date(date).toISOString();
+    }
+    return date.toISOString();
+  }
+
+  private formatDateTimeToISO(date: Date | string, time: string): string {
+    const dateObj = typeof date === 'string' ? new Date(date) : date;
+    const [hours, minutes] = time.split(':');
+    dateObj.setHours(parseInt(hours), parseInt(minutes), 0, 0);
+    return dateObj.toISOString();
+  }
+
+  // Manejo de errores
+  private handleError(error: any): Observable<never> {
+    console.error('Error en EmergencyService:', error);
+    
+    let errorMessage = 'Ha ocurrido un error inesperado';
+    
+    if (error.status === 401) {
+      errorMessage = 'No tienes autorización para realizar esta acción';
+    } else if (error.status === 403) {
+      errorMessage = 'No tienes permisos suficientes';
+    } else if (error.status === 404) {
+      errorMessage = 'Recurso no encontrado';
+    } else if (error.status === 400) {
+      errorMessage = 'Datos inválidos enviados al servidor';
+    } else if (error.error?.message) {
+      errorMessage = error.error.message;
+    }
+
+    return throwError(() => new Error(errorMessage));
+  }
+}

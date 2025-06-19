@@ -1,11 +1,14 @@
 <div class="form-container">
   <!-- Pestañas para múltiples formularios -->
-  <mat-tab-group [(selectedIndex)]="selectedIndex" (selectedIndexChange)="switchToFormulario($event)" class="emergency-tabs">
+  <mat-tab-group [selectedIndex]="selectedIndex" (selectedIndexChange)="onTabChange($event)" class="emergency-tabs">
     <mat-tab *ngFor="let formulario of formularios; let i = index" [label]="formulario.tipo">
       <ng-template mat-tab-label>
         <span>{{ formulario.tipo }}</span>
         <button mat-icon-button class="close-tab-btn" (click)="removeFormulario(i, $event)" 
-                matTooltip="Cerrar formulario" *ngIf="formularios.length > 1">
+                matTooltip="Cerrar formulario" 
+                matTooltipPosition="below"
+                matTooltipClass="close-tooltip-simple"
+                *ngIf="formularios.length > 1">
           <mat-icon>close</mat-icon>
         </button>
       </ng-template>
@@ -20,19 +23,19 @@
         <mat-card-header>
           <mat-card-title>
             <mat-icon>local_fire_department</mat-icon>
-            Registro de Emergencia - {{ formulario.tipo }}
+            Registro de Emergencia - {{ formulario.tipo }} 
           </mat-card-title>
         </mat-card-header>
 
         <mat-card-content>
-          <form [formGroup]="parentForm" (ngSubmit)="onSubmit()">
+          <form [formGroup]="emergencyForm">
             
             <mat-stepper #stepper orientation="vertical">
               
               <!-- Paso 1: Información General -->
-              <mat-step label="Información General" [stepControl]="informacionGeneralGroup">
+              <mat-step label="Información General" [stepControl]="emergencyForm">
                 <ng-template matStepContent>
-                  <div formGroupName="informacionGeneral" class="step-content">
+                  <div class="step-content">
                     
                     <div class="form-row">
                       <mat-form-field>
@@ -100,9 +103,9 @@
               </mat-step>
 
               <!-- Paso 2: Cronología -->
-              <mat-step label="Cronología de Eventos" [stepControl]="cronologiaGroup">
+              <mat-step label="Cronología de Eventos" [stepControl]="emergencyForm">
                 <ng-template matStepContent>
-                  <div formGroupName="cronologia" class="step-content">
+                  <div class="step-content">
                     
                     <div class="time-section">
                       <h3>
@@ -112,7 +115,12 @@
                       <div class="time-group">
                         <mat-form-field>
                           <mat-label>Hora</mat-label>
-                          <input matInput type="time" formControlName="horaReporte" required placeholder="Hora de reporte">
+                          <input matInput 
+                                 type="time" 
+                                 formControlName="horaReporte" 
+                                 required 
+                                 placeholder="Hora de reporte"
+                                 (click)="onTimeClick($event, 'horaReporte')">
                         </mat-form-field>
                         <mat-form-field class="description-field">
                           <mat-label>Descripción del reporte</mat-label>
@@ -129,7 +137,12 @@
                       <div class="time-group">
                         <mat-form-field>
                           <mat-label>Hora</mat-label>
-                          <input matInput type="time" formControlName="horaSalida" required placeholder="Hora de salida">
+                          <input matInput 
+                                 type="time" 
+                                 formControlName="horaSalida" 
+                                 required 
+                                 placeholder="Hora de salida"
+                                 (click)="onTimeClick($event, 'horaSalida')">
                         </mat-form-field>
                         <mat-form-field class="description-field">
                           <mat-label>Descripción de la salida</mat-label>
@@ -138,7 +151,6 @@
                       </div>
                     </div>
                     <div formArrayName="eventosAdicionalesSalida" class="additional-events-section">
-                       
                       <div *ngFor="let evento of eventosAdicionalesSalida.controls; let i = index" [formGroupName]="i" class="time-section">
                         <button mat-icon-button (click)="removeEventoAdicionalSalida(i)" class="remove-btn" color="warn">
                           <mat-icon>remove_circle</mat-icon>
@@ -146,7 +158,13 @@
                         <div class="time-group">
                           <mat-form-field>
                             <mat-label>Hora</mat-label>
-                            <input matInput type="time" formControlName="hora" required placeholder="Hora adicional">
+                            <input matInput 
+                                   type="time" 
+                                   formControlName="hora" 
+                                   required 
+                                   placeholder="Hora adicional"
+
+                                   (click)="onTimeClick($event, 'hora', evento)">
                           </mat-form-field>
                           <mat-form-field class="description-field">
                             <mat-label>Descripción</mat-label>
@@ -168,7 +186,12 @@
                       <div class="time-group">
                         <mat-form-field>
                           <mat-label>Hora</mat-label>
-                          <input matInput type="time" formControlName="horaLlegadaEscena" required placeholder="Hora de llegada a la escena">
+                          <input matInput 
+                                 type="time" 
+                                 formControlName="horaLlegadaEscena" 
+                                 placeholder="Hora de llegada a la escena"
+
+                                 (click)="onTimeClick($event, 'horaLlegadaEscena')">
                         </mat-form-field>
                         <mat-form-field class="description-field">
                           <mat-label>Descripción de la llegada</mat-label>
@@ -177,7 +200,6 @@
                       </div>
                     </div>
                     <div formArrayName="eventosAdicionalesLlegadaEscena" class="additional-events-section">
-                      
                       <div *ngFor="let evento of eventosAdicionalesLlegadaEscena.controls; let i = index" [formGroupName]="i" class="time-section">
                         <button mat-icon-button (click)="removeEventoAdicionalLlegadaEscena(i)" class="remove-btn" color="warn">
                           <mat-icon>remove_circle</mat-icon>
@@ -185,7 +207,13 @@
                         <div class="time-group">
                           <mat-form-field>
                             <mat-label>Hora</mat-label>
-                            <input matInput type="time" formControlName="hora" required placeholder="Hora adicional">
+                            <input matInput 
+                                   type="time" 
+                                   formControlName="hora" 
+                                   required 
+                                   placeholder="Hora adicional"
+
+                                   (click)="onTimeClick($event, 'hora', evento)">
                           </mat-form-field>
                           <mat-form-field class="description-field">
                             <mat-label>Descripción</mat-label>
@@ -207,7 +235,12 @@
                       <div class="time-group">
                         <mat-form-field>
                           <mat-label>Hora</mat-label>
-                          <input matInput type="time" formControlName="horaLlegadaHospital" placeholder="Hora de llegada al hospital">
+                          <input matInput 
+                                 type="time" 
+                                 formControlName="horaLlegadaHospital" 
+                                 placeholder="Hora de llegada al hospital"
+
+                                 (click)="onTimeClick($event, 'horaLlegadaHospital')">
                         </mat-form-field>
                         <mat-form-field class="description-field">
                           <mat-label>Descripción de la llegada al hospital</mat-label>
@@ -216,7 +249,6 @@
                       </div>
                     </div>
                     <div formArrayName="eventosAdicionalesLlegadaHospital" class="additional-events-section">
-                    
                       <div *ngFor="let evento of eventosAdicionalesLlegadaHospital.controls; let i = index" [formGroupName]="i" class="time-section">
                         <button mat-icon-button (click)="removeEventoAdicionalLlegadaHospital(i)" class="remove-btn" color="warn">
                           <mat-icon>remove_circle</mat-icon>
@@ -224,7 +256,13 @@
                         <div class="time-group">
                           <mat-form-field>
                             <mat-label>Hora</mat-label>
-                            <input matInput type="time" formControlName="hora" required placeholder="Hora adicional">
+                            <input matInput 
+                                   type="time" 
+                                   formControlName="hora" 
+                                   required 
+                                   placeholder="Hora adicional"
+
+                                   (click)="onTimeClick($event, 'hora', evento)">
                           </mat-form-field>
                           <mat-form-field class="description-field">
                             <mat-label>Descripción</mat-label>
@@ -246,7 +284,13 @@
                       <div class="time-group">
                         <mat-form-field>
                           <mat-label>Hora</mat-label>
-                          <input matInput type="time" formControlName="horaRegresoEstacion" required placeholder="Hora de regreso a la estación">
+                          <input matInput 
+                                 type="time" 
+                                 formControlName="horaRegresoEstacion" 
+                                 required 
+                                 placeholder="Hora de regreso a la estación"
+
+                                 (click)="onTimeClick($event, 'horaRegresoEstacion')">
                         </mat-form-field>
                         <mat-form-field class="description-field">
                           <mat-label>Descripción del regreso</mat-label>
@@ -264,9 +308,9 @@
               </mat-step>
 
               <!-- Paso 3: Personal -->
-              <mat-step label="Personal Interviniente" [stepControl]="personalGroup">
+              <mat-step label="Personal Interviniente" [stepControl]="emergencyForm">
                 <ng-template matStepContent>
-                  <div formGroupName="personal" class="step-content">
+                  <div class="step-content">
                     
                     <div class="personal-section">
                       <h3>
@@ -302,9 +346,6 @@
                           {{persona.nombre}} - {{persona.cargo}}
                         </mat-checkbox>
                       </div>
-                      <div *ngIf="personalGroup.get('guardia')?.errors?.['required'] && personalGroup.get('guardia')?.touched" class="error-message">
-                        Por favor selecciona al menos una persona de guardia
-                      </div>
                     </div>
 
                     <div class="step-actions">
@@ -316,9 +357,9 @@
               </mat-step>
 
               <!-- Paso 4: Evidencias Fotográficas -->
-              <mat-step label="Evidencias Fotográficas" [stepControl]="evidenciasGroup">
+              <mat-step label="Evidencias Fotográficas">
                 <ng-template matStepContent>
-                  <div formGroupName="evidencias" class="step-content">
+                  <div class="step-content">
                     
                     <h3>
                       <mat-icon style="font-size: 20px; vertical-align: middle; margin-right: 8px;">photo_camera</mat-icon>
@@ -328,7 +369,7 @@
                     <div class="evidencias-info">
                       <p class="info-text">
                         <mat-icon>info</mat-icon>
-                        Se requiere un mínimo de <strong>{{minPhotos}} fotografías</strong> que documenten la emergencia. 
+                        Puedes subir fotografías que documenten la emergencia. 
                         Las imágenes deben ser en formato JPG, JPEG o PNG con un tamaño máximo de 5MB cada una.
                       </p>
                     </div>
@@ -359,20 +400,20 @@
                     </div>
 
                     <!-- Lista de fotografías cargadas -->
-                    <div class="photos-section" *ngIf="evidenciasFotograficas.length > 0">
+                    <div class="photos-section" *ngIf="selectedFiles.length > 0">
                       <h4>
                         <mat-icon>photo_library</mat-icon>
-                        Fotografías Cargadas ({{evidenciasFotograficas.length}}/{{minPhotos}} mínimo)
+                        Fotografías Cargadas ({{selectedFiles.length}})
                       </h4>
                       
                       <div class="photos-grid">
-                        <div *ngFor="let evidencia of evidenciasFotograficas" class="photo-card">
+                        <div *ngFor="let file of selectedFiles; let i = index" class="photo-card">
                           <div class="photo-preview">
-                            <img [src]="evidencia.preview" [alt]="evidencia.file.name" title="{{ evidencia.file.name }}">
+                            <img [src]="getFilePreview(file)" [alt]="file.name" title="{{ file.name }}">
                             <button mat-icon-button 
                                     class="delete-btn" 
                                     color="warn" 
-                                    (click)="removePhotography(evidencia.id)">
+                                    (click)="removeFile(i)">
                               <mat-icon>delete</mat-icon>
                             </button>
                           </div>
@@ -380,47 +421,19 @@
                           <div class="photo-info">
                             <div class="file-name">
                               <mat-icon>image</mat-icon>
-                              {{evidencia.file.name}}
+                              {{file.name}}
                             </div>
                             <div class="file-size">
-                              {{(evidencia.file.size / 1024 / 1024).toFixed(2)}} MB
+                              {{(file.size / 1024 / 1024).toFixed(2)}} MB
                             </div>
-                            
-                            <mat-form-field class="description-field">
-                              <mat-label>Descripción de la imagen</mat-label>
-                              <textarea matInput 
-                                        rows="2" 
-                                        [value]="evidencia.descripcion"
-                                        (input)="updatePhotoDescription(evidencia.id, $any($event.target).value)"
-                                        placeholder="Describe qué muestra esta fotografía...">
-                              </textarea>
-                            </mat-form-field>
                           </div>
                         </div>
                       </div>
                     </div>
 
-                    <!-- Mensaje de validación -->
-                    <div class="validation-message" 
-                         [class.success]="isEvidenciasValid" 
-                         [class.error]="!isEvidenciasValid && evidenciasGroup.get('fotografias')?.touched">
-                      <mat-icon>{{isEvidenciasValid ? 'check_circle' : 'error'}}</mat-icon>
-                      <span *ngIf="isEvidenciasValid">
-                        ¡Perfecto! Has cargado {{evidenciasFotograficas.length}} fotografías.
-                      </span>
-                      <span *ngIf="!isEvidenciasValid && evidenciasGroup.get('fotografias')?.touched">
-                        Debes cargar al menos {{minPhotos}} fotografías para continuar.
-                      </span>
-                    </div>
-
                     <div class="step-actions">
                       <button mat-button matStepperPrevious>Anterior</button>
-                      <button mat-raised-button 
-                              color="primary" 
-                              matStepperNext 
-                              [disabled]="!isEvidenciasValid">
-                        Siguiente
-                      </button>
+                      <button mat-raised-button color="primary" matStepperNext>Siguiente</button>
                     </div>
                   </div>
                 </ng-template>
@@ -435,77 +448,106 @@
                       Revisión del Reporte
                     </h3>
                     
+                    <!-- Mostrar loading mientras se envía -->
+                    <mat-progress-bar *ngIf="isSubmitting" mode="indeterminate" color="primary"></mat-progress-bar>
+                    
+                    <!-- Mensaje de éxito -->
+                    <div *ngIf="submitSuccess" class="validation-message success">
+                      <mat-icon>check_circle</mat-icon>
+                      <span>¡Emergencia registrada exitosamente en el backend!</span>
+                    </div>
+
+                    <!-- Mensaje de error -->
+                    <div *ngIf="submitError" class="validation-message error">
+                      <mat-icon>error</mat-icon>
+                      <span>Error al registrar la emergencia: {{submitError}}</span>
+                    </div>
+
                     <!-- Debug info (solo para desarrollo) -->
                     <div class="debug-section" *ngIf="showDebugInfo">
                       <h4>
                         <mat-icon style="font-size: 18px; vertical-align: middle; margin-right: 8px;">bug_report</mat-icon>
-                        Información de Debug:
+                        Vista previa del reporte
                       </h4>
-                      <p><strong>Formulario válido:</strong> {{parentForm.valid}}</p>
-                      <p><strong>Información General válida:</strong> {{informacionGeneralGroup.valid}}</p>
-                      <p><strong>Cronología válida:</strong> {{cronologiaGroup.valid}}</p>
-                      <p><strong>Personal válido:</strong> {{personalGroup.valid}}</p>
-                      <p><strong>Evidencias válidas:</strong> {{evidenciasGroup.valid}}</p>
-                      <p><strong>Unidades seleccionadas:</strong> {{personalGroup.get('unidades')?.value?.length || 0}} - {{personalGroup.get('unidades')?.value | json}}</p>
-                      <p><strong>Guardia seleccionada:</strong> {{personalGroup.get('guardia')?.value?.length || 0}} - {{personalGroup.get('guardia')?.value | json}}</p>
-                      <p><strong>Fotografías cargadas:</strong> {{evidenciasFotograficas.length}}/{{minPhotos}} - {{isEvidenciasValid ? 'Válido' : 'Inválido'}}</p>
                       
-                      <h5>Valores actuales del formulario:</h5>
                       <div class="debug-values">
-                        <p><strong>Quien informa:</strong> "{{informacionGeneralGroup.get('quienInforma')?.value}}"</p>
-                        <p><strong>Tipo emergencia:</strong> "{{informacionGeneralGroup.get('tipoEmergencia')?.value}}"</p>
-                        <p><strong>Ubicación:</strong> "{{informacionGeneralGroup.get('ubicacion')?.value}}"</p>
-                        <p><strong>Vehículo:</strong> "{{informacionGeneralGroup.get('vehiculo')?.value}}"</p>
-                        <p><strong>Hora reporte:</strong> "{{cronologiaGroup.get('horaReporte')?.value}}"</p>
-                        <p><strong>Hora salida:</strong> "{{cronologiaGroup.get('horaSalida')?.value}}"</p>
-                        <p><strong>Hora llegada escena:</strong> "{{cronologiaGroup.get('horaLlegadaEscena')?.value}}"</p>
-                        <p><strong>Hora regreso:</strong> "{{cronologiaGroup.get('horaRegresoEstacion')?.value}}"</p>
-                      </div>
-                    </div>
-                    
-                    <div *ngIf="previewDescription" class="preview-section">
-                      <h4>Descripción Detallada Generada:</h4>
-                      <div class="description-preview">
-                        <pre>{{previewDescription}}</pre>
+                        <h5> INFORMACIÓN GENERAL:</h5>
+                        <p><strong>Fecha del Reporte:</strong> "{{emergencyForm.get('fechaReporte')?.value | date:'dd/MM/yyyy'}}"</p>
+                        <p><strong>Informante:</strong> "{{emergencyForm.get('quienInforma')?.value}}"</p>
+                        <p><strong>Tipo Emergencia:</strong> {{getTipoEmergenciaNombre()}}</p>
+                        <p><strong>Ubicación:</strong> "{{emergencyForm.get('ubicacion')?.value}}"</p>
+                        <p><strong>Vehículo:</strong> "{{emergencyForm.get('vehiculo')?.value}}"</p>
+                        <p><strong>Turno:</strong> {{getFormattedTurno()}}</p>
+                        
+                        <h5> CRONOLOGÍA:</h5>
+                        <p><strong>Hora Reporte:</strong> "{{emergencyForm.get('horaReporte')?.value}}" - "{{emergencyForm.get('horaReporteDescripcion')?.value}}"</p>
+                        
+                        <p><strong>Hora Salida:</strong> "{{emergencyForm.get('horaSalida')?.value}}" - "{{emergencyForm.get('horaSalidaDescripcion')?.value}}"</p>
+                        
+                        <!-- Eventos adicionales de salida -->
+                        <div *ngFor="let evento of eventosAdicionalesSalida.controls; let i = index">
+                          <p *ngIf="evento.get('hora')?.value || evento.get('descripcion')?.value">
+                            "{{evento.get('hora')?.value || 'SIN HORA'}}" - "{{evento.get('descripcion')?.value || 'Sin descripción'}}"
+                          </p>
+                        </div>
+                        
+                        <p><strong>Hora Llegada Escena:</strong> "{{emergencyForm.get('horaLlegadaEscena')?.value}}" - "{{emergencyForm.get('horaLlegadaEscenaDescripcion')?.value}}"</p>
+                        
+                        <!-- Eventos adicionales de llegada a escena -->
+                        <div *ngFor="let evento of eventosAdicionalesLlegadaEscena.controls; let i = index">
+                          <p *ngIf="evento.get('hora')?.value || evento.get('descripcion')?.value">
+                            "{{evento.get('hora')?.value || 'SIN HORA'}}" - "{{evento.get('descripcion')?.value || 'Sin descripción'}}"
+                          </p>
+                        </div>
+                        
+                        <div *ngIf="emergencyForm.get('horaLlegadaHospital')?.value">
+                          <p><strong>Hora Llegada Hospital:</strong> "{{emergencyForm.get('horaLlegadaHospital')?.value}}" - "{{emergencyForm.get('horaLlegadaHospitalDescripcion')?.value}}"</p>
+                          
+                          <!-- Eventos adicionales de hospital -->
+                          <div *ngFor="let evento of eventosAdicionalesLlegadaHospital.controls; let i = index">
+                            <p *ngIf="evento.get('hora')?.value || evento.get('descripcion')?.value">
+                              "{{evento.get('hora')?.value || 'SIN HORA'}}" - "{{evento.get('descripcion')?.value || 'Sin descripción'}}"
+                            </p>
+                          </div>
+                        </div>
+                        
+                        <p><strong>Hora Regreso:</strong> "{{emergencyForm.get('horaRegresoEstacion')?.value}}" - "{{emergencyForm.get('horaRegresoEstacionDescripcion')?.value}}"</p>
+                        
+                        <h5> PERSONAL:</h5>
+                        <p><strong>Unidades:</strong> "{{emergencyForm.get('unidades')?.value}}"</p>
+                        <p><strong>Guardia:</strong> "{{emergencyForm.get('guardia')?.value}}"</p>
                       </div>
                     </div>
 
                     <!-- Resumen de evidencias fotográficas -->
-                    <div *ngIf="evidenciasFotograficas.length > 0" class="evidencias-summary">
+                    <div *ngIf="selectedFiles.length > 0" class="evidencias-summary">
                       <h4>
                         <mat-icon>photo_library</mat-icon>
                         Resumen de Evidencias Fotográficas
                       </h4>
                       <div class="evidencias-grid-summary">
-                        <div *ngFor="let evidencia of evidenciasFotograficas; let i = index" class="evidencia-summary-item">
+                        <div *ngFor="let file of selectedFiles; let i = index" class="evidencia-summary-item">
                           <div class="evidencia-thumb">
-                            <img [src]="evidencia.preview" [alt]="evidencia.file.name" title="{{ evidencia.file.name }}">
+                            <img [src]="getFilePreview(file)" [alt]="file.name" title="{{ file.name }}">
                             <span class="foto-number">{{i + 1}}</span>
                           </div>
                           <div class="evidencia-info-summary">
-                            <div class="file-name-summary">{{evidencia.file.name}}</div>
-                            <div class="file-description-summary" *ngIf="evidencia.descripcion">
-                              "{{evidencia.descripcion}}"
-                            </div>
-                            <div class="file-size-summary">{{(evidencia.file.size / 1024 / 1024).toFixed(2)}} MB</div>
+                            <div class="file-name-summary">{{file.name}}</div>
+                            <div class="file-size-summary">{{(file.size / 1024 / 1024).toFixed(2)}} MB</div>
                           </div>
                         </div>
                       </div>
                     </div>
 
                     <div class="step-actions">
-                      <button mat-button matStepperPrevious>Anterior</button>
-                      <button mat-button (click)="toggleDebugInfo()" color="warn">
-                        <mat-icon>bug_report</mat-icon>
-                        {{showDebugInfo ? 'Ocultar' : 'Mostrar'}} Debug
-                      </button>
-                      <button mat-button (click)="generatePreview()" color="accent">
+                      <button mat-button matStepperPrevious [disabled]="isSubmitting">Anterior</button>
+                      <button mat-button type="button" (click)="toggleDebugInfo()" color="warn" [disabled]="isSubmitting">
                         <mat-icon>visibility</mat-icon>
-                        Vista Previa
+                        {{showDebugInfo ? 'Ocultar' : 'Mostrar'}} reporte
                       </button>
-                      <button mat-raised-button color="primary" type="submit">
+                      <button mat-raised-button color="primary" type="button" (click)="onSubmit()" [disabled]="!emergencyForm.valid || isSubmitting">
                         <mat-icon>save</mat-icon>
-                        Guardar Reporte
+                        {{isSubmitting ? 'Guardando...' : 'Guardar Reporte'}}
                       </button>
                     </div>
                   </div>

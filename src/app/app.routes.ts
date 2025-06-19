@@ -4,7 +4,7 @@ import { AuthGuard } from './core/guards/auth.guard';
 // Layout y componentes principales
 import { LayoutComponent } from './shared/components/layout/layout.component';
 import { DashboardComponent } from './features/components/dashboard/dashboard.component';
-import { EmergencyFormComponent } from './features/components/emergency-form/emergency-form.component';
+import { EmergencyFormBackendComponent } from './features/components/emergency-form-backend/emergency-form-backend.component';
 import { ReportsComponent } from './features/components/reports/reports.component';
 import { PersonalComponent } from './features/components/personal/personal.component';
 import { LoginComponent } from './features/login/login.component';
@@ -27,7 +27,7 @@ export const routes: Routes = [
             },
             {
                 path: 'emergencias',
-                component: EmergencyFormComponent,
+                component: EmergencyFormBackendComponent,
                 title: 'Registro de Emergencias'
             },
             {
