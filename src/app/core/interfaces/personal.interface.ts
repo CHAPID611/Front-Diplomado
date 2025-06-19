@@ -8,15 +8,15 @@ export interface Personal {
   email: string;
   direccion: string;
   tipoSangre: string;
-  cargo: string;
   rango: string;
   fechaIngreso: Date;
-  estado: 'activo' | 'inactivo' | 'licencia';
+  estado: 'activo' | 'licencia';
   cualidades: string[];
   experienciaAnios: number;
   observaciones?: string;
   foto?: string;
   contactoEmergencia: ContactoEmergencia;
+  expandedQualifications?: boolean;
 }
 
 export interface ContactoEmergencia {
@@ -26,29 +26,34 @@ export interface ContactoEmergencia {
 }
 
 export interface Cualidad {
-  id: string;
-  nombre: string;
-  categoria: 'tecnica' | 'medica' | 'rescate' | 'administrativa' | 'operativa';
-  descripcion: string;
-}
-
-export interface Cargo {
-  id: string;
-  nombre: string;
-  descripcion: string;
+  id?: string;
+  nombre?: string;
+  categoria?: 'tecnica' | 'medica' | 'rescate' | 'administrativa' | 'operativa';
+  descripcion?: string;
+  competenciaId?: string | number;
+  competenciaName?: string;
+  category?: 'tecnica' | 'medica' | 'rescate' | 'administrativa' | 'operativa';
+  name?: string;
+  value?: string | number;
 }
 
 export interface Rango {
-  id: string;
-  nombre: string;
-  nivel: number;
-  descripcion: string;
+  id?: string;
+  nombre?: string;
+  nivel?: number;
+  descripcion?: string;
+  rangeId?: string | number;
+  rangeName?: string;
+  value?: string | number;
+  name?: string;
+  label?: string;
+  text?: string;
+  range?: string;
 }
 
 export interface PersonalStats {
   totalPersonal: number;
   personalActivo: number;
-  personalInactivo: number;
   personalEnLicencia: number;
   promedioExperiencia: number;
   distribucuionPorCargo: { [cargo: string]: number };

@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, ViewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { MatCardModule } from '@angular/material/card';
 import { MatButtonModule } from '@angular/material/button';
@@ -15,10 +15,16 @@ import { MatMenuModule } from '@angular/material/menu';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatDividerModule } from '@angular/material/divider';
 import { FormBuilder, FormGroup, ReactiveFormsModule } from '@angular/forms';
+import { MatPaginator } from '@angular/material/paginator';
+import { MatSort } from '@angular/material/sort';
+import { MatTableDataSource } from '@angular/material/table';
 
-import { Personal, PersonalStats, Cualidad, Cargo, Rango } from '../../../core/interfaces/personal.interface';
+import { Personal, PersonalStats, Cualidad, Rango } from '../../../core/interfaces/personal.interface';
 import { PersonalService } from '../../../core/services/personal.service';
+import { AuthService } from '../../../core/services/auth.service';
 import { PersonalFormComponent } from './personal-form/personal-form.component';
+import { CualidadesDialogComponent } from './cualidades-dialog/cualidades-dialog.component';
+import { PersonalDetailsComponent } from './personal-details/personal-details.component';
 
 @Component({
   selector: 'app-personal',
@@ -48,24 +54,29 @@ export class PersonalComponent implements OnInit {
   personal: Personal[] = [];
   filteredPersonal: Personal[] = [];
   stats: PersonalStats | null = null;
-  cualidades: Cualidad[] = [];
-  cargos: Cargo[] = [];
-  rangos: Rango[] = [];
+  cualidades: any[] = [];
+  rangos: any[] = [];
+  estados: Array<{value: string, label: string}> = [];
   
-  displayedColumns: string[] = ['foto', 'nombre', 'cargo', 'rango', 'estado', 'experiencia', 'cualidades', 'acciones'];
+  displayedColumns: string[] = ['foto', 'nombre', 'rango', 'estado', 'experiencia', 'cualidades', 'acciones'];
   
   filterForm: FormGroup;
   loading = false;
 
+  @ViewChild(MatPaginator) paginator!: MatPaginator;
+  @ViewChild(MatSort) sort!: MatSort;
+
+  dataSource!: MatTableDataSource<Personal>;
+
   constructor(
     private personalService: PersonalService,
+    private authService: AuthService,
     private dialog: MatDialog,
     private snackBar: MatSnackBar,
     private fb: FormBuilder
   ) {
     this.filterForm = this.fb.group({
       search: [''],
-      cargo: [''],
       estado: [''],
       rango: ['']
     });
@@ -79,29 +90,81 @@ export class PersonalComponent implements OnInit {
   loadData() {
     this.loading = true;
     
-    // Cargar personal
-    this.personalService.getPersonal().subscribe(personal => {
-      this.personal = personal;
-      this.filteredPersonal = [...personal];
-      this.loading = false;
+    // Cargar estados
+    this.personalService.getEstados().subscribe({
+      next: (estados) => {
+        this.estados = estados.map(e => ({
+          value: e.state.toLowerCase() === 'en licencia' ? 'licencia' : e.state.toLowerCase(),
+          label: e.state
+        }));
+      },
+      error: () => {
+        this.estados = this.personalService.getEstadosStatic();
+      }
     });
+    
+    // Primero cargar los catálogos
+    Promise.all([
+      // Cargar rangos
+      new Promise<void>((resolve) => {
+        this.personalService.getRangos().subscribe({
+          next: (rangos) => {
+            this.rangos = rangos;
+            resolve();
+          },
+          error: (error) => {
+            console.warn('Error al cargar rangos, usando mock:', error);
+            this.rangos = [
+              { rangeId: 1, range: 'Bombero Auxiliar' },
+              { rangeId: 2, range: 'Bombero Profesional' },
+              { rangeId: 3, range: 'Cabo' },
+              { rangeId: 4, range: 'Sargento' },
+              { rangeId: 5, range: 'Teniente' },
+              { rangeId: 6, range: 'Capitán' }
+            ];
+            resolve();
+          }
+        });
+      }),
+      
+      // Cargar cualidades
+      new Promise<void>((resolve) => {
+        this.personalService.getCualidades().subscribe({
+          next: (cualidades) => {
+            this.cualidades = cualidades;
+            resolve();
+          },
+          error: (error) => {
+            console.warn('Error al cargar cualidades, usando mock:', error);
+            this.cualidades = [
+              { competenciaId: 1, name: 'Primeros Auxilios', category: 'medica' },
+              { competenciaId: 2, name: 'Paramedicina', category: 'medica' },
+              { competenciaId: 3, name: 'Rescate Urbano', category: 'rescate' },
+              { competenciaId: 4, name: 'Rescate Acuático', category: 'rescate' },
+              { competenciaId: 5, name: 'Liderazgo', category: 'administrativa' }
+            ];
+            resolve();
+          }
+        });
+      })
+    ]).then(() => {
+      // Una vez cargados los catálogos, cargar el personal
+      this.personalService.getPersonal().subscribe(personal => {
+        this.personal = personal.map(p => ({
+          ...p,
+          expandedQualifications: false
+        }));
+        this.filteredPersonal = [...this.personal];
+        this.dataSource = new MatTableDataSource(this.personal);
+        this.dataSource.paginator = this.paginator;
+        this.dataSource.sort = this.sort;
+        this.loading = false;
+      });
 
-    // Cargar estadísticas
-    this.personalService.getPersonalStats().subscribe(stats => {
-      this.stats = stats;
-    });
-
-    // Cargar datos de catálogos
-    this.personalService.getCualidades().subscribe(cualidades => {
-      this.cualidades = cualidades;
-    });
-
-    this.personalService.getCargos().subscribe(cargos => {
-      this.cargos = cargos;
-    });
-
-    this.personalService.getRangos().subscribe(rangos => {
-      this.rangos = rangos;
+      // Cargar estadísticas
+      this.personalService.getPersonalStats().subscribe(stats => {
+        this.stats = stats;
+      });
     });
   }
 
@@ -115,17 +178,28 @@ export class PersonalComponent implements OnInit {
     const filters = this.filterForm.value;
     
     this.filteredPersonal = this.personal.filter(persona => {
+      // Búsqueda por texto
       const matchesSearch = !filters.search || 
         `${persona.nombres} ${persona.apellidos}`.toLowerCase().includes(filters.search.toLowerCase()) ||
         persona.cedula.includes(filters.search) ||
         persona.email.toLowerCase().includes(filters.search.toLowerCase());
       
-      const matchesCargo = !filters.cargo || persona.cargo === filters.cargo;
+      // Filtro por estado
       const matchesEstado = !filters.estado || persona.estado === filters.estado;
-      const matchesRango = !filters.rango || persona.rango === filters.rango;
+      
+      // Filtro por rango - comparar tanto ID como nombre
+      const matchesRango = !filters.rango || 
+        String(persona.rango) === String(filters.rango) ||
+        this.getNombreRango(persona.rango).toLowerCase() === this.getNombreRango(filters.rango).toLowerCase();
 
-      return matchesSearch && matchesCargo && matchesEstado && matchesRango;
+      return matchesSearch && matchesEstado && matchesRango;
     });
+
+    this.dataSource.data = this.filteredPersonal;
+
+    if (this.dataSource.paginator) {
+      this.dataSource.paginator.firstPage();
+    }
   }
 
   openPersonalForm(personal?: Personal) {
@@ -133,30 +207,28 @@ export class PersonalComponent implements OnInit {
       width: '800px',
       maxWidth: '95vw',
       maxHeight: '95vh',
-      data: { personal, cargos: this.cargos, rangos: this.rangos, cualidades: this.cualidades }
+      data: { personal, rangos: this.rangos, cualidades: this.cualidades }
     });
 
     dialogRef.afterClosed().subscribe(result => {
       if (result) {
         if (personal) {
-          // Actualizar
           this.personalService.updatePersonal(personal.id!, result).subscribe({
-            next: () => {
+            next: (response) => {
               this.snackBar.open('Personal actualizado exitosamente', 'Cerrar', { duration: 3000 });
               this.loadData();
             },
-            error: () => {
+            error: (error) => {
               this.snackBar.open('Error al actualizar personal', 'Cerrar', { duration: 3000 });
             }
           });
         } else {
-          // Crear
           this.personalService.createPersonal(result).subscribe({
-            next: () => {
+            next: (response) => {
               this.snackBar.open('Personal registrado exitosamente', 'Cerrar', { duration: 3000 });
               this.loadData();
             },
-            error: () => {
+            error: (error) => {
               this.snackBar.open('Error al registrar personal', 'Cerrar', { duration: 3000 });
             }
           });
@@ -179,19 +251,33 @@ export class PersonalComponent implements OnInit {
     }
   }
 
-  getNombreCargo(cargoId: string): string {
-    const cargo = this.cargos.find(c => c.id === cargoId);
-    return cargo ? cargo.nombre : cargoId;
+  getNombreRango(rangoId: string | number): string {
+    if (!rangoId) return 'Sin Rango';
+    
+    const rango = this.rangos.find(r => 
+      String(r.rangeId) === String(rangoId) || 
+      String(r.id) === String(rangoId)
+    );
+    
+    if (rango) {
+      return rango.range || String(rangoId);
+    }
+    
+    return 'Rango Desconocido';
   }
 
-  getNombreRango(rangoId: string): string {
-    const rango = this.rangos.find(r => r.id === rangoId);
-    return rango ? rango.nombre : rangoId;
-  }
-
-  getNombreCualidad(cualidadId: string): string {
-    const cualidad = this.cualidades.find(c => c.id === cualidadId);
-    return cualidad ? cualidad.nombre : cualidadId;
+  getNombreCualidad(cualidadId: string | number): string {
+    if (!cualidadId) return 'Sin Cualidad';
+    
+    const cualidad = this.cualidades.find(c => 
+      String(c.competenciaId) === String(cualidadId)
+    );
+    
+    if (cualidad) {
+      return cualidad.name || String(cualidadId);
+    }
+    
+    return 'Cualidad Desconocida';
   }
 
   getEstadoColor(estado: string): string {
@@ -204,12 +290,8 @@ export class PersonalComponent implements OnInit {
   }
 
   getEstadoLabel(estado: string): string {
-    switch (estado) {
-      case 'activo': return 'Activo';
-      case 'inactivo': return 'Inactivo';
-      case 'licencia': return 'En Licencia';
-      default: return estado;
-    }
+    const estadoObj = this.estados.find(e => e.value === estado);
+    return estadoObj ? estadoObj.label : estado;
   }
 
   clearFilters() {
@@ -219,5 +301,95 @@ export class PersonalComponent implements OnInit {
   exportData() {
     // TODO: Implementar exportación
     this.snackBar.open('Funcionalidad de exportación en desarrollo', 'Cerrar', { duration: 3000 });
+  }
+
+  // Métodos de validación de permisos para administrador
+  isAdmin(): boolean {
+    const userRole = this.authService.getUserRole();
+    const isAdmin = userRole === 'admin' || userRole === 'ADMIN' || userRole === 'Administrador';
+    return isAdmin;
+  }
+
+  canCreatePersonal(): boolean {
+    return this.isAdmin();
+  }
+
+  canEditPersonal(): boolean {
+    return this.isAdmin();
+  }
+
+  canDeletePersonal(): boolean {
+    return this.isAdmin();
+  }
+
+  // Método mejorado para abrir formulario con validaciones
+  openPersonalFormWithValidation(personal?: Personal) {
+    if (!this.isAdmin()) {
+      this.snackBar.open('Solo los administradores pueden gestionar personal', 'Cerrar', { 
+        duration: 5000,
+        panelClass: ['warning-snackbar']
+      });
+      return;
+    }
+
+    if (!personal && !this.canCreatePersonal()) {
+      this.snackBar.open('No tiene permisos para crear personal', 'Cerrar', { duration: 3000 });
+      return;
+    }
+
+    if (personal && !this.canEditPersonal()) {
+      this.snackBar.open('No tiene permisos para editar personal', 'Cerrar', { duration: 3000 });
+      return;
+    }
+
+    this.openPersonalForm(personal);
+  }
+
+  // Método mejorado para eliminar con validaciones
+  deletePersonalWithValidation(personal: Personal) {
+    if (!this.canDeletePersonal()) {
+      this.snackBar.open('No tiene permisos para eliminar personal', 'Cerrar', { duration: 3000 });
+      return;
+    }
+
+    this.deletePersonal(personal);
+  }
+
+  openCualidadesDialog(persona: Personal) {
+    const cualidadesCompletas = persona.cualidades.map(cualidadId => {
+      const cualidad = this.cualidades.find(c => String(c.competenciaId) === String(cualidadId));
+      return cualidad || { competenciaId: cualidadId, name: 'Desconocida', category: 'otra' };
+    });
+
+    this.dialog.open(CualidadesDialogComponent, {
+      width: '600px',
+      data: {
+        nombres: persona.nombres,
+        apellidos: persona.apellidos,
+        cualidades: cualidadesCompletas,
+        getCualidadNombre: (id: string) => this.getNombreCualidad(id)
+      }
+    });
+  }
+
+  toggleQualifications(persona: Personal) {
+    persona.expandedQualifications = !persona.expandedQualifications;
+  }
+
+  openPersonalDetails(persona: Personal) {
+    const dialogRef = this.dialog.open(PersonalDetailsComponent, {
+      width: '800px',
+      data: {
+        personal: persona,
+        getNombreRango: (id: string) => this.getNombreRango(id),
+        getNombreCualidad: (id: string) => this.getNombreCualidad(id),
+        getEstadoLabel: (estado: string) => this.getEstadoLabel(estado),
+        canEdit: this.canEditPersonal(),
+        onEdit: () => {
+          dialogRef.close();
+          this.openPersonalFormWithValidation(persona);
+        }
+      }
+    });
   }
 } 

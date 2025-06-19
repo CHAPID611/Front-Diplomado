@@ -27,8 +27,8 @@
                 <mat-form-field appearance="outline">
                   <mat-label>Tipo de Sangre</mat-label>
                   <mat-select formControlName="tipoSangre" required>
-                    <mat-option *ngFor="let tipo of tiposSangre" [value]="tipo">
-                      {{ tipo }}
+                    <mat-option *ngFor="let tipo of tiposSangre" [value]="tipo.bloodTypeId || tipo">
+                      {{ tipo.bloodType || tipo }}
                     </mat-option>
                   </mat-select>
                   <mat-icon matSuffix>bloodtype</mat-icon>
@@ -58,9 +58,17 @@
               <div class="form-row">
                 <mat-form-field appearance="outline">
                   <mat-label>Fecha de Nacimiento</mat-label>
-                  <input matInput [matDatepicker]="birthPicker" formControlName="fechaNacimiento" required>
-                  <mat-datepicker-toggle matIconSuffix [for]="birthPicker"></mat-datepicker-toggle>
+                  <input matInput [matDatepicker]="birthPicker" 
+                         formControlName="fechaNacimiento" 
+                         [max]="getMaxFechaNacimiento()"
+                         (click)="openDatePicker(birthPicker)"
+                         required>
+                  <mat-datepicker-toggle matSuffix [for]="birthPicker"></mat-datepicker-toggle>
                   <mat-datepicker #birthPicker></mat-datepicker>
+                  <mat-error *ngIf="personalForm.get('fechaNacimiento')?.invalid && personalForm.get('fechaNacimiento')?.touched">
+                    {{ getErrorMessage('fechaNacimiento') }}
+                  </mat-error>
+                  <mat-hint>Debe ser mayor de 18 años</mat-hint>
                 </mat-form-field>
 
                 <mat-form-field appearance="outline">
@@ -89,7 +97,7 @@
               </mat-form-field>
 
               <div class="step-actions">
-                <button mat-raised-button color="primary" matStepperNext>Siguiente</button>
+                <button mat-raised-button color="primary" matStepperNext type="button">Siguiente</button>
               </div>
             </div>
           </ng-template>
@@ -100,40 +108,40 @@
           <ng-template matStepContent>
             <div class="step-content">
               
-              <div class="form-row">
-                <mat-form-field appearance="outline">
-                  <mat-label>Cargo</mat-label>
-                  <mat-select formControlName="cargo" required>
-                    <mat-option *ngFor="let cargo of data.cargos" [value]="cargo.id">
-                      {{ cargo.nombre }}
-                    </mat-option>
-                  </mat-select>
-                  <mat-icon matSuffix>work</mat-icon>
-                </mat-form-field>
-
-                <mat-form-field appearance="outline">
+                <mat-form-field appearance="outline" class="full-width">
                   <mat-label>Rango</mat-label>
                   <mat-select formControlName="rango" required>
-                    <mat-option *ngFor="let rango of data.rangos" [value]="rango.id">
-                      {{ rango.nombre }}
+                    <mat-option *ngFor="let rango of data.rangos; trackBy: trackByRango" [value]="getRangoId(rango)">
+                      {{ getRangoNombre(rango) }}
                     </mat-option>
                   </mat-select>
                   <mat-icon matSuffix>military_tech</mat-icon>
+                
                 </mat-form-field>
-              </div>
 
               <div class="form-row">
                 <mat-form-field appearance="outline">
                   <mat-label>Fecha de Ingreso</mat-label>
-                  <input matInput [matDatepicker]="ingressPicker" formControlName="fechaIngreso" required>
-                  <mat-datepicker-toggle matIconSuffix [for]="ingressPicker"></mat-datepicker-toggle>
+                  <input matInput [matDatepicker]="ingressPicker" 
+                         formControlName="fechaIngreso" 
+                         [max]="getMaxFechaIngreso()"
+                         (click)="openDatePicker(ingressPicker)"
+                         required>
+                  <mat-datepicker-toggle matSuffix [for]="ingressPicker"></mat-datepicker-toggle>
                   <mat-datepicker #ingressPicker></mat-datepicker>
+                  <mat-error *ngIf="personalForm.get('fechaIngreso')?.invalid && personalForm.get('fechaIngreso')?.touched">
+                    {{ getErrorMessage('fechaIngreso') }}
+                  </mat-error>
+                  <mat-hint>No puede ser una fecha futura</mat-hint>
                 </mat-form-field>
 
                 <mat-form-field appearance="outline">
                   <mat-label>Años de Experiencia</mat-label>
-                  <input matInput type="number" formControlName="experienciaAnios" min="0" required>
+                  <input matInput type="number" formControlName="experienciaAnios" min="0">
                   <mat-icon matSuffix>schedule</mat-icon>
+                  <mat-error *ngIf="personalForm.get('experienciaAnios')?.invalid && personalForm.get('experienciaAnios')?.touched">
+                    {{ getErrorMessage('experienciaAnios') }}
+                  </mat-error>
                 </mat-form-field>
               </div>
 
@@ -155,8 +163,8 @@
               </mat-form-field>
 
               <div class="step-actions">
-                <button mat-button matStepperPrevious>Anterior</button>
-                <button mat-raised-button color="primary" matStepperNext>Siguiente</button>
+                <button mat-button matStepperPrevious type="button">Anterior</button>
+                <button mat-raised-button color="primary" matStepperNext type="button">Siguiente</button>
               </div>
             </div>
           </ng-template>
@@ -182,10 +190,10 @@
                 <div class="cualidades-grid">
                   <mat-checkbox 
                     *ngFor="let cualidad of getCualidadesByCategoria('medica')"
-                    [checked]="isCualidadSelected(cualidad.id)"
-                    (change)="onCualidadChange(cualidad.id, $event.checked)"
+                    [checked]="isCualidadSelected(getCualidadId(cualidad))"
+                    (change)="onCualidadChange(getCualidadId(cualidad), $event.checked)"
                     [matTooltip]="cualidad.descripcion">
-                    {{ cualidad.nombre }}
+                    {{ getCualidadNombre(cualidad) }}
                   </mat-checkbox>
                 </div>
               </div>
@@ -199,10 +207,10 @@
                 <div class="cualidades-grid">
                   <mat-checkbox 
                     *ngFor="let cualidad of getCualidadesByCategoria('rescate')"
-                    [checked]="isCualidadSelected(cualidad.id)"
-                    (change)="onCualidadChange(cualidad.id, $event.checked)"
+                    [checked]="isCualidadSelected(getCualidadId(cualidad))"
+                    (change)="onCualidadChange(getCualidadId(cualidad), $event.checked)"
                     [matTooltip]="cualidad.descripcion">
-                    {{ cualidad.nombre }}
+                    {{ getCualidadNombre(cualidad) }}
                   </mat-checkbox>
                 </div>
               </div>
@@ -216,10 +224,10 @@
                 <div class="cualidades-grid">
                   <mat-checkbox 
                     *ngFor="let cualidad of getCualidadesByCategoria('tecnica')"
-                    [checked]="isCualidadSelected(cualidad.id)"
-                    (change)="onCualidadChange(cualidad.id, $event.checked)"
+                    [checked]="isCualidadSelected(getCualidadId(cualidad))"
+                    (change)="onCualidadChange(getCualidadId(cualidad), $event.checked)"
                     [matTooltip]="cualidad.descripcion">
-                    {{ cualidad.nombre }}
+                    {{ getCualidadNombre(cualidad) }}
                   </mat-checkbox>
                 </div>
               </div>
@@ -233,10 +241,10 @@
                 <div class="cualidades-grid">
                   <mat-checkbox 
                     *ngFor="let cualidad of getCualidadesByCategoria('operativa')"
-                    [checked]="isCualidadSelected(cualidad.id)"
-                    (change)="onCualidadChange(cualidad.id, $event.checked)"
+                    [checked]="isCualidadSelected(getCualidadId(cualidad))"
+                    (change)="onCualidadChange(getCualidadId(cualidad), $event.checked)"
                     [matTooltip]="cualidad.descripcion">
-                    {{ cualidad.nombre }}
+                    {{ getCualidadNombre(cualidad) }}
                   </mat-checkbox>
                 </div>
               </div>
@@ -250,10 +258,10 @@
                 <div class="cualidades-grid">
                   <mat-checkbox 
                     *ngFor="let cualidad of getCualidadesByCategoria('administrativa')"
-                    [checked]="isCualidadSelected(cualidad.id)"
-                    (change)="onCualidadChange(cualidad.id, $event.checked)"
+                    [checked]="isCualidadSelected(getCualidadId(cualidad))"
+                    (change)="onCualidadChange(getCualidadId(cualidad), $event.checked)"
                     [matTooltip]="cualidad.descripcion">
-                    {{ cualidad.nombre }}
+                    {{ getCualidadNombre(cualidad) }}
                   </mat-checkbox>
                 </div>
               </div>
@@ -264,8 +272,8 @@
               </div>
 
               <div class="step-actions">
-                <button mat-button matStepperPrevious>Anterior</button>
-                <button mat-raised-button color="primary" matStepperNext>Siguiente</button>
+                <button mat-button matStepperPrevious type="button">Anterior</button>
+                <button mat-raised-button color="primary" matStepperNext type="button">Siguiente</button>
               </div>
             </div>
           </ng-template>
@@ -277,7 +285,7 @@
             <div class="step-content">
               
               <h3>
-                <mat-icon>emergency</mat-icon>
+                <mat-icon>contact_emergency</mat-icon>
                 Contacto de Emergencia
               </h3>
               <p class="subtitle">Información de la persona a contactar en caso de emergencia.</p>
@@ -319,8 +327,7 @@
               </div>
 
               <div class="step-actions">
-                <button mat-button matStepperPrevious>Anterior</button>
-                <button mat-raised-button color="primary" matStepperNext>Finalizar</button>
+                <button mat-button matStepperPrevious type="button">Anterior</button>
               </div>
             </div>
           </ng-template>
@@ -332,12 +339,13 @@
   </mat-dialog-content>
 
   <mat-dialog-actions align="end">
-    <button mat-button (click)="onCancel()">Cancelar</button>
+    
+    <button mat-button (click)="onCancel()" type="button">Cancelar</button>
     <button mat-raised-button color="primary" 
-      [disabled]="personalForm.invalid || cualidadesSeleccionadas.length === 0"
-      (click)="onSubmit()">
-      <mat-icon>save</mat-icon>
-      {{ isEditMode ? 'Actualizar' : 'Registrar' }}
+            [disabled]="isSubmitDisabled()" 
+            (click)="onSubmit()"
+            type="submit">
+      {{ isEditMode ? 'Guardar Cambios' : 'Registrar Personal' }}
     </button>
   </mat-dialog-actions>
 </div> 

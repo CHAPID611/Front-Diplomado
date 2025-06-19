@@ -11,46 +11,44 @@ export class AuthService {
   private apiUrl = environment.apiUrl;
   private currentUserSubject: BehaviorSubject<any>;
   public currentUser: Observable<any>;
-  private readonly TOKEN_KEY = 'auth_token';
-  private readonly USER_KEY = 'current_user';
+  private readonly TOKEN_KEY = 'token';
+  private readonly USER_KEY = 'currentUser';
 
   constructor(
     private http: HttpClient,
     @Inject(PLATFORM_ID) private platformId: Object
   ) {
     // Acceder a localStorage solo si se está ejecutando en el navegador
-    if (isPlatformBrowser(this.platformId)) {
-      // NO limpiar la autenticación automáticamente al iniciar
-      // Solo verificar si hay datos válidos
-      const savedUser = localStorage.getItem(this.USER_KEY);
-      const savedToken = localStorage.getItem(this.TOKEN_KEY);
-      
-      // Verificar si el token es válido antes de mantener la sesión
-      if (savedToken) {
-        try {
-          const tokenPayload = JSON.parse(atob(savedToken.split('.')[1]));
-          const expirationDate = new Date(tokenPayload.exp * 1000);
-          const isTokenValid = expirationDate > new Date();
-          
-          if (isTokenValid && savedUser) {
-            console.log('✅ AuthService: Sesión válida encontrada, mantener logueado');
-            this.currentUserSubject = new BehaviorSubject<any>(JSON.parse(savedUser));
-          } else {
-            console.log('❌ AuthService: Token expirado, limpiar datos');
-            this.clearAuth();
-            this.currentUserSubject = new BehaviorSubject<any>(null);
-          }
-        } catch (error) {
-          console.error('❌ AuthService: Error validando token guardado:', error);
-          this.clearAuth();
-          this.currentUserSubject = new BehaviorSubject<any>(null);
-        }
+if (isPlatformBrowser(this.platformId)) {
+  const savedUser = localStorage.getItem(this.USER_KEY);
+  const savedToken = localStorage.getItem(this.TOKEN_KEY);
+
+  if (savedToken) {
+    try {
+      const tokenPayload = JSON.parse(atob(savedToken.split('.')[1]));
+      const expirationDate = new Date(tokenPayload.exp * 1000);
+      const isTokenValid = expirationDate > new Date();
+
+      if (isTokenValid && savedUser) {
+        console.log('✅ AuthService: Sesión válida encontrada, mantener logueado');
+        this.currentUserSubject = new BehaviorSubject<any>(JSON.parse(savedUser));
       } else {
+        console.log('❌ AuthService: Token expirado o usuario no encontrado, limpiar datos');
+        this.clearAuth();
         this.currentUserSubject = new BehaviorSubject<any>(null);
       }
-    } else {
-      // O inicializar con un valor nulo para el servidor
+    } catch (error) {
+      console.error('❌ AuthService: Error validando token guardado:', error);
+      this.clearAuth();
       this.currentUserSubject = new BehaviorSubject<any>(null);
+    }
+  } else {
+    this.currentUserSubject = new BehaviorSubject<any>(null);
+  }
+} else {
+  this.currentUserSubject = new BehaviorSubject<any>(null);
+}
+
     }
     this.currentUser = this.currentUserSubject.asObservable();
   }
@@ -72,12 +70,20 @@ export class AuthService {
       .pipe(
         tap(response => {
           // Almacenar en localStorage solo en el navegador
-          if (isPlatformBrowser(this.platformId) && response && response.token) {
-            localStorage.setItem(this.TOKEN_KEY, response.token);
-            localStorage.setItem(this.USER_KEY, JSON.stringify(response.user));
-            this.currentUserSubject.next(response.user);
-            console.log('AuthService: Usuario guardado en localStorage:', response.user);
-            console.log('AuthService: Rol del usuario guardado:', response.user.role);
+          if (isPlatformBrowser(this.platformId) && response) {
+            const token = response.access_token || response.token;
+            const user = response.user || response;
+            
+            if (token) {
+              localStorage.setItem(this.TOKEN_KEY, token);
+              localStorage.setItem(this.USER_KEY, JSON.stringify(user));
+              this.currentUserSubject.next(user);
+              console.log('✅ AuthService: Token guardado en localStorage con clave:', this.TOKEN_KEY);
+              console.log('✅ AuthService: Usuario guardado:', user);
+              console.log('✅ AuthService: Rol del usuario:', user.role || user.roles);
+            } else {
+              console.error('❌ AuthService: No se encontró token en la respuesta:', response);
+            }
           }
         })
       );

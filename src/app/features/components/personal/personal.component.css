@@ -217,19 +217,25 @@
 }
 
 .avatar {
-  width: 40px;
-  height: 40px;
-  border-radius: 50%;
-  background: var(--bg-secondary, #f8f9fa);
   display: flex;
   align-items: center;
   justify-content: center;
-  border: 2px solid var(--border-light, #e0e0e0);
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: var(--bg-secondary, #f8f9fa);
+  margin-right: -8px;
 }
 
 .avatar mat-icon {
   color: var(--text-secondary, #6c757d);
   font-size: 24px;
+}
+
+.person-info {
+  display: flex;
+  flex-direction: column;
+  padding-left: 4px;
 }
 
 .person-info .name {
@@ -273,26 +279,31 @@
 .cualidades-list {
   display: flex;
   flex-wrap: wrap;
-  gap: 4px;
-  max-width: 200px;
+  gap: 8px;
+  align-items: center;
+  transition: all 0.3s ease;
 }
 
 .cualidad-chip {
-  font-size: 10px !important;
-  height: 24px !important;
-  padding: 0 8px !important;
-  background: var(--bg-secondary, #f8f9fa) !important;
-  color: var(--text-primary, #2c3e50) !important;
-  border: 1px solid var(--border-light, #e0e0e0) !important;
+  transition: transform 0.2s ease;
 }
 
 .more-chip {
-  font-size: 10px !important;
-  height: 24px !important;
-  padding: 0 8px !important;
-  background: var(--primary-red-subtle, rgba(198, 40, 40, 0.08)) !important;
-  color: var(--primary-red, #c62828) !important;
-  border: 1px solid var(--primary-red, #c62828) !important;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.more-chip:hover {
+  background-color: rgba(0, 0, 0, 0.08);
+}
+
+.more-chip mat-icon {
+  font-size: 18px;
+  height: 18px;
+  width: 18px;
+  margin: 0;
 }
 
 /* Estados */
@@ -471,6 +482,27 @@
   }
 
   .personal-table .mat-mdc-cell {
-    padding: 8px 4px;
+    padding: 8px 12px;
   }
+}
+
+/* Ajustar el espaciado de las columnas */
+.mat-mdc-header-cell,
+.mat-mdc-cell {
+  padding: 0 0 0 16px !important;
+}
+
+/* Ajustar específicamente la columna de foto y nombre para que estén más juntas */
+.mat-column-foto {
+  padding: 0 0 16px 16px !important;
+  width: 40px !important;
+}
+
+.mat-column-nombre {
+  padding-left: 0 !important;
+}
+
+/* Asegurar que la tabla ocupe todo el ancho disponible */
+.personal-table {
+  width: 100%;
 } 
