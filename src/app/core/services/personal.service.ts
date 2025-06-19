@@ -1,7 +1,7 @@
 import { Injectable } from '@angular/core';
 import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { Observable, of, map, catchError, throwError } from 'rxjs';
-import { Personal, Cualidad, Rango, PersonalStats } from '../interfaces/personal.interface';
+import { Personal, Rango, PersonalStats } from '../interfaces/personal.interface';
 import { AuthService } from './auth.service';
 import { environment } from '../../../environments/environment';
 
@@ -17,6 +17,7 @@ interface CreatePersonalBackendDto {
   birthDate: string;
   address: string;
   phoneNumber: string;
+  email: string;
   competencias: number[];
   emergencyContact: {
     name: string;
@@ -49,7 +50,7 @@ interface RangoBackend {
 
 interface CompetenciaBackend {
   competenciaId: number;
-  competenciaName: string;
+  name: string;
   category: string;
 }
 
@@ -57,7 +58,7 @@ interface CompetenciaBackend {
   providedIn: 'root'
 })
 export class PersonalService {
-
+  
   private apiUrl = environment.apiUrl;
 
   constructor(
@@ -86,32 +87,82 @@ export class PersonalService {
   }
 
   createPersonal(personal: Personal): Observable<Personal> {
+    console.log('PersonalService.createPersonal: Iniciando registro...');
+    
     const currentUser = this.authService.currentUserValue;
+    console.log('PersonalService: Usuario actual:', currentUser);
+    
     if (!currentUser) {
+      console.error('PersonalService: Usuario no autenticado');
       return throwError(() => new Error('Usuario no autenticado'));
     }
 
     const backendDto = this.transformFrontendToBackend(personal, currentUser.id);
+    console.log('PersonalService: DTO para backend:', backendDto);
+    
+    // Verificar token antes de la petición
+    const token = this.authService.getToken();
+    console.log('PersonalService: Token disponible:', !!token);
     
     return this.http.post<any>(`${this.apiUrl}/personal`, backendDto)
       .pipe(
-        map(response => this.transformBackendToFrontend(response)),
-        catchError(this.handleError)
+        map(response => {
+          console.log('PersonalService: Respuesta exitosa del backend:', response);
+          return this.transformBackendToFrontend(response);
+        }),
+        catchError((error) => {
+          console.error('PersonalService: Error en createPersonal:', error);
+          if (error.status === 401) {
+            console.error('PersonalService: Error 401 - Problema de autenticación');
+            console.error('Token actual:', token);
+          }
+          return this.handleError(error);
+        })
       );
   }
 
   updatePersonal(id: number, personal: Personal): Observable<Personal> {
+    console.log('PersonalService.updatePersonal: Iniciando actualización...');
+    console.log('PersonalService: ID a actualizar:', id);
+    
     const currentUser = this.authService.currentUserValue;
+    console.log('PersonalService: Usuario actual:', currentUser);
+    
     if (!currentUser) {
+      console.error('PersonalService: Usuario no autenticado para actualización');
       return throwError(() => new Error('Usuario no autenticado'));
     }
 
     const backendDto = this.transformFrontendToBackend(personal, currentUser.id);
+    console.log('PersonalService: DTO para actualización:', backendDto);
+    
+    // Verificar token antes de la petición
+    const token = this.authService.getToken();
+    console.log('PersonalService: Token disponible para actualización:', !!token);
     
     return this.http.put<any>(`${this.apiUrl}/personal/${id}`, backendDto)
       .pipe(
-        map(response => this.transformBackendToFrontend(response)),
-        catchError(this.handleError)
+        map(response => {
+          console.log('PersonalService: Personal actualizado exitosamente:', response);
+          return this.transformBackendToFrontend(response);
+        }),
+        catchError((error) => {
+          console.error('PersonalService: Error en updatePersonal:', error);
+          console.error('PersonalService: Status del error:', error.status);
+          console.error('PersonalService: Response del error:', error.error);
+          console.error('PersonalService: URL que falló:', error.url);
+          
+          if (error.status === 401) {
+            console.error('PersonalService: Error 401 en actualización - Problema de autenticación');
+          } else if (error.status === 404) {
+            console.error('PersonalService: Error 404 - Personal no encontrado');
+          } else if (error.status === 500) {
+            console.error('PersonalService: Error 500 - Error interno del servidor');
+            console.error('PersonalService: Datos enviados que causaron el error:', backendDto);
+            console.error('PersonalService: ID utilizado:', id);
+          }
+          return this.handleError(error);
+        })
       );
   }
 
@@ -173,16 +224,16 @@ export class PersonalService {
       .pipe(
         catchError(() => {
           const mockCualidades: CompetenciaBackend[] = [
-            { competenciaId: 1, competenciaName: 'Primeros Auxilios', category: 'medica' },
-            { competenciaId: 2, competenciaName: 'Paramedicina', category: 'medica' },
-            { competenciaId: 3, competenciaName: 'Rescate Urbano', category: 'rescate' },
-            { competenciaId: 4, competenciaName: 'Rescate Acuático', category: 'rescate' },
-            { competenciaId: 5, competenciaName: 'Rescate Vehicular', category: 'rescate' },
-            { competenciaId: 6, competenciaName: 'Liderazgo', category: 'administrativa' },
-            { competenciaId: 7, competenciaName: 'Instructor', category: 'administrativa' },
-            { competenciaId: 8, competenciaName: 'Comunicaciones', category: 'tecnica' },
-            { competenciaId: 9, competenciaName: 'Manejo Materiales Peligrosos', category: 'tecnica' },
-            { competenciaId: 10, competenciaName: 'Conducción Emergencia', category: 'operativa' }
+            { competenciaId: 1, name: 'Primeros Auxilios', category: 'medica' },
+            { competenciaId: 2, name: 'Paramedicina', category: 'medica' },
+            { competenciaId: 3, name: 'Rescate Urbano', category: 'rescate' },
+            { competenciaId: 4, name: 'Rescate Acuático', category: 'rescate' },
+            { competenciaId: 5, name: 'Rescate Vehicular', category: 'rescate' },
+            { competenciaId: 6, name: 'Liderazgo', category: 'administrativa' },
+            { competenciaId: 7, name: 'Instructor', category: 'administrativa' },
+            { competenciaId: 8, name: 'Comunicaciones', category: 'tecnica' },
+            { competenciaId: 9, name: 'Manejo Materiales Peligrosos', category: 'tecnica' },
+            { competenciaId: 10, name: 'Conducción Emergencia', category: 'operativa' }
           ];
           return of(mockCualidades);
         })
@@ -196,82 +247,225 @@ export class PersonalService {
 
   // Métodos de transformación
   private transformFrontendToBackend(personal: Personal, userId: number): CreatePersonalBackendDto {
-    // Separar nombres y apellidos
-    const nombres = personal.nombres.trim().split(' ');
-    const apellidos = personal.apellidos.trim().split(' ');
+    console.log('PersonalService: Transformando datos frontend a backend...');
+    console.log('PersonalService: Personal recibido:', personal);
+    console.log('PersonalService: UserId:', userId);
+    
+    // Validar y procesar fechas
+    const fechaNacimiento = personal.fechaNacimiento instanceof Date ? 
+      personal.fechaNacimiento : new Date(personal.fechaNacimiento);
+    const fechaIngreso = personal.fechaIngreso instanceof Date ? 
+      personal.fechaIngreso : new Date(personal.fechaIngreso);
+    
+    // Validar y procesar nombres
+    const nombres = (personal.nombres || '').trim().split(' ').filter(n => n.length > 0);
+    const apellidos = (personal.apellidos || '').trim().split(' ').filter(a => a.length > 0);
+    
+    // Validar y procesar competencias
+    const competencias = (personal.cualidades || [])
+      .map(c => Number(c))
+      .filter(c => !isNaN(c) && c > 0);
 
-    return {
-      userId: userId,
-      bloodTypeId: Number(personal.tipoSangre), // Asumiendo que tipoSangre será un ID
-      firstName: nombres[0],
-      secondName: nombres.length > 1 ? nombres.slice(1).join(' ') : undefined,
-      firstLastName: apellidos[0],
-      secondLastName: apellidos.length > 1 ? apellidos.slice(1).join(' ') : undefined,
-      idNumber: personal.cedula,
-      birthDate: personal.fechaNacimiento.toISOString().split('T')[0],
-      address: personal.direccion,
-      phoneNumber: personal.telefono,
-      competencias: personal.cualidades.map(c => Number(c)),
-      emergencyContact: {
-        name: personal.contactoEmergencia.nombre,
-        relationship: personal.contactoEmergencia.parentesco,
-        mobilePhone: personal.contactoEmergencia.telefono
-      },
-      employmentData: {
-        rangeId: Number(personal.rango),
-        stateId: this.getStateIdFromString(personal.estado),
-        admissionDate: personal.fechaIngreso.toISOString().split('T')[0],
-        yearsOfExperience: personal.experienciaAnios,
-        observations: personal.observaciones
-      }
-    };
+    // Validar y procesar tipo de sangre
+    const bloodTypeId = Number(personal.tipoSangre);
+    if (isNaN(bloodTypeId)) {
+      console.warn('PersonalService: Tipo de sangre inválido:', personal.tipoSangre);
+    }
+
+    // Validar y procesar rango
+    const rangeId = Number(personal.rango);
+    if (isNaN(rangeId)) {
+      console.warn('PersonalService: Rango inválido:', personal.rango);
+    }
+
+    // Crear DTO base
+    const dto: any = {};
+
+    // Solo agregar campos que tienen valor
+    if (userId) dto.userId = userId;
+    if (bloodTypeId && !isNaN(bloodTypeId)) dto.bloodTypeId = bloodTypeId;
+    if (nombres[0]) dto.firstName = nombres[0];
+    if (nombres.length > 1) dto.secondName = nombres.slice(1).join(' ');
+    if (apellidos[0]) dto.firstLastName = apellidos[0];
+    if (apellidos.length > 1) dto.secondLastName = apellidos.slice(1).join(' ');
+    if (personal.cedula) dto.idNumber = personal.cedula;
+    if (fechaNacimiento) dto.birthDate = fechaNacimiento.toISOString().split('T')[0];
+    if (personal.direccion) dto.address = personal.direccion;
+    if (personal.telefono) dto.phoneNumber = personal.telefono;
+    if (personal.email) dto.email = personal.email;
+    if (competencias.length > 0) dto.competencias = competencias;
+
+    // Solo agregar contacto de emergencia si hay al menos un campo
+    if (personal.contactoEmergencia?.nombre || 
+        personal.contactoEmergencia?.parentesco || 
+        personal.contactoEmergencia?.telefono) {
+      dto.emergencyContact = {};
+      if (personal.contactoEmergencia.nombre) 
+        dto.emergencyContact.name = personal.contactoEmergencia.nombre;
+      if (personal.contactoEmergencia.parentesco) 
+        dto.emergencyContact.relationship = personal.contactoEmergencia.parentesco;
+      if (personal.contactoEmergencia.telefono) 
+        dto.emergencyContact.mobilePhone = personal.contactoEmergencia.telefono;
+    }
+
+    // Solo agregar datos de empleo si hay al menos un campo
+    if (rangeId || personal.estado || fechaIngreso || 
+        typeof personal.experienciaAnios !== 'undefined' || 
+        personal.observaciones) {
+      dto.employmentData = {};
+      if (rangeId && !isNaN(rangeId)) dto.employmentData.rangeId = rangeId;
+      if (personal.estado) dto.employmentData.stateId = this.getStateIdFromString(personal.estado);
+      if (fechaIngreso) dto.employmentData.admissionDate = fechaIngreso.toISOString().split('T')[0];
+      if (typeof personal.experienciaAnios !== 'undefined') 
+        dto.employmentData.yearsOfExperience = Number(personal.experienciaAnios);
+      if (personal.observaciones) dto.employmentData.observations = personal.observaciones;
+    }
+
+    // Validaciones finales
+    console.log('PersonalService: DTO generado:', dto);
+    console.log('PersonalService: Campos incluidos:', Object.keys(dto));
+
+    return dto as CreatePersonalBackendDto;
   }
 
   private transformBackendToFrontend(backendPersonal: any): Personal {
-    return {
-      id: backendPersonal.personalId,
-      cedula: backendPersonal.idNumber,
+    console.log('PersonalService: Transformando datos del backend:', backendPersonal);
+    
+    // Extraer rango
+    let rango = '';
+    if (backendPersonal.employmentDataEntity?.range) {
+      const rangeData = backendPersonal.employmentDataEntity.range;
+      rango = String(rangeData.rangeId);
+      console.log('PersonalService: Rango desde employmentDataEntity.range:', rango);
+    } else if (backendPersonal.range) {
+      const rangeData = backendPersonal.range;
+      rango = String(rangeData.rangeId);
+      console.log('PersonalService: Rango desde range directo:', rango);
+    } else if (backendPersonal.employmentDataEntity?.rangeId) {
+      rango = String(backendPersonal.employmentDataEntity.rangeId);
+      console.log('PersonalService: Rango desde employmentDataEntity.rangeId:', rango);
+    }
+    
+    // Extraer competencias
+    let cualidades: string[] = [];
+    if (backendPersonal.peopleCompetencias && Array.isArray(backendPersonal.peopleCompetencias)) {
+      cualidades = backendPersonal.peopleCompetencias
+        .map((pc: any) => {
+          const competencia = pc.competencia || pc;
+          return String(competencia.competenciaId);
+        })
+        .filter(Boolean);
+      console.log('PersonalService: Competencias extraídas de peopleCompetencias:', cualidades);
+    } else if (backendPersonal.competencias && Array.isArray(backendPersonal.competencias)) {
+      cualidades = backendPersonal.competencias
+        .map((comp: any) => String(comp.competenciaId))
+        .filter(Boolean);
+      console.log('PersonalService: Competencias extraídas de competencias:', cualidades);
+    }
+    
+    // Extraer tipo de sangre
+    let tipoSangre = '';
+    if (backendPersonal.bloodTypeEntity) {
+      tipoSangre = String(backendPersonal.bloodTypeEntity.bloodTypeId || backendPersonal.bloodTypeEntity.bloodType);
+      console.log('PersonalService: Tipo sangre desde bloodTypeEntity:', tipoSangre);
+    } else if (backendPersonal.bloodType) {
+      tipoSangre = String(backendPersonal.bloodType.bloodTypeId || backendPersonal.bloodType.bloodType);
+      console.log('PersonalService: Tipo sangre desde bloodType:', tipoSangre);
+    } else if (backendPersonal.bloodTypeId) {
+      tipoSangre = String(backendPersonal.bloodTypeId);
+      console.log('PersonalService: Tipo sangre desde bloodTypeId directo:', tipoSangre);
+    }
+    
+    // Procesar fechas
+    let fechaNacimiento: Date;
+    let fechaIngreso: Date;
+    
+    try {
+      fechaNacimiento = new Date(backendPersonal.birthDate);
+      if (isNaN(fechaNacimiento.getTime())) throw new Error('Fecha inválida');
+    } catch (e) {
+      console.warn('PersonalService: Error procesando fecha nacimiento:', e);
+      fechaNacimiento = new Date();
+    }
+    
+    try {
+      fechaIngreso = new Date(backendPersonal.employmentDataEntity?.admissionDate || backendPersonal.admissionDate);
+      if (isNaN(fechaIngreso.getTime())) throw new Error('Fecha inválida');
+    } catch (e) {
+      console.warn('PersonalService: Error procesando fecha ingreso:', e);
+      fechaIngreso = new Date();
+    }
+    
+    // Extraer estado
+    const estadoId = backendPersonal.employmentDataEntity?.stateId || backendPersonal.stateId || 1;
+    console.log('PersonalService: Estado ID recibido:', estadoId);
+    console.log('PersonalService: Estado completo:', backendPersonal.employmentDataEntity?.stateEntity);
+    
+    let estado: 'activo' | 'licencia';
+    if (backendPersonal.employmentDataEntity?.stateEntity?.state) {
+      // Normalizar el estado del backend
+      const estadoBackend = backendPersonal.employmentDataEntity.stateEntity.state.toLowerCase();
+      estado = estadoBackend === 'en licencia' ? 'licencia' : estadoBackend as 'activo' | 'licencia';
+      console.log('PersonalService: Estado extraído y normalizado de stateEntity:', estado);
+    } else {
+      estado = this.getStateStringFromId(estadoId);
+      console.log('PersonalService: Estado mapeado desde ID:', estado);
+    }
+    
+    // Construir objeto Personal
+    const transformed: Personal = {
+      id: backendPersonal.personalId || backendPersonal.id,
+      cedula: backendPersonal.idNumber || '',
       nombres: [backendPersonal.firstName, backendPersonal.secondName].filter(Boolean).join(' '),
       apellidos: [backendPersonal.firstLastName, backendPersonal.secondLastName].filter(Boolean).join(' '),
-      fechaNacimiento: new Date(backendPersonal.birthDate),
-      telefono: backendPersonal.phoneNumber,
-      email: backendPersonal.user?.email || '',
-      direccion: backendPersonal.address,
-      tipoSangre: backendPersonal.bloodTypeEntity?.bloodType || '',
-      rango: backendPersonal.employmentDataEntity?.range?.rangeName || '',
-      fechaIngreso: new Date(backendPersonal.employmentDataEntity?.admissionDate),
-      estado: this.getStateStringFromId(backendPersonal.employmentDataEntity?.stateId),
-      cualidades: backendPersonal.peopleCompetencias?.map((pc: any) => pc.competencia.competenciaName) || [],
-      experienciaAnios: backendPersonal.employmentDataEntity?.yearsOfExperience || 0,
-      observaciones: backendPersonal.employmentDataEntity?.observations,
+      fechaNacimiento,
+      telefono: backendPersonal.phoneNumber || '',
+      email: backendPersonal.email || backendPersonal.user?.email || '',
+      direccion: backendPersonal.address || '',
+      tipoSangre,
+      rango,
+      fechaIngreso,
+      estado,
+      cualidades,
+      experienciaAnios: Number(backendPersonal.employmentDataEntity?.yearsOfExperience || backendPersonal.yearsOfExperience || 0),
+      observaciones: backendPersonal.employmentDataEntity?.observations || backendPersonal.observations || '',
       contactoEmergencia: {
         nombre: backendPersonal.emergencyContact?.name || '',
         parentesco: backendPersonal.emergencyContact?.relationship || '',
         telefono: backendPersonal.emergencyContact?.mobilePhone || ''
       }
     };
+    
+    // Validaciones finales
+    console.log('PersonalService: Datos transformados:', transformed);
+    console.log('PersonalService: Validaciones:');
+    console.log('- ID:', transformed.id);
+    console.log('- Nombres completos:', transformed.nombres, transformed.apellidos);
+    console.log('- Tipo sangre:', transformed.tipoSangre);
+    console.log('- Rango:', transformed.rango);
+    console.log('- Competencias:', transformed.cualidades);
+    console.log('- Estado:', transformed.estado);
+    
+    return transformed;
   }
 
   // Métodos auxiliares
   private getStateIdFromString(estado: string): number {
     const stateMap: {[key: string]: number} = {
       'activo': 1,
-      'inactivo': 2,
-      'licencia': 3
+      'licencia': 2,
+      'en licencia': 2  // Agregar soporte para ambos formatos
     };
-    return stateMap[estado] || 1;
+    return stateMap[estado.toLowerCase()] || 1;
   }
 
-  private getStateStringFromId(stateId: number): 'activo' | 'inactivo' | 'licencia' {
-    const stateMap: {[key: number]: 'activo' | 'inactivo' | 'licencia'} = {
+  private getStateStringFromId(stateId: number): 'activo' | 'licencia' {
+    const stateMap: {[key: number]: 'activo' | 'licencia'} = {
       1: 'activo',
-      2: 'inactivo',
-      3: 'licencia'
+      2: 'licencia'
     };
     return stateMap[stateId] || 'activo';
   }
-
-
 
   private handleError = (error: any): Observable<never> => {
     console.error('Error en PersonalService:', error);
@@ -294,56 +488,56 @@ export class PersonalService {
   getEstadosStatic(): Array<{value: string, label: string}> {
     return [
       { value: 'activo', label: 'Activo' },
-      { value: 'inactivo', label: 'Inactivo' },
-      { value: 'licencia', label: 'En Licencia' }
+      { value: 'licencia', label: 'En Licencia' },
+      { value: 'retirado', label: 'Retirado' }
     ];
   }
 
   getMockPersonal(): Personal[] {
     return [
-      {
-        id: 1,
-        cedula: '12345678',
-        nombres: 'Carlos Eduardo',
-        apellidos: 'González Morales',
-        fechaNacimiento: new Date('1985-03-15'),
-        telefono: '3101234567',
-        email: 'carlos.gonzalez@bomberos.gov.co',
-        direccion: 'Calle 45 #23-15, Barrio Centro',
-        tipoSangre: 'O+',
+    {
+      id: 1,
+      cedula: '12345678',
+      nombres: 'Carlos Eduardo',
+      apellidos: 'González Morales',
+      fechaNacimiento: new Date('1985-03-15'),
+      telefono: '3101234567',
+      email: 'carlos.gonzalez@bomberos.gov.co',
+      direccion: 'Calle 45 #23-15, Barrio Centro',
+      tipoSangre: 'O+',
         rango: 'Capitán',
-        fechaIngreso: new Date('2010-01-15'),
-        estado: 'activo',
+      fechaIngreso: new Date('2010-01-15'),
+      estado: 'activo',
         cualidades: ['liderazgo', 'rescate_acuatico', 'primeros_auxilios'],
-        experienciaAnios: 14,
-        observaciones: 'Especialista en rescate acuático. Instructor certificado.',
-        contactoEmergencia: {
-          nombre: 'María González',
-          parentesco: 'Esposa',
-          telefono: '3109876543'
-        }
-      },
-      {
-        id: 2,
-        cedula: '87654321',
-        nombres: 'Ana Sofía',
-        apellidos: 'Rodríguez Pérez',
-        fechaNacimiento: new Date('1990-07-22'),
-        telefono: '3202345678',
-        email: 'ana.rodriguez@bomberos.gov.co',
-        direccion: 'Carrera 12 #34-56, Barrio Norte',
-        tipoSangre: 'A+',
+      experienciaAnios: 14,
+      observaciones: 'Especialista en rescate acuático. Instructor certificado.',
+      contactoEmergencia: {
+        nombre: 'María González',
+        parentesco: 'Esposa',
+        telefono: '3109876543'
+      }
+    },
+    {
+      id: 2,
+      cedula: '87654321',
+      nombres: 'Ana Sofía',
+      apellidos: 'Rodríguez Pérez',
+      fechaNacimiento: new Date('1990-07-22'),
+      telefono: '3202345678',
+      email: 'ana.rodriguez@bomberos.gov.co',
+      direccion: 'Carrera 12 #34-56, Barrio Norte',
+      tipoSangre: 'A+',
         rango: 'Bombero Profesional',
-        fechaIngreso: new Date('2015-06-01'),
-        estado: 'activo',
-        cualidades: ['paramedicina', 'rescate_urbano', 'primeros_auxilios'],
-        experienciaAnios: 9,
-        observaciones: 'Paramédica certificada. Especialista en emergencias médicas.',
-        contactoEmergencia: {
-          nombre: 'José Rodríguez',
-          parentesco: 'Padre',
-          telefono: '3108765432'
-        }
+      fechaIngreso: new Date('2015-06-01'),
+      estado: 'activo',
+      cualidades: ['paramedicina', 'rescate_urbano', 'primeros_auxilios'],
+      experienciaAnios: 9,
+      observaciones: 'Paramédica certificada. Especialista en emergencias médicas.',
+      contactoEmergencia: {
+        nombre: 'José Rodríguez',
+        parentesco: 'Padre',
+        telefono: '3108765432'
+      }
       }
     ];
   }
@@ -354,7 +548,6 @@ export class PersonalService {
       map(personalList => {
         const total = personalList.length;
         const activos = personalList.filter(p => p.estado === 'activo').length;
-        const inactivos = personalList.filter(p => p.estado === 'inactivo').length;
         const enLicencia = personalList.filter(p => p.estado === 'licencia').length;
         
         const promedioExperiencia = personalList.reduce((sum, p) => sum + p.experienciaAnios, 0) / total;
@@ -365,12 +558,12 @@ export class PersonalService {
         });
 
         const cualidadesMasComunes: { cualidad: string; cantidad: number }[] = [];
-        const cualidadesCount: { [cualidad: string]: number } = {};
+    const cualidadesCount: { [cualidad: string]: number } = {};
         personalList.forEach(p => {
-          p.cualidades.forEach(c => {
-            cualidadesCount[c] = (cualidadesCount[c] || 0) + 1;
-          });
-        });
+      p.cualidades.forEach(c => {
+        cualidadesCount[c] = (cualidadesCount[c] || 0) + 1;
+      });
+    });
 
         Object.entries(cualidadesCount)
           .sort(([,a], [,b]) => b - a)
@@ -380,14 +573,13 @@ export class PersonalService {
           });
 
         return {
-          totalPersonal: total,
+      totalPersonal: total,
           personalActivo: activos,
-          personalInactivo: inactivos,
           personalEnLicencia: enLicencia,
           promedioExperiencia: Math.round(promedioExperiencia * 100) / 100,
           distribucuionPorCargo: distribucuionPorRango,
-          cualidadesMasComunes
-        };
+      cualidadesMasComunes
+    };
       })
     );
   }

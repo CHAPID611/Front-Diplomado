@@ -83,10 +83,11 @@
                 <mat-form-field appearance="outline">
                   <mat-label>Estado</mat-label>
                   <mat-select formControlName="estado">
-                    <mat-option value="">Todos los estados</mat-option>
-                    <mat-option value="activo">Activo</mat-option>
-                    <mat-option value="inactivo">Inactivo</mat-option>
-                    <mat-option value="licencia">En Licencia</mat-option>
+                    <mat-option value="">Todos</mat-option>
+                    <mat-option *ngFor="let estado of estados" [value]="estado.value">
+                      {{ estado.label }}
+                    </mat-option>
+                    
                   </mat-select>
                 </mat-form-field>
 
@@ -94,15 +95,18 @@
                   <mat-label>Rango</mat-label>
                   <mat-select formControlName="rango">
                     <mat-option value="">Todos los rangos</mat-option>
-                    <mat-option *ngFor="let rango of rangos" [value]="rango.id">
-                      {{ rango.nombre }}
+                    <mat-option *ngFor="let rango of rangos" [value]="rango.rangeId">
+                      {{ rango.range }}
                     </mat-option>
                   </mat-select>
                 </mat-form-field>
               </div>
 
               <div class="actions-row">
-                <button mat-raised-button color="primary" (click)="openPersonalForm()">
+                <button mat-raised-button color="primary" 
+                  (click)="openPersonalFormWithValidation()"
+                  [disabled]="!canCreatePersonal()"
+                  matTooltip="Solo administradores pueden registrar personal">
                   <mat-icon>person_add</mat-icon>
                   Registrar Personal
                 </button>
@@ -112,10 +116,6 @@
                   Limpiar Filtros
                 </button>
                 
-                <button mat-stroked-button (click)="exportData()">
-                  <mat-icon>download</mat-icon>
-                  Exportar
-                </button>
               </div>
             </form>
           </mat-card-content>
@@ -158,7 +158,7 @@
                 <ng-container matColumnDef="rango">
                   <mat-header-cell *matHeaderCellDef>Rango</mat-header-cell>
                   <mat-cell *matCellDef="let persona">
-                    <div class="rango-badge">
+                    <div class="rango-badge" [matTooltip]="'ID: ' + persona.rango">
                       {{ getNombreRango(persona.rango) }}
                     </div>
                   </mat-cell>
@@ -189,18 +189,36 @@
                   <mat-header-cell *matHeaderCellDef>Cualidades</mat-header-cell>
                   <mat-cell *matCellDef="let persona">
                     <div class="cualidades-list">
-                      <mat-chip 
-                        *ngFor="let cualidad of persona.cualidades.slice(0, 2)" 
-                        class="cualidad-chip"
-                        [matTooltip]="getNombreCualidad(cualidad)">
-                        {{ getNombreCualidad(cualidad) }}
-                      </mat-chip>
-                      <mat-chip 
-                        *ngIf="persona.cualidades.length > 2" 
-                        class="more-chip"
-                        [matTooltip]="'Ver todas las cualidades'">
-                        +{{ persona.cualidades.length - 2 }}
-                      </mat-chip>
+                      <ng-container *ngIf="!persona.expandedQualifications">
+                        <mat-chip 
+                          *ngFor="let cualidad of persona.cualidades.slice(0, 2)" 
+                          class="cualidad-chip"
+                          [matTooltip]="'ID: ' + cualidad">
+                          {{ getNombreCualidad(cualidad) }}
+                        </mat-chip>
+                        <mat-chip 
+                          *ngIf="persona.cualidades.length > 2" 
+                          class="more-chip"
+                          [matTooltip]="'Ver todas las cualidades'"
+                          (click)="toggleQualifications(persona)">
+                          +{{ persona.cualidades.length - 2 }}
+                        </mat-chip>
+                      </ng-container>
+                      
+                      <ng-container *ngIf="persona.expandedQualifications">
+                        <mat-chip 
+                          *ngFor="let cualidad of persona.cualidades" 
+                          class="cualidad-chip"
+                          [matTooltip]="'ID: ' + cualidad">
+                          {{ getNombreCualidad(cualidad) }}
+                        </mat-chip>
+                        <mat-chip 
+                          class="more-chip"
+                          [matTooltip]="'Mostrar menos'"
+                          (click)="toggleQualifications(persona)">
+                          <mat-icon>expand_less</mat-icon>
+                        </mat-chip>
+                      </ng-container>
                     </div>
                   </mat-cell>
                 </ng-container>
@@ -209,20 +227,19 @@
                 <ng-container matColumnDef="acciones">
                   <mat-header-cell *matHeaderCellDef>Acciones</mat-header-cell>
                   <mat-cell *matCellDef="let persona">
-                    <button mat-icon-button [matMenuTriggerFor]="actionMenu">
+                    <button mat-icon-button [matMenuTriggerFor]="menu" aria-label="Acciones">
                       <mat-icon>more_vert</mat-icon>
                     </button>
-                    <mat-menu #actionMenu="matMenu">
-                      <button mat-menu-item (click)="openPersonalForm(persona)">
+                    <mat-menu #menu="matMenu">
+                      <button mat-menu-item (click)="openPersonalDetails(persona)">
+                        <mat-icon>visibility</mat-icon>
+                        <span>Ver detalles</span>
+                      </button>
+                      <button mat-menu-item *ngIf="canEditPersonal()" (click)="openPersonalFormWithValidation(persona)">
                         <mat-icon>edit</mat-icon>
                         <span>Editar</span>
                       </button>
-                      <button mat-menu-item>
-                        <mat-icon>visibility</mat-icon>
-                        <span>Ver Detalles</span>
-                      </button>
-                      <mat-divider></mat-divider>
-                      <button mat-menu-item (click)="deletePersonal(persona)" class="delete-action">
+                      <button mat-menu-item *ngIf="canDeletePersonal()" (click)="deletePersonalWithValidation(persona)">
                         <mat-icon>delete</mat-icon>
                         <span>Eliminar</span>
                       </button>
@@ -244,70 +261,7 @@
         </mat-card>
       </div>
     </mat-tab>
-
-    <!-- Tab: Estadísticas Detalladas -->
-    <mat-tab>
-      <ng-template mat-tab-label>
-        <mat-icon>analytics</mat-icon>
-        Estadísticas
-      </ng-template>
-      
-      <div class="tab-content" *ngIf="stats">
-        <div class="stats-grid">
-          
-          <!-- Distribución por Rango -->
-          <mat-card class="stats-detail-card">
-            <mat-card-header>
-              <mat-card-title>
-                <mat-icon>military_tech</mat-icon>
-                Distribución por Rango
-              </mat-card-title>
-            </mat-card-header>
-            <mat-card-content>
-              <div class="rango-stats">
-                <div *ngFor="let rango of rangos" class="rango-stat-item">
-                  <div class="rango-stat-info">
-                    <span class="rango-name">{{ rango.rangeName || rango.nombre }}</span>
-                    <span class="rango-count">{{ stats.distribucuionPorCargo[rango.rangeId || rango.id] || 0 }}</span>
-                  </div>
-                  <div class="rango-bar">
-                    <div class="rango-fill" 
-                      [style.width.%]="((stats.distribucuionPorCargo[rango.rangeId || rango.id] || 0) / stats.totalPersonal) * 100">
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </mat-card-content>
-          </mat-card>
-
-          <!-- Cualidades Más Comunes -->
-          <mat-card class="stats-detail-card">
-            <mat-card-header>
-              <mat-card-title>
-                <mat-icon>star</mat-icon>
-                Cualidades Más Comunes
-              </mat-card-title>
-            </mat-card-header>
-            <mat-card-content>
-              <div class="cualidades-stats">
-                <div *ngFor="let cualidad of stats.cualidadesMasComunes" class="cualidad-stat-item">
-                  <div class="cualidad-stat-info">
-                    <span class="cualidad-name">{{ getNombreCualidad(cualidad.cualidad) }}</span>
-                    <span class="cualidad-count">{{ cualidad.cantidad }} personas</span>
-                  </div>
-                  <div class="cualidad-bar">
-                    <div class="cualidad-fill" 
-                      [style.width.%]="(cualidad.cantidad / stats.totalPersonal) * 100">
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </mat-card-content>
-          </mat-card>
-          
-        </div>
-      </div>
-    </mat-tab>
+     
 
   </mat-tab-group>
 </div> 
