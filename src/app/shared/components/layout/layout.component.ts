@@ -96,25 +96,7 @@ import { AuthService } from '../../../core/services/auth.service';
           
           <span class="spacer"></span>
           
-          <button mat-icon-button [matMenuTriggerFor]="userMenu" class="user-btn">
-            <mat-icon>account_circle</mat-icon>
-          </button>
-          
-          <mat-menu #userMenu="matMenu">
-            <button mat-menu-item>
-              <mat-icon>person</mat-icon>
-              <span>Perfil</span>
-            </button>
-            <button mat-menu-item>
-              <mat-icon>settings</mat-icon>
-              <span>Configuración</span>
-            </button>
-            <mat-divider></mat-divider>
-            <button mat-menu-item (click)="logout()">
-              <mat-icon>logout</mat-icon>
-              <span>Cerrar Sesión</span>
-            </button>
-          </mat-menu>
+
         </mat-toolbar>
 
         <!-- Page content -->

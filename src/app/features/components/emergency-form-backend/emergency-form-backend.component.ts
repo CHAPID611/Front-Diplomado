@@ -16,6 +16,7 @@ import { MatStepperModule } from '@angular/material/stepper';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatDividerModule } from '@angular/material/divider';
+import { Router } from '@angular/router';
 
 import { EmergencyService } from '../../../core/services/emergency-report.service';
 import { EmergencyReportLegacyService } from '../../../core/services/emergency-report-legacy.service';
@@ -89,9 +90,12 @@ export class EmergencyFormBackendComponent implements OnInit, OnDestroy {
     private emergencyService: EmergencyService,
     private emergencyReportLegacyService: EmergencyReportLegacyService,
     private authService: AuthService,
-    private snackBar: MatSnackBar
+    private snackBar: MatSnackBar,
+    private router: Router
   ) {
     this.createForm();
+    this.loadEmergencyTypes();
+    this.loadFormData();
   }
 
   ngOnInit(): void {
@@ -370,18 +374,35 @@ export class EmergencyFormBackendComponent implements OnInit, OnDestroy {
       this.snackBar.open('Por favor complete todos los campos requeridos', 'Cerrar', { duration: 5000 });
       return;
     }
-
-    console.log('onSubmit llamado manualmente');
     
+    console.log('onSubmit llamado manualmente');
+
     // Verificar autenticación antes de enviar
-    if (!this.authService.isAuthenticated()) {
-      this.snackBar.open('No está autenticado. Por favor inicie sesión nuevamente.', 'Cerrar', { duration: 5000 });
+    if (!this.authService.isAuthenticated() || !this.authService.verifyAndRefreshSession()) {
+      console.log('❌ Usuario NO autenticado o sesión expirada - redirigiendo al login');
+      this.authService.logout();
+      this.snackBar.open('Su sesión ha expirado. Por favor inicie sesión nuevamente.', 'Cerrar', { 
+        duration: 5000,
+        panelClass: ['warning-snackbar']
+      });
+      this.router.navigate(['/login']);
       return;
     }
 
-    const token = localStorage.getItem('auth_token');
-    console.log('Token disponible:', token ? 'Sí' : 'No');
-    console.log('Usuario actual:', this.authService.getCurrentUser());
+    // Mostrar información del token para debug
+    const tokenInfo = this.authService.getTokenInfo();
+    if (tokenInfo) {
+      console.log('✅ Información del token:', tokenInfo);
+      console.log('✅ Usuario actual:', this.authService.getCurrentUser());
+      
+      // Si el token está por expirar (menos de 2 minutos), mostrar advertencia
+      if (tokenInfo.timeLeft < 2 * 60 * 1000) {
+        this.snackBar.open('Su sesión expirará pronto. Por favor guarde su trabajo.', 'OK', { 
+          duration: 10000,
+          panelClass: ['warning-snackbar']
+        });
+      }
+    }
 
     this.isSubmitting = true;
     this.submitSuccess = false;
@@ -465,32 +486,44 @@ export class EmergencyFormBackendComponent implements OnInit, OnDestroy {
       next: (response: any) => {
         console.log('Respuesta del backend:', response);
         this.submitSuccess = true;
-        
-        // Mostrar alerta de éxito con mejor estilo
-        setTimeout(() => {
-          alert('🚨 ¡EMERGENCIA GUARDADA CON ÉXITO! 🚨\n\n✅ La emergencia ha sido registrada correctamente en el sistema.\n\n📋 ID de registro: ' + (response?.id || 'Generado'));
-        }, 100);
-        
-        this.snackBar.open('Emergencia registrada exitosamente en el backend', 'Cerrar', { 
-          duration: 5000,
-          panelClass: ['success-snackbar']
+        this.submitError = null;
+        this.snackBar.open('✅ Emergencia guardada con éxito', 'Cerrar', { 
+          duration: 4000,
+          horizontalPosition: 'center',
+          verticalPosition: 'top',
+          panelClass: ['success-snackbar-large']
         });
-        this.resetForm();
+
+        // Cerrar la pestaña actual después de guardar exitosamente
+        this.closeCurrentTabAfterSave();
       },
       error: (error: any) => {
-        console.error('Error completo:', error);
-        console.error('URL que falló:', error.url);
-        console.error('Status:', error.status);
-        console.error('Error object:', error.error);
+        console.error('❌ Error completo al guardar emergencia:', error);
+        console.error('❌ URL que falló:', error.url);
+        console.error('❌ Status HTTP:', error.status);
+        console.error('❌ Error object:', error.error);
+        console.error('❌ Error message:', error.message);
         
-        this.submitError = error.message || 'Error desconocido';
+        this.submitError = error.error?.message || 'Error desconocido al registrar la emergencia';
         
         if (error.status === 401) {
-          this.snackBar.open('Error de autenticación. Por favor inicie sesión nuevamente.', 'Cerrar', { duration: 5000 });
+          console.log('🔒 Error 401: Token no válido o expirado - cerrando sesión automáticamente');
+          this.authService.logout();
+          this.snackBar.open('Su sesión ha expirado. Será redirigido al login.', 'Cerrar', { 
+            duration: 3000,
+            panelClass: ['warning-snackbar']
+          });
+          setTimeout(() => {
+            this.router.navigate(['/login']);
+          }, 1000);
+        } else if (error.status === 403) {
+          this.snackBar.open('No tiene permisos para realizar esta acción.', 'Cerrar', { duration: 5000 });
         } else if (error.status === 404) {
           this.snackBar.open('Error: Endpoint no encontrado. Verifique la configuración del servidor.', 'Cerrar', { duration: 5000 });
+        } else if (error.status === 0) {
+          this.snackBar.open('Error de conexión: No se puede conectar al servidor.', 'Cerrar', { duration: 5000 });
         } else {
-          this.snackBar.open(`Error: ${this.submitError}`, 'Cerrar', { duration: 5000 });
+          this.snackBar.open(`Error ${error.status}: ${this.submitError}`, 'Cerrar', { duration: 5000 });
         }
       },
       complete: () => {
@@ -558,20 +591,17 @@ export class EmergencyFormBackendComponent implements OnInit, OnDestroy {
     // Recrear el formulario para asegurar que esté completamente limpio
     this.createForm();
     
-    // Mostrar notificación
-    this.snackBar.open(`Nuevo formulario de emergencia creado`, 'Cerrar', {
-      duration: 2000,
-      horizontalPosition: 'right',
-      verticalPosition: 'top'
-    });
+
   }
 
   // Guardar el estado actual del formulario
   saveCurrentFormState(): void {
-    if (this.formularios[this.selectedIndex] && this.emergencyForm) {
-      this.formularios[this.selectedIndex].formData = JSON.parse(JSON.stringify(this.emergencyForm.value)); // Deep copy
-      this.formularios[this.selectedIndex].selectedFiles = [...this.selectedFiles];
-      this.formularios[this.selectedIndex].esTurnoSinConvenio = this.esTurnoSinConvenio;
+    const currentFormulario = this.formularios[this.selectedIndex];
+    if (currentFormulario && this.emergencyForm) {
+      // Usar el ID único del formulario en lugar del índice
+      currentFormulario.formData = JSON.parse(JSON.stringify(this.emergencyForm.value));
+      currentFormulario.selectedFiles = [...this.selectedFiles];
+      currentFormulario.esTurnoSinConvenio = this.esTurnoSinConvenio;
     }
   }
 
@@ -650,31 +680,43 @@ export class EmergencyFormBackendComponent implements OnInit, OnDestroy {
     if (this.formularios.length > 1) {
       // Mostrar confirmación antes de eliminar
       if (confirm(`¿Estás seguro de que quieres cerrar "${this.formularios[index].tipo}"? Los datos no guardados se perderán.`)) {
-        this.formularios.splice(index, 1);
         
-        // Ajustar el índice seleccionado
-        if (this.selectedIndex >= this.formularios.length) {
-          this.selectedIndex = this.formularios.length - 1;
-        } else if (this.selectedIndex > index) {
-          this.selectedIndex--;
+        // Guardar el estado actual antes de eliminar
+        this.saveCurrentFormState();
+        
+        // Eliminar el formulario específico
+      this.formularios.splice(index, 1);
+        
+        // Determinar el nuevo índice seleccionado
+        let newSelectedIndex: number;
+        
+        if (index === this.selectedIndex) {
+          // Si eliminamos la pestaña activa
+          if (index >= this.formularios.length) {
+            // Si eliminamos la última pestaña, ir a la nueva última
+            newSelectedIndex = this.formularios.length - 1;
+          } else {
+            // Si no era la última, mantener el mismo índice (que ahora apunta a la siguiente pestaña)
+            newSelectedIndex = index;
+          }
+        } else if (index < this.selectedIndex) {
+          // Si eliminamos una pestaña anterior a la actual, decrementar el índice
+          newSelectedIndex = this.selectedIndex - 1;
+        } else {
+          // Si eliminamos una pestaña posterior a la actual, mantener el índice
+          newSelectedIndex = this.selectedIndex;
         }
         
-        // Limpiar y recrear el formulario para la pestaña actual
-        this.resetForm();
-        this.createForm();
+        // Actualizar el índice seleccionado
+        this.selectedIndex = newSelectedIndex;
         
-        this.snackBar.open('Formulario eliminado', 'Cerrar', {
-          duration: 2000,
-          horizontalPosition: 'right',
-          verticalPosition: 'top'
-        });
+        // Restaurar los datos de la nueva pestaña activa
+        this.restoreFormState(this.selectedIndex);
+        
+
       }
     } else {
-      this.snackBar.open('No puedes eliminar el último formulario', 'Cerrar', {
-        duration: 2000,
-        horizontalPosition: 'right',
-        verticalPosition: 'top'
-      });
+      // No se puede eliminar el último formulario
     }
   }
 
@@ -851,13 +893,54 @@ export class EmergencyFormBackendComponent implements OnInit, OnDestroy {
         // Para campos directos del formulario
         this.emergencyForm.get(fieldName)?.setValue(currentTime);
       }
-      
-      // Mostrar notificación
-      this.snackBar.open(`Hora actual establecida: ${currentTime}`, 'Cerrar', {
-        duration: 2000,
-        horizontalPosition: 'right',
-        verticalPosition: 'top'
-      });
+    }
+  }
+
+  private closeCurrentTabAfterSave(): void {
+    // Si hay más de una pestaña, cerrar la actual y continuar con las demás
+    if (this.formularios.length > 1) {
+      setTimeout(() => {
+        // Eliminar la pestaña actual
+        const currentIndex = this.selectedIndex;
+        this.formularios.splice(currentIndex, 1);
+        
+        // Determinar el nuevo índice seleccionado
+        let newSelectedIndex: number;
+        if (currentIndex >= this.formularios.length) {
+          // Si eliminamos la última pestaña, ir a la nueva última
+          newSelectedIndex = this.formularios.length - 1;
+        } else {
+          // Si no era la última, mantener el mismo índice
+          newSelectedIndex = currentIndex;
+        }
+        
+        // Actualizar el índice y restaurar datos
+        this.selectedIndex = newSelectedIndex;
+        this.restoreFormState(this.selectedIndex);
+        
+
+      }, 1500); // Esperar 1.5 segundos para que se vea el mensaje de éxito
+    } else {
+      // Si es la única pestaña, redirigir al dashboard
+      setTimeout(() => {
+
+        
+        // Redirigir al dashboard después de un momento usando alternativa más segura
+        setTimeout(() => {
+          try {
+            if (this.router) {
+              this.router.navigate(['/dashboard']);
+            } else {
+              // Alternativa usando window.location
+              window.location.href = '/dashboard';
+            }
+          } catch (error) {
+            console.error('Error al redirigir:', error);
+            // Fallback con window.location
+            window.location.href = '/dashboard';
+          }
+        }, 1000);
+      }, 1500);
     }
   }
 }

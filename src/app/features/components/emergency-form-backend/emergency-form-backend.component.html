@@ -5,7 +5,10 @@
       <ng-template mat-tab-label>
         <span>{{ formulario.tipo }}</span>
         <button mat-icon-button class="close-tab-btn" (click)="removeFormulario(i, $event)" 
-                matTooltip="Cerrar formulario" *ngIf="formularios.length > 1">
+                matTooltip="Cerrar formulario" 
+                matTooltipPosition="below"
+                matTooltipClass="close-tooltip-simple"
+                *ngIf="formularios.length > 1">
           <mat-icon>close</mat-icon>
         </button>
       </ng-template>
@@ -117,7 +120,6 @@
                                  formControlName="horaReporte" 
                                  required 
                                  placeholder="Hora de reporte"
-                                 title="Ctrl+Click para establecer hora actual"
                                  (click)="onTimeClick($event, 'horaReporte')">
                         </mat-form-field>
                         <mat-form-field class="description-field">
@@ -140,7 +142,6 @@
                                  formControlName="horaSalida" 
                                  required 
                                  placeholder="Hora de salida"
-                                 title="Ctrl+Click para establecer hora actual"
                                  (click)="onTimeClick($event, 'horaSalida')">
                         </mat-form-field>
                         <mat-form-field class="description-field">
@@ -162,7 +163,7 @@
                                    formControlName="hora" 
                                    required 
                                    placeholder="Hora adicional"
-                                   title="Ctrl+Click para establecer hora actual"
+
                                    (click)="onTimeClick($event, 'hora', evento)">
                           </mat-form-field>
                           <mat-form-field class="description-field">
@@ -189,7 +190,7 @@
                                  type="time" 
                                  formControlName="horaLlegadaEscena" 
                                  placeholder="Hora de llegada a la escena"
-                                 title="Ctrl+Click para establecer hora actual"
+
                                  (click)="onTimeClick($event, 'horaLlegadaEscena')">
                         </mat-form-field>
                         <mat-form-field class="description-field">
@@ -211,7 +212,7 @@
                                    formControlName="hora" 
                                    required 
                                    placeholder="Hora adicional"
-                                   title="Ctrl+Click para establecer hora actual"
+
                                    (click)="onTimeClick($event, 'hora', evento)">
                           </mat-form-field>
                           <mat-form-field class="description-field">
@@ -238,7 +239,7 @@
                                  type="time" 
                                  formControlName="horaLlegadaHospital" 
                                  placeholder="Hora de llegada al hospital"
-                                 title="Ctrl+Click para establecer hora actual"
+
                                  (click)="onTimeClick($event, 'horaLlegadaHospital')">
                         </mat-form-field>
                         <mat-form-field class="description-field">
@@ -260,7 +261,7 @@
                                    formControlName="hora" 
                                    required 
                                    placeholder="Hora adicional"
-                                   title="Ctrl+Click para establecer hora actual"
+
                                    (click)="onTimeClick($event, 'hora', evento)">
                           </mat-form-field>
                           <mat-form-field class="description-field">
@@ -288,7 +289,7 @@
                                  formControlName="horaRegresoEstacion" 
                                  required 
                                  placeholder="Hora de regreso a la estación"
-                                 title="Ctrl+Click para establecer hora actual"
+
                                  (click)="onTimeClick($event, 'horaRegresoEstacion')">
                         </mat-form-field>
                         <mat-form-field class="description-field">
@@ -541,8 +542,8 @@
                     <div class="step-actions">
                       <button mat-button matStepperPrevious [disabled]="isSubmitting">Anterior</button>
                       <button mat-button type="button" (click)="toggleDebugInfo()" color="warn" [disabled]="isSubmitting">
-                        <mat-icon>bug_report</mat-icon>
-                        {{showDebugInfo ? 'Ocultar' : 'Mostrar'}} Debug
+                        <mat-icon>visibility</mat-icon>
+                        {{showDebugInfo ? 'Ocultar' : 'Mostrar'}} reporte
                       </button>
                       <button mat-raised-button color="primary" type="button" (click)="onSubmit()" [disabled]="!emergencyForm.valid || isSubmitting">
                         <mat-icon>save</mat-icon>

@@ -18,12 +18,36 @@ export class AuthService {
     private http: HttpClient,
     @Inject(PLATFORM_ID) private platformId: Object
   ) {
-    // Limpiar la autenticación al iniciar la aplicación
-    this.clearAuth();
-    
     // Acceder a localStorage solo si se está ejecutando en el navegador
     if (isPlatformBrowser(this.platformId)) {
-      this.currentUserSubject = new BehaviorSubject<any>(JSON.parse(localStorage.getItem(this.USER_KEY) || 'null'));
+      // NO limpiar la autenticación automáticamente al iniciar
+      // Solo verificar si hay datos válidos
+      const savedUser = localStorage.getItem(this.USER_KEY);
+      const savedToken = localStorage.getItem(this.TOKEN_KEY);
+      
+      // Verificar si el token es válido antes de mantener la sesión
+      if (savedToken) {
+        try {
+          const tokenPayload = JSON.parse(atob(savedToken.split('.')[1]));
+          const expirationDate = new Date(tokenPayload.exp * 1000);
+          const isTokenValid = expirationDate > new Date();
+          
+          if (isTokenValid && savedUser) {
+            console.log('✅ AuthService: Sesión válida encontrada, mantener logueado');
+            this.currentUserSubject = new BehaviorSubject<any>(JSON.parse(savedUser));
+          } else {
+            console.log('❌ AuthService: Token expirado, limpiar datos');
+            this.clearAuth();
+            this.currentUserSubject = new BehaviorSubject<any>(null);
+          }
+        } catch (error) {
+          console.error('❌ AuthService: Error validando token guardado:', error);
+          this.clearAuth();
+          this.currentUserSubject = new BehaviorSubject<any>(null);
+        }
+      } else {
+        this.currentUserSubject = new BehaviorSubject<any>(null);
+      }
     } else {
       // O inicializar con un valor nulo para el servidor
       this.currentUserSubject = new BehaviorSubject<any>(null);
@@ -131,5 +155,56 @@ export class AuthService {
 
   getCurrentUser(): any {
     return this.currentUserValue;
+  }
+
+  // Método para verificar y renovar la sesión antes de operaciones críticas
+  verifyAndRefreshSession(): boolean {
+    const token = this.getToken();
+    
+    if (!token) {
+      console.log('❌ No hay token disponible');
+      return false;
+    }
+    
+    try {
+      const tokenPayload = JSON.parse(atob(token.split('.')[1]));
+      const expirationDate = new Date(tokenPayload.exp * 1000);
+      const currentTime = new Date();
+      const timeUntilExpiry = expirationDate.getTime() - currentTime.getTime();
+      const minutesUntilExpiry = timeUntilExpiry / (1000 * 60);
+      
+      console.log(`⏰ Token expira en ${minutesUntilExpiry.toFixed(2)} minutos`);
+      
+      // Si faltan menos de 5 minutos para expirar, alertar al usuario
+      if (minutesUntilExpiry < 5 && minutesUntilExpiry > 0) {
+        console.log('⚠️ Token cerca de expirar');
+        // Aquí podrías implementar renovación automática del token
+      }
+      
+      return minutesUntilExpiry > 0;
+    } catch (error) {
+      console.error('❌ Error verificando token:', error);
+      return false;
+    }
+  }
+
+  // Método para obtener información del token
+  getTokenInfo(): any {
+    const token = this.getToken();
+    if (!token) return null;
+    
+    try {
+      const tokenPayload = JSON.parse(atob(token.split('.')[1]));
+      return {
+        userId: tokenPayload.sub,
+        email: tokenPayload.email,
+        exp: new Date(tokenPayload.exp * 1000),
+        iat: new Date(tokenPayload.iat * 1000),
+        timeLeft: new Date(tokenPayload.exp * 1000).getTime() - new Date().getTime()
+      };
+    } catch (error) {
+      console.error('Error decodificando token:', error);
+      return null;
+    }
   }
 } 
