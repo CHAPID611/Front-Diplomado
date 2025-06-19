@@ -21,6 +21,8 @@ import {
   MonthlyStats, 
   ReportFilters 
 } from '../../../core/services/pdf-report.service';
+import { EmergencyService } from '../../../core/services/emergency-report.service';
+import { EmergencyType } from '../../../core/interfaces/emergency.interface';
 
 @Component({
   selector: 'app-reports',
@@ -49,6 +51,8 @@ export class ReportsComponent implements OnInit {
   filtersForm: FormGroup;
   displayedColumns: string[] = ['month', 'emergencies', 'resolved', 'avgResponseTime', 'efficiency'];
   isGeneratingPdf = false;
+  emergencyTypes: EmergencyType[] = [];
+  emergencyTypeLabels: { [key: string]: string } = {};
 
   // Datos base (simulan una base de datos completa)
   private baseData = {
@@ -234,6 +238,7 @@ export class ReportsComponent implements OnInit {
   constructor(
     private fb: FormBuilder,
     private pdfReportService: PdfReportService,
+    private emergencyService: EmergencyService,
     private snackBar: MatSnackBar
   ) {
     this.filtersForm = this.fb.group({
@@ -245,12 +250,46 @@ export class ReportsComponent implements OnInit {
   }
 
   ngOnInit() {
-    // Cargar datos iniciales
-    this.loadReportData();
-    
-    // Suscribirse a cambios en los filtros
+    this.filtersForm = this.fb.group({
+      period: ['30days'],
+      startDate: [''],
+      endDate: [''],
+      emergencyType: ['all']
+    });
+
+    // Cargar tipos de emergencia del backend
+    this.loadEmergencyTypes();
+
+    // Observar cambios en los filtros para actualizar automáticamente
     this.filtersForm.valueChanges.subscribe(() => {
       this.loadReportData();
+    });
+  }
+
+  loadEmergencyTypes(): void {
+    this.emergencyService.getEmergencyTypes().subscribe({
+      next: (types) => {
+        this.emergencyTypes = types;
+        // Crear mapeo de labels dinámicamente
+        this.emergencyTypeLabels = {};
+        types.forEach(type => {
+          this.emergencyTypeLabels[type.emergencyTypeId.toString()] = type.emergencyType;
+        });
+        console.log('Tipos de emergencia cargados en reportes:', this.emergencyTypes);
+        console.log('Labels mapeados:', this.emergencyTypeLabels);
+      },
+      error: (error) => {
+        console.error('Error loading emergency types for reports:', error);
+        this.snackBar.open('Error al cargar tipos de emergencia', 'Cerrar', { duration: 3000 });
+        // Fallback a datos hardcodeados si el backend falla
+        this.emergencyTypeLabels = {
+          'incendio': 'Incendio Estructural',
+          'rescate': 'Rescate Vehicular',
+          'emergencia_medica': 'Emergencia Médica',
+          'materiales_peligrosos': 'Materiales Peligrosos',
+          'inundacion': 'Inundación'
+        };
+      }
     });
   }
 
@@ -389,14 +428,7 @@ export class ReportsComponent implements OnInit {
   }
 
   getEmergencyTypeLabel(type: string): string {
-    const labels: { [key: string]: string } = {
-      'incendio': 'Incendio Estructural',
-      'rescate': 'Rescate Vehicular',
-      'emergencia_medica': 'Emergencia Médica',
-      'materiales_peligrosos': 'Materiales Peligrosos',
-      'inundacion': 'Inundación'
-    };
-    return labels[type] || type;
+    return this.emergencyTypeLabels[type] || type;
   }
 
   private getPeriodLabel(period: string): string {

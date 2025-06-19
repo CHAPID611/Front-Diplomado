@@ -1,6 +1,6 @@
 import { Component, OnInit } from '@angular/core';
 import { DashboardService } from '../../../core/services/dashboard.service';
-import { Emergency } from '../../../core/interfaces/emergency.interface';
+import { EmergencyOld } from '../../../core/interfaces/emergency.interface';
 import { CommonModule } from '@angular/common';
 import { MatCardModule } from '@angular/material/card';
 import { MatListModule } from '@angular/material/list';
@@ -23,7 +23,7 @@ import { MatIconModule } from '@angular/material/icon';
 export class DashboardComponent implements OnInit {
   totalEmergencies: number = 0;
   activeEmergencies: number = 0;
-  latestEmergencies: Emergency[] = [];
+  latestEmergencies: EmergencyOld[] = [];
   emergencyTypes: { tipo: string; cantidad: number }[] = [];
 
   constructor(private dashboardService: DashboardService) {}
