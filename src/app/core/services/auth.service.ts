@@ -4,10 +4,23 @@ import { BehaviorSubject, Observable, tap } from 'rxjs';
 import { environment } from '../../../environments/environment';
 import { isPlatformBrowser } from '@angular/common';
 
+export interface IAuthService {
+  getToken(): string | null;
+  currentUser: Observable<any>;
+  currentUserValue: any;
+  login(email: string, password: string): Observable<any>;
+  logout(): void;
+  isAuthenticated(): boolean;
+  getUserRole(): string;
+  getCurrentUser(): any;
+  verifyAndRefreshSession(): boolean;
+  getTokenInfo(): any;
+}
+
 @Injectable({
   providedIn: 'root'
 })
-export class AuthService {
+export class AuthService implements IAuthService {
   private apiUrl = environment.apiUrl;
   private currentUserSubject: BehaviorSubject<any>;
   public currentUser: Observable<any>;
@@ -18,39 +31,32 @@ export class AuthService {
     private http: HttpClient,
     @Inject(PLATFORM_ID) private platformId: Object
   ) {
-    // Acceder a localStorage solo si se está ejecutando en el navegador
-if (isPlatformBrowser(this.platformId)) {
-  const savedUser = localStorage.getItem(this.USER_KEY);
-  const savedToken = localStorage.getItem(this.TOKEN_KEY);
-
-  if (savedToken) {
-    try {
-      const tokenPayload = JSON.parse(atob(savedToken.split('.')[1]));
-      const expirationDate = new Date(tokenPayload.exp * 1000);
-      const isTokenValid = expirationDate > new Date();
-
-      if (isTokenValid && savedUser) {
-        console.log('✅ AuthService: Sesión válida encontrada, mantener logueado');
-        this.currentUserSubject = new BehaviorSubject<any>(JSON.parse(savedUser));
-      } else {
-        console.log('❌ AuthService: Token expirado o usuario no encontrado, limpiar datos');
-        this.clearAuth();
-        this.currentUserSubject = new BehaviorSubject<any>(null);
-      }
-    } catch (error) {
-      console.error('❌ AuthService: Error validando token guardado:', error);
-      this.clearAuth();
-      this.currentUserSubject = new BehaviorSubject<any>(null);
-    }
-  } else {
     this.currentUserSubject = new BehaviorSubject<any>(null);
-  }
-} else {
-  this.currentUserSubject = new BehaviorSubject<any>(null);
-}
-
-    }
     this.currentUser = this.currentUserSubject.asObservable();
+    
+    if (isPlatformBrowser(this.platformId)) {
+      const savedUser = localStorage.getItem(this.USER_KEY);
+      const savedToken = localStorage.getItem(this.TOKEN_KEY);
+
+      if (savedToken) {
+        try {
+          const tokenPayload = JSON.parse(atob(savedToken.split('.')[1]));
+          const expirationDate = new Date(tokenPayload.exp * 1000);
+          const isTokenValid = expirationDate > new Date();
+
+          if (isTokenValid && savedUser) {
+            console.log('✅ AuthService: Sesión válida encontrada, mantener logueado');
+            this.currentUserSubject.next(JSON.parse(savedUser));
+          } else {
+            console.log('❌ AuthService: Token expirado o usuario no encontrado, limpiar datos');
+            this.clearAuth();
+          }
+        } catch (error) {
+          console.error('❌ AuthService: Error validando token guardado:', error);
+          this.clearAuth();
+        }
+      }
+    }
   }
 
   private clearAuth(): void {

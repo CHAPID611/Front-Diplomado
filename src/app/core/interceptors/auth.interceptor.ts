@@ -1,53 +1,29 @@
-intercept(request: HttpRequest<unknown>, next: HttpHandler): Observable<HttpEvent<unknown>> {
-  console.log('🔄 AuthInterceptor: Interceptando petición a:', request.url);
+import { HttpInterceptorFn } from '@angular/common/http';
+import { inject } from '@angular/core';
+import { AuthService } from '../services/auth.service';
 
-  const token = this.authService.getToken();
-  console.log('🔑 AuthInterceptor: Token obtenido:', token ? 'Presente (length: ' + token.length + ')' : 'Ausente');
-
+export const AuthInterceptor: HttpInterceptorFn = (req, next) => {
+  console.log('🔄 AuthFunctionalInterceptor: Interceptando petición a:', req.url);
+  
+  const authService = inject(AuthService);
+  const token = authService.getToken();
+  
+  console.log('🔑 AuthFunctionalInterceptor: Token obtenido:', token ? 'Presente (length: ' + token.length + ')' : 'Ausente');
+  
   if (token) {
-    try {
-      const tokenPayload = JSON.parse(atob(token.split('.')[1]));
-      const expirationDate = new Date(tokenPayload.exp * 1000);
-      const isTokenValid = expirationDate > new Date();
-
-      if (isTokenValid) {
-        console.log('✅ AuthInterceptor: Agregando token válido a la petición:', request.url);
-        console.log('🎯 Token usado:', token.substring(0, 50) + '...');
-        
-        const authRequest = request.clone({
-          setHeaders: {
-            Authorization: `Bearer ${token}`
-          }
-        });
-
-        console.log('📤 Headers agregados:', authRequest.headers.get('Authorization') ? 'Sí' : 'No');
-        return next.handle(authRequest);
-      } else {
-        console.warn('🔒 Token expirado, redirigiendo al login');
-        this.authService.logout();
-        this.router.navigate(['/login']);
-        return throwError(() => new Error('Token expirado'));
+    console.log('✅ AuthFunctionalInterceptor: Agregando token a petición:', req.url);
+    console.log('🎯 AuthFunctionalInterceptor: Token usado:', token.substring(0, 50) + '...');
+    
+    const authRequest = req.clone({
+      setHeaders: {
+        Authorization: `Bearer ${token}`
       }
-    } catch (error) {
-      console.error('🔒 Error al validar el token', error);
-      this.authService.logout();
-      this.router.navigate(['/login']);
-      return throwError(() => new Error('Token inválido'));
-    }
+    });
+    
+    console.log('📤 AuthFunctionalInterceptor: Headers agregados:', authRequest.headers.get('Authorization') ? 'Sí' : 'No');
+    return next(authRequest);
   } else {
-    console.error('❌ No hay token disponible para:', request.url);
-    return next.handle(request);
+    console.error('❌ AuthFunctionalInterceptor: No hay token disponible para:', req.url);
+    return next(req);
   }
-
-  // Manejo de errores HTTP
-  return next.handle(request).pipe(
-    catchError((error: HttpErrorResponse) => {
-      if (error.status === 401) {
-        console.warn('🔐 Error 401 - sesión expirada o no autorizada');
-        this.authService.logout();
-        this.router.navigate(['/login']);
-      }
-      return throwError(() => error);
-    })
-  );
-}
+}; 

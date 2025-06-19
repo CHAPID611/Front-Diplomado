@@ -2,12 +2,10 @@ import { ApplicationConfig } from '@angular/core';
 import { provideRouter } from '@angular/router';
 import { provideAnimations } from '@angular/platform-browser/animations';
 import { provideHttpClient, withFetch, withInterceptors } from '@angular/common/http';
-import { HTTP_INTERCEPTORS } from '@angular/common/http';
 
 import { routes } from './app.routes';
 import { AuthService } from './core/services/auth.service';
 import { AuthInterceptor } from './core/interceptors/auth.interceptor';
-import { authFunctionalInterceptor } from './core/interceptors/auth-functional.interceptor';
 
 export const appConfig: ApplicationConfig = {
   providers: [
@@ -15,14 +13,8 @@ export const appConfig: ApplicationConfig = {
     provideAnimations(),
     provideHttpClient(
       withFetch(),
-      withInterceptors([authFunctionalInterceptor])
+      withInterceptors([AuthInterceptor])
     ),
-    AuthService,
-    // Mantener también el interceptor de clase por compatibilidad
-    {
-      provide: HTTP_INTERCEPTORS,
-      useClass: AuthInterceptor,
-      multi: true
-    }
+    AuthService
   ]
 };
