@@ -48,19 +48,24 @@ import { AuthService } from '../../../core/services/auth.service';
             <span matListItemTitle>Dashboard</span>
           </a>
           
-          <a mat-list-item routerLink="/dashboard/emergencias" (click)="drawer.close()" routerLinkActive="active">
+          <a mat-list-item routerLink="/emergencias" (click)="drawer.close()" routerLinkActive="active">
             <mat-icon matListItemIcon>local_fire_department</mat-icon>
             <span matListItemTitle>Emergencias</span>
           </a>
           
-          <a mat-list-item *ngIf="userRole === 'admin'" routerLink="/dashboard/reportes" (click)="drawer.close()" routerLinkActive="active">
+          <a mat-list-item *ngIf="userRole === 'admin'" routerLink="/reportes" (click)="drawer.close()" routerLinkActive="active">
             <mat-icon matListItemIcon>assessment</mat-icon>
             <span matListItemTitle>Reportes</span>
           </a>
           
-          <a mat-list-item *ngIf="userRole === 'admin'" routerLink="/dashboard/personal" (click)="drawer.close()" routerLinkActive="active">
+          <a mat-list-item *ngIf="userRole === 'admin'" routerLink="/personal" (click)="drawer.close()" routerLinkActive="active">
             <mat-icon matListItemIcon>people</mat-icon>
             <span matListItemTitle>Personal</span>
+          </a>
+
+          <a mat-list-item *ngIf="userRole === 'admin'" routerLink="/vehiculos" (click)="drawer.close()" routerLinkActive="active">
+            <mat-icon matListItemIcon>directions_car</mat-icon>
+            <span matListItemTitle>Vehículos</span>
           </a>
           
           <mat-divider class="menu-divider"></mat-divider>
@@ -95,8 +100,6 @@ import { AuthService } from '../../../core/services/auth.service';
           </div>
           
           <span class="spacer"></span>
-          
-
         </mat-toolbar>
 
         <!-- Page content -->

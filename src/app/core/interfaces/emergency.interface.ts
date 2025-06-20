@@ -5,7 +5,7 @@ export interface Emergency {
   emergencyTypeId: number;
   emergencyDate: string; // ISO string para enviar al backend
   informant: string;
-  vehicle: string;
+  vehicleIds: number[];
   ubication: string;
   turn: string;
   reportTime: string; // ISO string

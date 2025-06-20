@@ -1,0 +1,54 @@
+<h2 mat-dialog-title>{{title}}</h2>
+
+<form [formGroup]="vehicleForm" (ngSubmit)="onSubmit()">
+  <mat-dialog-content>
+    <div class="row">
+      <div class="col-12">
+        <mat-form-field class="w-100">
+          <mat-label>Nombre del Vehículo</mat-label>
+          <input matInput formControlName="name" placeholder="Ej: Ambulancia 1">
+          <mat-error *ngIf="vehicleForm.get('name')?.hasError('required')">
+            El nombre es requerido
+          </mat-error>
+          <mat-error *ngIf="vehicleForm.get('name')?.hasError('maxlength')">
+            El nombre no puede exceder 100 caracteres
+          </mat-error>
+        </mat-form-field>
+      </div>
+
+      <div class="col-12">
+        <mat-form-field class="w-100">
+          <mat-label>Placa</mat-label>
+          <input matInput formControlName="plate" placeholder="Ej: ABC-123">
+          <mat-error *ngIf="vehicleForm.get('plate')?.hasError('required')">
+            La placa es requerida
+          </mat-error>
+          <mat-error *ngIf="vehicleForm.get('plate')?.hasError('maxlength')">
+            La placa no puede exceder 20 caracteres
+          </mat-error>
+        </mat-form-field>
+      </div>
+
+      <div class="col-12">
+        <mat-form-field class="w-100">
+          <mat-label>Estado</mat-label>
+          <mat-select formControlName="status">
+            <mat-option *ngFor="let option of statusOptions" [value]="option.value">
+              {{option.label}}
+            </mat-option>
+          </mat-select>
+          <mat-error *ngIf="vehicleForm.get('status')?.hasError('required')">
+            El estado es requerido
+          </mat-error>
+        </mat-form-field>
+      </div>
+    </div>
+  </mat-dialog-content>
+
+  <mat-dialog-actions align="end">
+    <button mat-button type="button" (click)="onCancel()">Cancelar</button>
+    <button mat-raised-button color="primary" type="submit" [disabled]="!vehicleForm.valid">
+      {{isEdit ? 'Actualizar' : 'Guardar'}}
+    </button>
+  </mat-dialog-actions>
+</form> 
