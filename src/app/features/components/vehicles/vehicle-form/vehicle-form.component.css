@@ -1,0 +1,16 @@
+.mat-dialog-content {
+  min-width: 400px;
+  margin: 1rem 0;
+}
+
+.row {
+  margin: 0;
+}
+
+.col-12 {
+  padding: 0.5rem;
+}
+
+mat-form-field {
+  width: 100%;
+} 

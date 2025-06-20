@@ -1,13 +1,12 @@
 <div class="form-container">
   <!-- Pestañas para múltiples formularios -->
   <mat-tab-group [selectedIndex]="selectedIndex" (selectedIndexChange)="onTabChange($event)" class="emergency-tabs">
-    <mat-tab *ngFor="let formulario of formularios; let i = index" [label]="formulario.tipo">
+    <mat-tab *ngFor="let formulario of formularios; let i = index">
       <ng-template mat-tab-label>
         <span>{{ formulario.tipo }}</span>
         <button mat-icon-button class="close-tab-btn" (click)="removeFormulario(i, $event)" 
                 matTooltip="Cerrar formulario" 
                 matTooltipPosition="below"
-                matTooltipClass="close-tooltip-simple"
                 *ngIf="formularios.length > 1">
           <mat-icon>close</mat-icon>
         </button>
@@ -62,12 +61,13 @@
                       </mat-form-field>
 
                       <mat-form-field>
-                        <mat-label>Vehículo</mat-label>
-                        <mat-select formControlName="vehiculo" required>
-                          <mat-option *ngFor="let vehiculo of vehiculosDisponibles" [value]="vehiculo.id">
-                            {{vehiculo.nombre}}
+                        <mat-label>Vehículos</mat-label>
+                        <mat-select formControlName="vehiculo" required multiple>
+                          <mat-option *ngFor="let vehiculo of availableVehicles" [value]="vehiculo.vehicleId">
+                            {{vehiculo.name}} - {{vehiculo.plate}}
                           </mat-option>
                         </mat-select>
+                        <mat-hint>Seleccione uno o más vehículos</mat-hint>
                       </mat-form-field>
                     </div>
 
@@ -466,7 +466,7 @@
                     <!-- Debug info (solo para desarrollo) -->
                     <div class="debug-section" *ngIf="showDebugInfo">
                       <h4>
-                        <mat-icon style="font-size: 18px; vertical-align: middle; margin-right: 8px;">bug_report</mat-icon>
+                        <mat-icon style="font-size: 18px; vertical-align: middle; margin-right: 8px;">visibility</mat-icon>
                         Vista previa del reporte
                       </h4>
                       

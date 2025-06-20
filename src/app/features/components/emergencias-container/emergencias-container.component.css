@@ -1,1 +1,7 @@
 /* Puedes personalizar el estilo del botón y las pestañas aquí si lo deseas */ 
+
+.emergencias-container {
+  padding: 24px;
+  max-width: 1400px;
+  margin: 0 auto;
+} 

@@ -1,4 +1,4 @@
-import { Component, OnInit, OnDestroy } from '@angular/core';
+import { Component, OnInit, OnDestroy, Input, Output, EventEmitter } from '@angular/core';
 import { FormBuilder, FormGroup, FormArray, Validators, ReactiveFormsModule, AbstractControl, ValidationErrors } from '@angular/forms';
 import { CommonModule } from '@angular/common';
 import { MatCardModule } from '@angular/material/card';
@@ -20,16 +20,17 @@ import { Router } from '@angular/router';
 
 import { EmergencyService } from '../../../core/services/emergency-report.service';
 import { EmergencyReportLegacyService } from '../../../core/services/emergency-report-legacy.service';
-import { PersonalDisponible, VehiculoDisponible } from '../../../core/services/emergency-data.service';
+import { PersonalDisponible } from '../../../core/services/emergency-data.service';
 import { Emergency, EmergencyType, EmergencyFile, TipoEmergencia } from '../../../core/interfaces/emergency.interface';
 import { AuthService } from '../../../core/services/auth.service';
+import { VehiclesService, Vehicle } from '../../../core/services/vehicles.service';
 
 interface Formulario {
   tipo: string;
   id: number;
-  formData?: any; // Para guardar los datos del formulario
-  selectedFiles?: File[]; // Para guardar archivos de cada formulario
-  esTurnoSinConvenio?: boolean; // Para guardar el estado del turno
+  formData?: any;
+  selectedFiles?: File[];
+  esTurnoSinConvenio?: boolean;
 }
 
 @Component({
@@ -58,11 +59,23 @@ interface Formulario {
   styleUrls: ['./emergency-form-backend.component.css']
 })
 export class EmergencyFormBackendComponent implements OnInit, OnDestroy {
+  @Input() set parentForm(form: FormGroup) {
+    if (form) {
+      this._emergencyForm = form;
+    }
+  }
+  get parentForm(): FormGroup {
+    return this._emergencyForm;
+  }
+  private _emergencyForm!: FormGroup;
+
+  @Output() tipoChange = new EventEmitter<string>();
+
   emergencyForm!: FormGroup;
   emergencyTypes: EmergencyType[] = [];
   tiposEmergencia: TipoEmergencia[] = [];
   personalDisponible: PersonalDisponible[] = [];
-  vehiculosDisponibles: VehiculoDisponible[] = [];
+  availableVehicles: Vehicle[] = [];
   selectedFiles: File[] = [];
   filePreviewUrls: Map<File, string> = new Map();
   isSubmitting = false;
@@ -90,6 +103,7 @@ export class EmergencyFormBackendComponent implements OnInit, OnDestroy {
     private emergencyService: EmergencyService,
     private emergencyReportLegacyService: EmergencyReportLegacyService,
     private authService: AuthService,
+    private vehiclesService: VehiclesService,
     private snackBar: MatSnackBar,
     private router: Router
   ) {
@@ -101,6 +115,20 @@ export class EmergencyFormBackendComponent implements OnInit, OnDestroy {
   ngOnInit(): void {
     this.loadEmergencyTypes();
     this.loadFormData();
+    this.loadAvailableVehicles();
+  }
+
+  loadAvailableVehicles(): void {
+    this.vehiclesService.getVehicles().subscribe({
+      next: (vehicles) => {
+        this.availableVehicles = vehicles.filter(v => v.status === 'disponible');
+        console.log('Vehículos disponibles cargados:', this.availableVehicles);
+      },
+      error: (error) => {
+        console.error('Error al cargar vehículos:', error);
+        this.snackBar.open('Error al cargar vehículos disponibles', 'Cerrar', { duration: 3000 });
+      }
+    });
   }
 
   createForm(): void {
@@ -188,11 +216,6 @@ export class EmergencyFormBackendComponent implements OnInit, OnDestroy {
     this.emergencyReportLegacyService.getPersonalDisponible().subscribe((personal: PersonalDisponible[]) => {
       this.personalDisponible = personal;
     });
-
-    // Cargar vehículos disponibles
-    this.emergencyReportLegacyService.getVehiculosDisponibles().subscribe((vehiculos: VehiculoDisponible[]) => {
-      this.vehiculosDisponibles = vehiculos;
-    });
   }
 
   onTipoEmergenciaChange(event: any): void {
@@ -205,7 +228,8 @@ export class EmergencyFormBackendComponent implements OnInit, OnDestroy {
       this.formularios[this.selectedIndex].tipo = tipoNombre;
     }
     
-    console.log('Tipo de emergencia seleccionado:', tipoNombre);
+    // Emitir el cambio si es necesario
+    this.tipoChange.emit(tipoNombre);
   }
 
   onSinConvenioChange(event: any): void {
@@ -385,7 +409,7 @@ export class EmergencyFormBackendComponent implements OnInit, OnDestroy {
         duration: 5000,
         panelClass: ['warning-snackbar']
       });
-      this.router.navigate(['/login']);
+      this.router.navigate(['/emergencias']);
       return;
     }
 
@@ -433,10 +457,10 @@ export class EmergencyFormBackendComponent implements OnInit, OnDestroy {
 
     const emergencyData: Emergency = {
       userId: this.getCurrentUserId(),
-      emergencyTypeId: Number(formValues.tipoEmergencia) || 1, // Asegurar que sea número válido
+      emergencyTypeId: Number(formValues.tipoEmergencia) || 1,
       emergencyDate: this.formatDateForBackend(formValues.fechaReporte || new Date()),
       informant: formValues.quienInforma || '',
-      vehicle: formValues.vehiculo || '',
+      vehicleIds: formValues.vehiculo ? [Number(formValues.vehiculo)] : [],
       ubication: formValues.ubicacion || '',
       turn: turno || '1',
       reportTime: this.formatDateTimeForBackend(formValues.fechaReporte || new Date(), formValues.horaReporte || '00:00'),
@@ -562,36 +586,31 @@ export class EmergencyFormBackendComponent implements OnInit, OnDestroy {
     // Limpiar arrays de personal si existen
     // No reiniciar los datos cargados desde el servidor
     // this.personalDisponible = []; // NO hacer esto
-    // this.vehiculosDisponibles = []; // NO hacer esto
+    // this.availableVehicles = []; // NO hacer esto
     // this.emergencyTypes = []; // NO hacer esto
   }
 
   // Métodos para compatibilidad con el diseño original
   addNewEmergencyForm(): void {
-    const newId = this.formularios.length + 1;
-    
-    // Primero guardar el estado del formulario actual
+    // Guardar el estado del formulario actual antes de cambiar
     this.saveCurrentFormState();
+
+    // Crear nuevo formulario
+    this.createForm();
     
-    // Agregar el nuevo formulario
-    this.formularios.push({ 
-      tipo: `Nueva Emergencia ${newId}`, 
-      id: newId,
-      formData: null, // Nuevo formulario sin datos
+    // Agregar nuevo formulario a la lista
+    this.formularios.push({
+      tipo: 'Nueva Emergencia',
+      id: Date.now(),
+      formData: null,
       selectedFiles: [],
       esTurnoSinConvenio: false
     });
-    
-    // Cambiar automáticamente a la nueva pestaña
-    this.selectedIndex = this.formularios.length - 1;
-    
-    // Limpiar completamente el formulario SOLO para el nuevo
-    this.resetForm();
-    
-    // Recrear el formulario para asegurar que esté completamente limpio
-    this.createForm();
-    
 
+    // Cambiar a la nueva pestaña
+    setTimeout(() => {
+      this.selectedIndex = this.formularios.length - 1;
+    });
   }
 
   // Guardar el estado actual del formulario
@@ -897,6 +916,8 @@ export class EmergencyFormBackendComponent implements OnInit, OnDestroy {
   }
 
   private closeCurrentTabAfterSave(): void {
+    const redirectPath = '/emergencias'; // Cambia esta ruta según necesites
+
     // Si hay más de una pestaña, cerrar la actual y continuar con las demás
     if (this.formularios.length > 1) {
       setTimeout(() => {
@@ -907,39 +928,24 @@ export class EmergencyFormBackendComponent implements OnInit, OnDestroy {
         // Determinar el nuevo índice seleccionado
         let newSelectedIndex: number;
         if (currentIndex >= this.formularios.length) {
-          // Si eliminamos la última pestaña, ir a la nueva última
           newSelectedIndex = this.formularios.length - 1;
         } else {
-          // Si no era la última, mantener el mismo índice
           newSelectedIndex = currentIndex;
         }
         
         // Actualizar el índice y restaurar datos
         this.selectedIndex = newSelectedIndex;
         this.restoreFormState(this.selectedIndex);
-        
-
-      }, 1500); // Esperar 1.5 segundos para que se vea el mensaje de éxito
+      }, 1500);
     } else {
-      // Si es la única pestaña, redirigir al dashboard
+      // Si es la única pestaña, redirigir
       setTimeout(() => {
-
-        
-        // Redirigir al dashboard después de un momento usando alternativa más segura
-        setTimeout(() => {
-          try {
-            if (this.router) {
-              this.router.navigate(['/dashboard']);
-            } else {
-              // Alternativa usando window.location
-              window.location.href = '/dashboard';
-            }
-          } catch (error) {
-            console.error('Error al redirigir:', error);
-            // Fallback con window.location
-            window.location.href = '/dashboard';
-          }
-        }, 1000);
+        try {
+          this.router.navigate([redirectPath]);
+        } catch (error) {
+          console.error('Error al redirigir:', error);
+          window.location.href = redirectPath;
+        }
       }, 1500);
     }
   }

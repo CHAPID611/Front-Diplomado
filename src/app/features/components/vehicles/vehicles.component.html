@@ -1,0 +1,192 @@
+<div class="vehicles-container">
+  <!-- Header -->
+  <div class="vehicles-header">
+    <h1>
+      <mat-icon>directions_car</mat-icon>
+      Gestión de Vehículos
+    </h1>
+    <p>Administración de la flota de vehículos del Cuerpo de Bomberos</p>
+  </div>
+
+  <!-- Estadísticas -->
+  <div class="stats-cards" *ngIf="stats">
+    <mat-card class="stat-card primary">
+      <div class="stat-content">
+        <mat-icon class="stat-icon">directions_car</mat-icon>
+        <div class="stat-info">
+          <h3>Total Vehículos</h3>
+          <p class="stat-number">{{ stats.total }}</p>
+          <small>unidades registradas</small>
+        </div>
+      </div>
+    </mat-card>
+
+    <mat-card class="stat-card success">
+      <div class="stat-content">
+        <mat-icon class="stat-icon">check_circle</mat-icon>
+        <div class="stat-info">
+          <h3>Disponibles</h3>
+          <p class="stat-number">{{ stats.available }}</p>
+          <small>listos para servicio</small>
+        </div>
+      </div>
+    </mat-card>
+
+    <mat-card class="stat-card warning">
+      <div class="stat-content">
+        <mat-icon class="stat-icon">warning</mat-icon>
+        <div class="stat-info">
+          <h3>En Emergencia</h3>
+          <p class="stat-number">{{ stats.inEmergency }}</p>
+          <small>atendiendo emergencias</small>
+        </div>
+      </div>
+    </mat-card>
+
+    <mat-card class="stat-card info">
+      <div class="stat-content">
+        <mat-icon class="stat-icon">build</mat-icon>
+        <div class="stat-info">
+          <h3>En Mantenimiento</h3>
+          <p class="stat-number">{{ stats.inMaintenance }}</p>
+          <small>en reparación/revisión</small>
+        </div>
+      </div>
+    </mat-card>
+  </div>
+
+  <!-- Tabs principales -->
+  <mat-tab-group class="vehicles-tabs">
+    <!-- Tab: Lista de Vehículos -->
+    <mat-tab>
+      <ng-template mat-tab-label>
+        <mat-icon>list</mat-icon>
+        Lista de Vehículos
+      </ng-template>
+      
+      <div class="tab-content">
+        <!-- Filtros y Acciones -->
+        <mat-card class="filters-card">
+          <mat-card-content>
+            <form [formGroup]="filterForm" class="filters-form">
+              <div class="filter-row">
+                <mat-form-field appearance="outline">
+                  <mat-label>Buscar</mat-label>
+                  <input matInput formControlName="search" 
+                    placeholder="Nombre, placa...">
+                  <mat-icon matSuffix>search</mat-icon>
+                </mat-form-field>
+
+                <mat-form-field appearance="outline">
+                  <mat-label>Estado</mat-label>
+                  <mat-select formControlName="estado">
+                    <mat-option value="">Todos</mat-option>
+                    <mat-option *ngFor="let status of statusOptions" [value]="status.value">
+                      {{ status.label }}
+                    </mat-option>
+                  </mat-select>
+                </mat-form-field>
+              </div>
+
+              <div class="actions-row">
+                <button mat-raised-button color="primary" 
+                  (click)="openVehicleForm()">
+                  <mat-icon>add</mat-icon>
+                  Registrar Vehículo
+                </button>
+                
+                <button mat-stroked-button (click)="clearFilters()">
+                  <mat-icon>clear</mat-icon>
+                  Limpiar Filtros
+                </button>
+              </div>
+            </form>
+          </mat-card-content>
+        </mat-card>
+
+        <!-- Tabla de Vehículos -->
+        <mat-card class="table-card">
+          <mat-card-content>
+            <div class="table-header">
+              <h3>Vehículos Registrados ({{ filteredVehicles.length }})</h3>
+            </div>
+
+            <div class="table-container">
+              <mat-table [dataSource]="filteredVehicles" class="vehicles-table">
+                
+                <!-- Columna Icono -->
+                <ng-container matColumnDef="foto">
+                  <mat-header-cell *matHeaderCellDef></mat-header-cell>
+                  <mat-cell *matCellDef="let vehicle">
+                    <div class="vehicle-icon">
+                      <mat-icon>directions_car</mat-icon>
+                    </div>
+                  </mat-cell>
+                </ng-container>
+
+                <!-- Columna Nombre -->
+                <ng-container matColumnDef="nombre">
+                  <mat-header-cell *matHeaderCellDef>Nombre</mat-header-cell>
+                  <mat-cell *matCellDef="let vehicle">
+                    <div class="vehicle-info">
+                      <div class="name">{{ vehicle.name }}</div>
+                    </div>
+                  </mat-cell>
+                </ng-container>
+
+                <!-- Columna Placa -->
+                <ng-container matColumnDef="placa">
+                  <mat-header-cell *matHeaderCellDef>Placa</mat-header-cell>
+                  <mat-cell *matCellDef="let vehicle">
+                    <div class="plate-badge">
+                      {{ vehicle.plate }}
+                    </div>
+                  </mat-cell>
+                </ng-container>
+
+                <!-- Columna Estado -->
+                <ng-container matColumnDef="estado">
+                  <mat-header-cell *matHeaderCellDef>Estado</mat-header-cell>
+                  <mat-cell *matCellDef="let vehicle">
+                    <mat-chip [ngClass]="'estado-' + vehicle.status" selected>
+                      {{ getStatusText(vehicle.status) }}
+                    </mat-chip>
+                  </mat-cell>
+                </ng-container>
+
+                <!-- Columna Acciones -->
+                <ng-container matColumnDef="acciones">
+                  <mat-header-cell *matHeaderCellDef>Acciones</mat-header-cell>
+                  <mat-cell *matCellDef="let vehicle">
+                    <button mat-icon-button [matMenuTriggerFor]="menu" aria-label="Acciones">
+                      <mat-icon>more_vert</mat-icon>
+                    </button>
+                    <mat-menu #menu="matMenu">
+                      <button mat-menu-item (click)="openVehicleForm(vehicle)">
+                        <mat-icon>edit</mat-icon>
+                        <span>Editar</span>
+                      </button>
+                      <button mat-menu-item (click)="deleteVehicle(vehicle)">
+                        <mat-icon>delete</mat-icon>
+                        <span>Eliminar</span>
+                      </button>
+                    </mat-menu>
+                  </mat-cell>
+                </ng-container>
+
+                <mat-header-row *matHeaderRowDef="displayedColumns"></mat-header-row>
+                <mat-row *matRowDef="let row; columns: displayedColumns;"></mat-row>
+              </mat-table>
+
+              <div *ngIf="filteredVehicles.length === 0" class="no-data">
+                <mat-icon>directions_car</mat-icon>
+                <h3>No se encontraron vehículos</h3>
+                <p>No hay vehículos que coincidan con los filtros aplicados.</p>
+              </div>
+            </div>
+          </mat-card-content>
+        </mat-card>
+      </div>
+    </mat-tab>
+  </mat-tab-group>
+</div> 

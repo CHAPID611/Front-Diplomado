@@ -51,40 +51,32 @@ export class EmergencyService {
     if (!emergency.informant || !emergency.ubication || !emergency.emergencyTypeId) {
       return throwError(() => new Error('Faltan datos requeridos: informant, ubication, o emergencyTypeId'));
     }
-    
-    const formData = new FormData();
-    
-    // Agregar los datos de la emergencia
-    Object.keys(emergency).forEach(key => {
-      const value = emergency[key as keyof Emergency];
-      if (value !== undefined && value !== null) {
-        try {
-          if (key === 'novedades' && Array.isArray(value)) {
-            formData.append(key, JSON.stringify(value));
-          } else {
-            formData.append(key, value.toString());
-          }
-          console.log(`FormData agregado - ${key}:`, value);
-        } catch (error) {
-          console.error(`Error agregando ${key} a FormData:`, error, 'Valor:', value);
-        }
-      } else {
-        console.warn(`Campo ${key} es undefined o null, se omite`);
-      }
-    });
 
-    // Agregar archivos si existen
+    // Si hay archivos, usar FormData
     if (files && files.length > 0) {
+      const formData = new FormData();
+      
+      // Convertir el objeto emergency a un string JSON para mantener los tipos de datos
+      formData.append('data', JSON.stringify(emergency));
+      
+      // Agregar archivos
       files.forEach((emergencyFile, index) => {
         formData.append('file', emergencyFile.file);
         if (emergencyFile.description) {
           formData.append(`fileDescription_${index}`, emergencyFile.description);
         }
       });
+
+      return this.http.post(`${this.apiUrl}/emergencias`, formData, {
+        headers: this.getFormDataHeaders()
+      }).pipe(
+        catchError(this.handleError)
+      );
     }
 
-    return this.http.post(`${this.apiUrl}/emergencias`, formData, {
-      headers: this.getFormDataHeaders()
+    // Si no hay archivos, enviar como JSON normal
+    return this.http.post(`${this.apiUrl}/emergencias`, emergency, {
+      headers: this.getHeaders()
     }).pipe(
       catchError(this.handleError)
     );
@@ -153,7 +145,7 @@ export class EmergencyService {
       emergencyTypeId: formData.tipoEmergencia,
       emergencyDate: this.formatDateToISO(formData.fechaEmergencia),
       informant: formData.quienInforma,
-      vehicle: formData.vehiculo,
+      vehicleIds: Array.isArray(formData.vehiculo) ? formData.vehiculo.map(Number) : [Number(formData.vehiculo)],
       ubication: formData.ubicacion,
       turn: formData.turno,
       reportTime: this.formatDateTimeToISO(formData.fechaEmergencia, formData.horaReporte),
