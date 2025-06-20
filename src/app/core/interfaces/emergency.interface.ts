@@ -19,6 +19,7 @@ export interface Emergency {
   returnEstationTime: string; // ISO string
   returnEstationTimeDescription: string;
   unitsResponse: string;
+  personnelIds?: number[];
   guardPersonnel: string;
   novedades?: CreateNovelty[];
   // Eventos adicionales para cronología completa

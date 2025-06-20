@@ -58,4 +58,20 @@ export interface PersonalStats {
   promedioExperiencia: number;
   distribucuionPorCargo: { [cargo: string]: number };
   cualidadesMasComunes: { cualidad: string; cantidad: number }[];
+}
+
+export interface PersonalDisponible {
+  id: string | number;
+  personalId: number;
+  nombre: string;
+  nombreCompleto: string;
+  rango: string;
+  rangoId: number;
+  estado: string;
+  email: string;
+  telefono: string;
+  experiencia: number;
+  activo: boolean;
+  // Para compatibilidad hacia atrás
+  cargo?: string;
 } 

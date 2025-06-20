@@ -2,7 +2,8 @@ import { Injectable } from '@angular/core';
 import { Observable, of } from 'rxjs';
 import { map } from 'rxjs/operators';
 import { TipoEmergencia } from '../interfaces/emergency.interface';
-import { PersonalDisponible, VehiculoDisponible } from './emergency-data.service';
+import { PersonalDisponible } from '../interfaces/personal.interface';
+import { VehiculoDisponible } from './emergency-data.service';
 import { EmergencyService } from './emergency-report.service';
 import { EmergencyDataService } from './emergency-data.service';
 
