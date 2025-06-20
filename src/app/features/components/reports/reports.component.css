@@ -617,4 +617,97 @@
 @keyframes spin {
   0% { transform: rotate(0deg); }
   100% { transform: rotate(360deg); }
+}
+
+/* Estilos para el indicador de carga */
+.loading-section {
+  margin: 20px 0;
+}
+
+.loading-card {
+  background: linear-gradient(135deg, #f5f5f5 0%, #e0e0e0 100%);
+  border-radius: 12px;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+  border: 1px solid #e0e0e0;
+}
+
+.loading-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 40px;
+  text-align: center;
+}
+
+.loading-content mat-spinner {
+  margin-bottom: 20px;
+}
+
+.loading-content p {
+  margin: 0;
+  font-size: 16px;
+  color: #666;
+  font-weight: 500;
+}
+
+/* Estilos para edición del tiempo objetivo */
+.target-time-editable h4 {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.edit-btn {
+  width: 32px;
+  height: 32px;
+  opacity: 0.7;
+  transition: opacity 0.3s ease;
+}
+
+.edit-btn:hover {
+  opacity: 1;
+}
+
+.edit-mode {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.target-input {
+  width: 120px;
+}
+
+.target-input input {
+  text-align: center;
+  font-weight: 600;
+  font-size: 1.1rem;
+}
+
+.edit-actions {
+  display: flex;
+  gap: 5px;
+  justify-content: center;
+}
+
+.edit-actions button {
+  width: 36px;
+  height: 36px;
+}
+
+.edit-actions .spinner {
+  animation: spin 2s linear infinite;
+}
+
+/* Responsive para edición */
+@media (max-width: 768px) {
+  .target-input {
+    width: 100px;
+  }
+  
+  .edit-actions button {
+    width: 32px;
+    height: 32px;
+  }
 } 
