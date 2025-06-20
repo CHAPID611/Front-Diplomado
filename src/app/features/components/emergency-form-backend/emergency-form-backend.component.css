@@ -894,20 +894,15 @@
 
 /* Estilos para campos de hora - formato 24 horas */
 input[type="time"] {
-  /* Forzar formato 24 horas */
   -webkit-appearance: none;
   -moz-appearance: textfield;
   appearance: none;
-  
-  /* Asegurar que se muestre en formato 24h */
-  format: "24h";
   
   /* Estilos visuales */
   font-family: 'Roboto Mono', monospace;
   font-weight: 500;
   letter-spacing: 1px;
   
-  /* Cursor pointer para indicar que es clickeable */
   cursor: pointer;
 }
 
