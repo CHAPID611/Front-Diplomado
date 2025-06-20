@@ -25,7 +25,6 @@ export interface EmergencyTypeStats {
 export interface MonthlyStats {
   month: string;
   emergencies: number;
-  resolved: number;
   avgResponseTime: number;
 }
 
@@ -301,24 +300,17 @@ export class PdfReportService {
                     <tr>
                         <th>Mes</th>
                         <th>Total Emergencias</th>
-                        <th>Resueltas</th>
                         <th>Tiempo Promedio</th>
-                        <th>Eficiencia</th>
                     </tr>
                 </thead>
                 <tbody>
-                    ${monthlyStats.map(stat => {
-                        const efficiency = ((stat.resolved / stat.emergencies) * 100).toFixed(1);
-                        return `
+                    ${monthlyStats.map(stat => `
                         <tr>
                             <td>${stat.month}</td>
                             <td><span class="metric-badge">${stat.emergencies}</span></td>
-                            <td><span class="metric-badge badge-success">${stat.resolved}</span></td>
                             <td><span class="metric-badge badge-warning">${stat.avgResponseTime} min</span></td>
-                            <td><span class="metric-badge">${efficiency}%</span></td>
                         </tr>
-                        `;
-                    }).join('')}
+                    `).join('')}
                 </tbody>
             </table>
         </div>

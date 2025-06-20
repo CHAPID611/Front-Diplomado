@@ -21,27 +21,29 @@
           <mat-form-field appearance="outline">
             <mat-label>Período</mat-label>
             <mat-select formControlName="period">
-              <mat-option value="7days">Últimos 7 días</mat-option>
-              <mat-option value="30days">Últimos 30 días</mat-option>
-              <mat-option value="3months">Últimos 3 meses</mat-option>
-              <mat-option value="year">Último año</mat-option>
-              <mat-option value="custom">Período personalizado</mat-option>
+              <mat-option value="LAST_WEEK">Última semana</mat-option>
+              <mat-option value="LAST_MONTH">Último mes</mat-option>
+              <mat-option value="LAST_3_MONTHS">Últimos 3 meses</mat-option>
+              <mat-option value="LAST_YEAR">Último año</mat-option>
+              <mat-option value="CUSTOM">Período personalizado</mat-option>
             </mat-select>
           </mat-form-field>
 
-          <mat-form-field appearance="outline" *ngIf="filtersForm.get('period')?.value === 'custom'">
+          <mat-form-field appearance="outline" *ngIf="filtersForm.get('period')?.value === 'CUSTOM'">
             <mat-label>Fecha inicio</mat-label>
             <input matInput [matDatepicker]="startPicker" formControlName="startDate" placeholder="Seleccionar fecha de inicio">
             <mat-datepicker-toggle matIconSuffix [for]="startPicker"></mat-datepicker-toggle>
             <mat-datepicker #startPicker></mat-datepicker>
           </mat-form-field>
 
-          <mat-form-field appearance="outline" *ngIf="filtersForm.get('period')?.value === 'custom'">
+          <mat-form-field appearance="outline" *ngIf="filtersForm.get('period')?.value === 'CUSTOM'">
             <mat-label>Fecha fin</mat-label>
             <input matInput [matDatepicker]="endPicker" formControlName="endDate" placeholder="Seleccionar fecha de fin">
             <mat-datepicker-toggle matIconSuffix [for]="endPicker"></mat-datepicker-toggle>
             <mat-datepicker #endPicker></mat-datepicker>
           </mat-form-field>
+
+          <!-- Tiempo objetivo removido - ahora se configura desde el panel de administración -->
 
           <mat-form-field appearance="outline">
             <mat-label>Tipo de emergencia</mat-label>
@@ -62,8 +64,20 @@
     </mat-card-content>
   </mat-card>
 
+  <!-- Indicador de carga -->
+  <div *ngIf="isLoadingData" class="loading-section">
+    <mat-card class="loading-card">
+      <mat-card-content>
+        <div class="loading-content">
+          <mat-spinner diameter="40"></mat-spinner>
+          <p>Cargando estadísticas desde el backend...</p>
+        </div>
+      </mat-card-content>
+    </mat-card>
+  </div>
+
   <!-- Resumen ejecutivo -->
-  <div class="summary-stats">
+  <div class="summary-stats" *ngIf="!isLoadingData">
     <mat-card class="stat-card primary">
       <div class="stat-content">
         <mat-icon class="stat-icon">local_fire_department</mat-icon>
@@ -110,7 +124,7 @@
   </div>
 
   <!-- Tabs para diferentes reportes -->
-  <mat-tab-group class="reports-tabs">
+  <mat-tab-group class="reports-tabs" *ngIf="!isLoadingData">
     <mat-tab>
       <ng-template mat-tab-label>
         <mat-icon style="margin-right: 8px;">bar_chart</mat-icon>
@@ -174,29 +188,10 @@
                 </mat-cell>
               </ng-container>
 
-              <ng-container matColumnDef="resolved">
-                <mat-header-cell *matHeaderCellDef>Resueltas</mat-header-cell>
-                <mat-cell *matCellDef="let element">
-                  <span class="metric-badge success">{{ element.resolved }}</span>
-                </mat-cell>
-              </ng-container>
-
               <ng-container matColumnDef="avgResponseTime">
                 <mat-header-cell *matHeaderCellDef>Tiempo Promedio</mat-header-cell>
                 <mat-cell *matCellDef="let element">
                   <span class="metric-badge warning">{{ element.avgResponseTime }}min</span>
-                </mat-cell>
-              </ng-container>
-
-              <ng-container matColumnDef="efficiency">
-                <mat-header-cell *matHeaderCellDef>Eficiencia</mat-header-cell>
-                <mat-cell *matCellDef="let element">
-                  <div class="efficiency-indicator">
-                    <div class="efficiency-bar">
-                      <div class="efficiency-fill" [style.width.%]="(element.resolved / element.emergencies) * 100"></div>
-                    </div>
-                    <span>{{ ((element.resolved / element.emergencies) * 100).toFixed(1) }}%</span>
-                  </div>
                 </mat-cell>
               </ng-container>
 
@@ -221,20 +216,64 @@
           </mat-card-header>
           <mat-card-content>
             <div class="time-analysis-grid">
-              <div class="time-metric">
+              <div class="time-metric target-time-editable">
                 <h4>
                   <mat-icon style="font-size: 16px; vertical-align: middle; margin-right: 4px;">gps_fixed</mat-icon>
                   Tiempo Objetivo
+                  <button *ngIf="isAdmin && !isEditingTargetTime" 
+                          mat-icon-button 
+                          class="edit-btn"
+                          (click)="startEditTargetTime()"
+                          matTooltip="Editar tiempo objetivo">
+                    <mat-icon>edit</mat-icon>
+                  </button>
                 </h4>
-                <p class="time-value target">≤ 8min</p>
-                <small>Meta institucional</small>
+                
+                <!-- Modo visualización -->
+                <div *ngIf="!isEditingTargetTime">
+                  <p class="time-value target">
+                    {{ timeAnalysisData.targetTime ? '≤ ' + timeAnalysisData.targetTime + 'min' : 'No establecido' }}
+                  </p>
+                  <small>Meta institucional</small>
+                </div>
+
+                <!-- Modo edición -->
+                <div *ngIf="isEditingTargetTime" class="edit-mode">
+                  <mat-form-field appearance="outline" class="target-input">
+                    <input matInput 
+                           type="number" 
+                           [(ngModel)]="newTargetTime"
+                           placeholder="15"
+                           min="1" 
+                           max="120">
+                    <span matSuffix>min</span>
+                  </mat-form-field>
+                  
+                  <div class="edit-actions">
+                    <button mat-icon-button 
+                            color="primary"
+                            [disabled]="isSavingTargetTime"
+                            (click)="saveTargetTime()"
+                            matTooltip="Guardar">
+                      <mat-icon *ngIf="!isSavingTargetTime">check</mat-icon>
+                      <mat-icon *ngIf="isSavingTargetTime" class="spinner">refresh</mat-icon>
+                    </button>
+                    <button mat-icon-button 
+                            [disabled]="isSavingTargetTime"
+                            (click)="cancelEditTargetTime()"
+                            matTooltip="Cancelar">
+                      <mat-icon>close</mat-icon>
+                    </button>
+                  </div>
+                  <small>Entre 1 y 120 minutos</small>
+                </div>
               </div>
               <div class="time-metric">
                 <h4>
                   <mat-icon style="font-size: 16px; vertical-align: middle; margin-right: 4px;">flash_on</mat-icon>
                   Tiempo Mínimo
                 </h4>
-                <p class="time-value best">3.2min</p>
+                <p class="time-value best">{{ timeAnalysisData.minTime }}min</p>
                 <small>Mejor registro</small>
               </div>
               <div class="time-metric">
@@ -242,7 +281,7 @@
                   <mat-icon style="font-size: 16px; vertical-align: middle; margin-right: 4px;">analytics</mat-icon>
                   Tiempo Promedio
                 </h4>
-                <p class="time-value average">{{ reportData.responseTime }}min</p>
+                <p class="time-value average">{{ timeAnalysisData.averageTime }}min</p>
                 <small>Promedio general</small>
               </div>
               <div class="time-metric">
@@ -250,7 +289,7 @@
                   <mat-icon style="font-size: 16px; vertical-align: middle; margin-right: 4px;">warning</mat-icon>
                   Tiempo Máximo
                 </h4>
-                <p class="time-value worst">23.5min</p>
+                <p class="time-value worst">{{ timeAnalysisData.maxTime }}min</p>
                 <small>Caso más largo</small>
               </div>
             </div>
@@ -266,16 +305,18 @@
                 <div class="indicator">
                   <span class="indicator-label">Respuestas dentro del objetivo:</span>
                   <div class="indicator-bar">
-                    <div class="indicator-fill success" style="width: 73%"></div>
-                    <span class="indicator-text">73%</span>
+                    <div class="indicator-fill success" [style.width.%]="timeAnalysisData.emergenciesWithinTargetPercentage"></div>
+                    <span class="indicator-text">{{ timeAnalysisData.emergenciesWithinTargetPercentage }}%</span>
                   </div>
+                  <small>{{ timeAnalysisData.emergenciesWithinTarget }} de {{ timeAnalysisData.emergenciesWithinTarget + timeAnalysisData.emergenciesOverTarget }} emergencias</small>
                 </div>
                 <div class="indicator">
-                  <span class="indicator-label">Mejora vs. mes anterior:</span>
+                  <span class="indicator-label">Respuestas fuera del objetivo:</span>
                   <div class="indicator-bar">
-                    <div class="indicator-fill info" style="width: 15%"></div>
-                    <span class="indicator-text">+15%</span>
+                    <div class="indicator-fill warning" [style.width.%]="timeAnalysisData.emergenciesOverTargetPercentage"></div>
+                    <span class="indicator-text">{{ timeAnalysisData.emergenciesOverTargetPercentage }}%</span>
                   </div>
+                  <small>{{ timeAnalysisData.emergenciesOverTarget }} emergencias tardaron más de {{ timeAnalysisData.targetTime }} minutos</small>
                 </div>
               </div>
             </div>
