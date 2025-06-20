@@ -23,7 +23,6 @@ import { MatNativeDateModule } from '@angular/material/core';
 
 // Components
 import { DashboardComponent } from './components/dashboard/dashboard.component';
-import { EmergenciasContainerComponent } from './components/emergencias-container/emergencias-container.component';
 import { EmergencyFormBackendComponent } from './components/emergency-form-backend/emergency-form-backend.component';
 import { PersonalComponent } from './components/personal/personal.component';
 import { PersonalFormComponent } from './components/personal/personal-form/personal-form.component';
@@ -36,7 +35,6 @@ import { VehicleFormComponent } from './components/vehicles/vehicle-form/vehicle
 @NgModule({
   declarations: [
     DashboardComponent,
-    EmergenciasContainerComponent,
     EmergencyFormBackendComponent,
     PersonalComponent,
     PersonalFormComponent,
@@ -69,7 +67,6 @@ import { VehicleFormComponent } from './components/vehicles/vehicle-form/vehicle
   ],
   exports: [
     DashboardComponent,
-    EmergenciasContainerComponent,
     EmergencyFormBackendComponent,
     PersonalComponent,
     ReportsComponent,

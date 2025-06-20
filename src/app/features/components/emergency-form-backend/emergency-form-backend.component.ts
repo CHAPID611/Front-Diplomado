@@ -20,7 +20,8 @@ import { Router } from '@angular/router';
 
 import { EmergencyService } from '../../../core/services/emergency-report.service';
 import { EmergencyReportLegacyService } from '../../../core/services/emergency-report-legacy.service';
-import { PersonalDisponible } from '../../../core/services/emergency-data.service';
+import { EmergencyDataService } from '../../../core/services/emergency-data.service';
+import { PersonalDisponible } from '../../../core/interfaces/personal.interface';
 import { Emergency, EmergencyType, EmergencyFile, TipoEmergencia } from '../../../core/interfaces/emergency.interface';
 import { AuthService } from '../../../core/services/auth.service';
 import { VehiclesService, Vehicle } from '../../../core/services/vehicles.service';
@@ -97,11 +98,18 @@ export class EmergencyFormBackendComponent implements OnInit, OnDestroy {
 
   // Variables para sistema de pestañas con estado independiente
   private autoSaveTimeout: any;
+  
+  // Personal ocupado globalmente como Unidades de Respuesta
+  private globalOccupiedUnits: Set<number> = new Set();
+  
+  // Vehículos ocupados globalmente en todas las emergencias
+  private globalOccupiedVehicles: Set<number> = new Set();
 
   constructor(
     private fb: FormBuilder,
     private emergencyService: EmergencyService,
     private emergencyReportLegacyService: EmergencyReportLegacyService,
+    private emergencyDataService: EmergencyDataService,
     private authService: AuthService,
     private vehiclesService: VehiclesService,
     private snackBar: MatSnackBar,
@@ -116,6 +124,19 @@ export class EmergencyFormBackendComponent implements OnInit, OnDestroy {
     this.loadEmergencyTypes();
     this.loadFormData();
     this.loadAvailableVehicles();
+    this.loadAvailablePersonnel();
+    
+    // Agregar listener para cambios en la selección de vehículos después de que se cree el formulario
+    setTimeout(() => {
+      if (this.emergencyForm.get('vehiculo')) {
+        this.emergencyForm.get('vehiculo')?.valueChanges.subscribe(selectedIds => {
+          if (selectedIds && selectedIds.length > 0) {
+            // Evitar recursión infinita cuando se actualiza programáticamente
+            setTimeout(() => this.onVehicleSelectionChange(selectedIds), 0);
+          }
+        });
+      }
+    }, 100);
   }
 
   loadAvailableVehicles(): void {
@@ -127,6 +148,19 @@ export class EmergencyFormBackendComponent implements OnInit, OnDestroy {
       error: (error) => {
         console.error('Error al cargar vehículos:', error);
         this.snackBar.open('Error al cargar vehículos disponibles', 'Cerrar', { duration: 3000 });
+      }
+    });
+  }
+
+  loadAvailablePersonnel(): void {
+    this.emergencyDataService.getPersonalDisponible().subscribe({
+      next: (personnel) => {
+        this.personalDisponible = personnel;
+        console.log('Personal disponible cargado:', this.personalDisponible);
+      },
+      error: (error) => {
+        console.error('Error al cargar personal:', error);
+        this.snackBar.open('Error al cargar personal disponible', 'Cerrar', { duration: 3000 });
       }
     });
   }
@@ -338,46 +372,254 @@ export class EmergencyFormBackendComponent implements OnInit, OnDestroy {
   getUnidadesSeleccionadas(): string {
     const unidades = this.emergencyForm.get('unidades')?.value;
     if (Array.isArray(unidades) && unidades.length > 0) {
-      return unidades.join(', ');
+      return unidades.map((id: number) => {
+        const person = this.personalDisponible.find(p => p.personalId === id);
+        return person ? `${person.rango} ${person.nombre}` : `ID: ${id}`;
+      }).join(', ');
     }
     return 'Ninguna seleccionada';
   }
 
   getGuardiaSeleccionada(): string {
     const guardia = this.emergencyForm.get('guardia')?.value || [];
-    return guardia.length > 0 ? guardia.join(', ') : 'Ninguna seleccionada';
+    if (guardia.length === 0) return 'Ninguna seleccionada';
+    
+    return guardia.map((id: number) => {
+      const person = this.personalDisponible.find(p => p.personalId === id);
+      return person ? `${person.rango} ${person.nombre}` : `ID: ${id}`;
+    }).join(', ');
   }
 
-  isUnidadSelected(nombre: string): boolean {
+  formatSelectedPersonnelNames(guardiaIds: number[] | number | string): string {
+    if (!guardiaIds) return '';
+    
+    const ids = Array.isArray(guardiaIds) ? guardiaIds : [guardiaIds];
+    return ids.map(id => {
+      const person = this.personalDisponible.find(p => p.personalId === Number(id));
+      return person ? `${person.rango} ${person.nombre}` : `ID: ${id}`;
+    }).join(', ');
+  }
+
+  // Métodos para gestión global de personal ocupado
+
+  /**
+   * Actualiza el estado global de personal ocupado como Unidades de Respuesta
+   */
+  private updateGlobalOccupiedUnits(): void {
+    this.globalOccupiedUnits.clear();
+    
+    // Recorrer todos los formularios y recopilar las unidades ocupadas
+    this.formularios.forEach((form, index) => {
+      if (form.formData && form.formData.unidades) {
+        const unidades = Array.isArray(form.formData.unidades) ? form.formData.unidades : [];
+        unidades.forEach((id: number) => this.globalOccupiedUnits.add(id));
+      }
+    });
+    
+    // También incluir las unidades del formulario actual si no está guardado aún
+    const currentUnidades = this.emergencyForm.get('unidades')?.value || [];
+    currentUnidades.forEach((id: number) => this.globalOccupiedUnits.add(id));
+  }
+
+  /**
+   * Verifica si una persona está ocupada como Unidad de Respuesta en otro formulario
+   */
+  isPersonOccupiedInOtherForm(personalId: number): boolean {
+    // Actualizar el estado global
+    this.updateGlobalOccupiedUnits();
+    
+    // Verificar si está ocupado en otro formulario (no en el actual)
+    const currentFormUnidades = this.emergencyForm.get('unidades')?.value || [];
+    
+    // Si está en el set global pero NO en el formulario actual, está ocupado en otro formulario
+    return this.globalOccupiedUnits.has(personalId) && !currentFormUnidades.includes(personalId);
+  }
+
+  /**
+   * Obtiene el número del formulario donde está ocupada una persona
+   */
+  getFormNumberWherePersonIsOccupied(personalId: number): number | null {
+    for (let i = 0; i < this.formularios.length; i++) {
+      const form = this.formularios[i];
+      if (form.formData && form.formData.unidades) {
+        const unidades = Array.isArray(form.formData.unidades) ? form.formData.unidades : [];
+        if (unidades.includes(personalId) && i !== this.selectedIndex) {
+          return i + 1; // +1 porque los formularios se muestran desde 1
+        }
+      }
+    }
+    return null;
+  }
+
+  // Métodos para gestión global de vehículos ocupados
+
+  /**
+   * Actualiza el estado global de vehículos ocupados
+   */
+  private updateGlobalOccupiedVehicles(): void {
+    this.globalOccupiedVehicles.clear();
+    
+    // Recorrer todos los formularios y recopilar los vehículos ocupados
+    this.formularios.forEach((form, index) => {
+      if (form.formData && form.formData.vehiculo) {
+        const vehiculos = Array.isArray(form.formData.vehiculo) ? form.formData.vehiculo : [form.formData.vehiculo];
+        vehiculos.forEach((id: number) => this.globalOccupiedVehicles.add(id));
+      }
+    });
+    
+    // También incluir los vehículos del formulario actual si no está guardado aún
+    const currentVehiculos = this.emergencyForm.get('vehiculo')?.value || [];
+    const vehiculosArray = Array.isArray(currentVehiculos) ? currentVehiculos : [currentVehiculos];
+    vehiculosArray.forEach((id: number) => this.globalOccupiedVehicles.add(id));
+  }
+
+  /**
+   * Verifica si un vehículo está ocupado en otro formulario
+   */
+  isVehicleOccupiedInOtherForm(vehicleId: number): boolean {
+    // Actualizar el estado global
+    this.updateGlobalOccupiedVehicles();
+    
+    // Verificar si está ocupado en otro formulario (no en el actual)
+    const currentFormVehiculos = this.emergencyForm.get('vehiculo')?.value || [];
+    const vehiculosArray = Array.isArray(currentFormVehiculos) ? currentFormVehiculos : [currentFormVehiculos];
+    
+    // Si está en el set global pero NO en el formulario actual, está ocupado en otro formulario
+    return this.globalOccupiedVehicles.has(vehicleId) && !vehiculosArray.includes(vehicleId);
+  }
+
+  /**
+   * Obtiene el número del formulario donde está ocupado un vehículo
+   */
+  getFormNumberWhereVehicleIsOccupied(vehicleId: number): number | null {
+    for (let i = 0; i < this.formularios.length; i++) {
+      const form = this.formularios[i];
+      if (form.formData && form.formData.vehiculo) {
+        const vehiculos = Array.isArray(form.formData.vehiculo) ? form.formData.vehiculo : [form.formData.vehiculo];
+        if (vehiculos.includes(vehicleId) && i !== this.selectedIndex) {
+          return i + 1; // +1 porque los formularios se muestran desde 1
+        }
+      }
+    }
+    return null;
+  }
+
+  isUnidadSelected(personalId: number): boolean {
     const unidades = this.emergencyForm.get('unidades')?.value || [];
-    return unidades.includes(nombre);
+    return unidades.includes(personalId);
   }
 
-  isGuardiaSelected(nombre: string): boolean {
+  isGuardiaSelected(personalId: number): boolean {
     const guardia = this.emergencyForm.get('guardia')?.value || [];
-    return guardia.includes(nombre);
+    return guardia.includes(personalId);
   }
 
-  onUnidadChange(event: any, nombre: string): void {
+  // Métodos para verificar estado de vehículos
+  isVehicleSelected(vehicleId: number): boolean {
+    const vehiculos = this.emergencyForm.get('vehiculo')?.value || [];
+    const vehiculosArray = Array.isArray(vehiculos) ? vehiculos : [vehiculos];
+    return vehiculosArray.includes(vehicleId);
+  }
+
+  private isUpdatingVehicles = false; // Bandera para evitar recursión
+
+  onVehicleSelectionChange(selectedIds: number[]): void {
+    if (this.isUpdatingVehicles) return; // Evitar recursión
+    
+    // Verificar si algún vehículo está ocupado en otro formulario
+    const occupiedVehicles = selectedIds.filter(id => this.isVehicleOccupiedInOtherForm(id));
+    
+    if (occupiedVehicles.length > 0) {
+      this.isUpdatingVehicles = true; // Establecer bandera
+      
+      // Remover vehículos ocupados de la selección
+      const availableVehicles = selectedIds.filter(id => !this.isVehicleOccupiedInOtherForm(id));
+      
+      // Actualizar el formulario con solo los vehículos disponibles
+      this.emergencyForm.get('vehiculo')?.setValue(availableVehicles, { emitEvent: false });
+      
+      // Mostrar mensaje de error para cada vehículo ocupado
+      occupiedVehicles.forEach(vehicleId => {
+        const vehicle = this.availableVehicles.find(v => v.vehicleId === vehicleId);
+        const formNumber = this.getFormNumberWhereVehicleIsOccupied(vehicleId);
+        this.snackBar.open(
+          `El vehículo "${vehicle?.name || 'ID: ' + vehicleId}" ya está asignado a la Emergencia #${formNumber}`, 
+          'Cerrar', 
+          { duration: 4000 }
+        );
+      });
+      
+      this.isUpdatingVehicles = false; // Limpiar bandera
+    }
+    
+    // Actualizar estado global después del cambio
+    this.updateGlobalOccupiedVehicles();
+  }
+
+  onUnidadChange(event: any, personalId: number): void {
     const unidades = this.emergencyForm.get('unidades')?.value || [];
+    const guardia = this.emergencyForm.get('guardia')?.value || [];
+    
     if (event.checked) {
-      unidades.push(nombre);
+      // Verificar que no esté ya en guardia del mismo formulario
+      if (guardia.includes(personalId)) {
+        this.snackBar.open('Esta persona ya está seleccionada como Personal de Guardia en este formulario', 'Cerrar', { duration: 3000 });
+        return;
+      }
+      
+      // Verificar que no esté ocupado en otro formulario como Unidad de Respuesta
+      if (this.isPersonOccupiedInOtherForm(personalId)) {
+        const formNumber = this.getFormNumberWherePersonIsOccupied(personalId);
+        this.snackBar.open(
+          `Esta persona ya está asignada como Unidad de Respuesta en la Emergencia #${formNumber}`, 
+          'Cerrar', 
+          { duration: 4000 }
+        );
+        return;
+      }
+      
+      unidades.push(personalId);
     } else {
-      const index = unidades.indexOf(nombre);
+      const index = unidades.indexOf(personalId);
       if (index > -1) {
         unidades.splice(index, 1);
       }
     }
     this.emergencyForm.get('unidades')?.setValue(unidades);
     this.emergencyForm.get('unidades')?.markAsTouched();
+    
+    // Actualizar estado global después del cambio
+    this.updateGlobalOccupiedUnits();
+    this.updateGlobalOccupiedVehicles();
   }
 
-  onGuardiaChange(event: any, nombre: string): void {
+  onGuardiaChange(event: any, personalId: number): void {
     const guardia = this.emergencyForm.get('guardia')?.value || [];
+    const unidades = this.emergencyForm.get('unidades')?.value || [];
+    
     if (event.checked) {
-      guardia.push(nombre);
+      // Verificar que no esté ya en unidades del mismo formulario
+      if (unidades.includes(personalId)) {
+        this.snackBar.open('Esta persona ya está seleccionada como Unidad de Respuesta en este formulario', 'Cerrar', { duration: 3000 });
+        return;
+      }
+      
+      // Verificar que no esté ocupado en otro formulario como Unidad de Respuesta
+      if (this.isPersonOccupiedInOtherForm(personalId)) {
+        const formNumber = this.getFormNumberWherePersonIsOccupied(personalId);
+        this.snackBar.open(
+          `Esta persona ya está asignada como Unidad de Respuesta en la Emergencia #${formNumber}. No puede ser Personal de Guardia mientras esté en campo.`, 
+          'Cerrar', 
+          { duration: 5000 }
+        );
+        return;
+      }
+      
+      // El personal de guardia SÍ puede estar en múltiples formularios
+      // ya que coordina desde la estación
+      guardia.push(personalId);
     } else {
-      const index = guardia.indexOf(nombre);
+      const index = guardia.indexOf(personalId);
       if (index > -1) {
         guardia.splice(index, 1);
       }
@@ -475,8 +717,9 @@ export class EmergencyFormBackendComponent implements OnInit, OnDestroy {
       arrivalHospitalTimeDescription: formValues.horaLlegadaHospitalDescripcion || '',
       returnEstationTime: this.formatDateTimeForBackend(formValues.fechaReporte || new Date(), formValues.horaRegresoEstacion || '00:00'),
       returnEstationTimeDescription: formValues.horaRegresoEstacionDescripcion || '',
-      unitsResponse: Array.isArray(formValues.unidades) ? formValues.unidades.join(', ') : (formValues.unidades || ''),
-      guardPersonnel: Array.isArray(formValues.guardia) ? formValues.guardia.join(', ') : (formValues.guardia || ''),
+      unitsResponse: this.formatSelectedPersonnelNames(formValues.unidades),
+      personnelIds: Array.isArray(formValues.guardia) ? formValues.guardia : (formValues.guardia ? [formValues.guardia] : []),
+      guardPersonnel: this.formatSelectedPersonnelNames(formValues.guardia),
       // Agregar eventos adicionales
       eventosAdicionalesSalida: formValues.eventosAdicionalesSalida || [],
       eventosAdicionalesLlegadaEscena: formValues.eventosAdicionalesLlegadaEscena || [],
@@ -610,6 +853,9 @@ export class EmergencyFormBackendComponent implements OnInit, OnDestroy {
     // Cambiar a la nueva pestaña
     setTimeout(() => {
       this.selectedIndex = this.formularios.length - 1;
+      // Actualizar estado global de personal ocupado y vehículos
+      this.updateGlobalOccupiedUnits();
+      this.updateGlobalOccupiedVehicles();
     });
   }
 
@@ -756,6 +1002,10 @@ export class EmergencyFormBackendComponent implements OnInit, OnDestroy {
     
     // Restaurar el estado del formulario de la nueva pestaña
     this.restoreFormState(newIndex);
+    
+    // Actualizar estado global de personal ocupado y vehículos
+    this.updateGlobalOccupiedUnits();
+    this.updateGlobalOccupiedVehicles();
   }
 
   // Nuevo método para manejar el cambio de pestañas desde el template
@@ -770,6 +1020,10 @@ export class EmergencyFormBackendComponent implements OnInit, OnDestroy {
       
       // Restaurar estado del nuevo formulario
       this.restoreFormState(newIndex);
+      
+      // Actualizar estado global de personal ocupado y vehículos
+      this.updateGlobalOccupiedUnits();
+      this.updateGlobalOccupiedVehicles();
     }
   }
 
