@@ -21,22 +21,22 @@
           <mat-form-field appearance="outline">
             <mat-label>Período</mat-label>
             <mat-select formControlName="period">
-              <mat-option value="LAST_WEEK">Última semana</mat-option>
-              <mat-option value="LAST_MONTH">Último mes</mat-option>
-              <mat-option value="LAST_3_MONTHS">Últimos 3 meses</mat-option>
-              <mat-option value="LAST_YEAR">Último año</mat-option>
-              <mat-option value="CUSTOM">Período personalizado</mat-option>
+              <mat-option value="last_7_days">Última semana</mat-option>
+              <mat-option value="last_month">Último mes</mat-option>
+              <mat-option value="last_3_months">Últimos 3 meses</mat-option>
+              <mat-option value="last_year">Último año</mat-option>
+              <mat-option value="custom">Período personalizado</mat-option>
             </mat-select>
           </mat-form-field>
 
-          <mat-form-field appearance="outline" *ngIf="filtersForm.get('period')?.value === 'CUSTOM'">
+          <mat-form-field appearance="outline" *ngIf="filtersForm.get('period')?.value === 'custom'">
             <mat-label>Fecha inicio</mat-label>
             <input matInput [matDatepicker]="startPicker" formControlName="startDate" placeholder="Seleccionar fecha de inicio">
             <mat-datepicker-toggle matIconSuffix [for]="startPicker"></mat-datepicker-toggle>
             <mat-datepicker #startPicker></mat-datepicker>
           </mat-form-field>
 
-          <mat-form-field appearance="outline" *ngIf="filtersForm.get('period')?.value === 'CUSTOM'">
+          <mat-form-field appearance="outline" *ngIf="filtersForm.get('period')?.value === 'custom'">
             <mat-label>Fecha fin</mat-label>
             <input matInput [matDatepicker]="endPicker" formControlName="endDate" placeholder="Seleccionar fecha de fin">
             <mat-datepicker-toggle matIconSuffix [for]="endPicker"></mat-datepicker-toggle>
@@ -70,7 +70,7 @@
       <mat-card-content>
         <div class="loading-content">
           <mat-spinner diameter="40"></mat-spinner>
-          <p>Cargando estadísticas desde el backend...</p>
+          <p>Cargando estadísticas...</p>
         </div>
       </mat-card-content>
     </mat-card>
@@ -122,6 +122,84 @@
       </div>
     </mat-card>
   </div>
+
+  <!-- Lista de Emergencias -->
+  <mat-card class="emergencies-list-card" *ngIf="!isLoadingData">
+    <mat-card-header>
+      <mat-card-title>
+        <mat-icon style="vertical-align: middle; margin-right: 8px;">list_alt</mat-icon>
+        Emergencias Encontradas
+      </mat-card-title>
+      <mat-card-subtitle>Lista de emergencias según los filtros aplicados</mat-card-subtitle>
+    </mat-card-header>
+    <mat-card-content>
+      <!-- Indicador de carga para emergencias -->
+      <div *ngIf="isLoadingEmergencies" class="loading-section">
+        <div class="loading-content">
+          <mat-spinner diameter="30"></mat-spinner>
+          <p>Cargando emergencias...</p>
+        </div>
+      </div>
+
+      <!-- Tabla de emergencias -->
+      <div *ngIf="!isLoadingEmergencies">
+        <div class="list-summary" *ngIf="emergenciesPreview">
+          <p><strong>Total de emergencias en el período:</strong> {{ emergenciesPreview.totalEmergencies }}</p>
+          <p><strong>Mostrando:</strong> {{ emergenciesList.length }} emergencias de muestra</p>
+        </div>
+
+        <mat-table [dataSource]="emergenciesList" class="emergencies-table" *ngIf="emergenciesList.length > 0">
+          <ng-container matColumnDef="emergencyId">
+            <mat-header-cell *matHeaderCellDef>ID</mat-header-cell>
+            <mat-cell *matCellDef="let emergency">
+              <span class="emergency-id">#{{ emergency.emergencyId }}</span>
+            </mat-cell>
+          </ng-container>
+
+          <ng-container matColumnDef="emergencyDate">
+            <mat-header-cell *matHeaderCellDef>Fecha</mat-header-cell>
+            <mat-cell *matCellDef="let emergency">
+              {{ emergency.emergencyDate | date:'dd/MM/yyyy HH:mm' }}
+            </mat-cell>
+          </ng-container>
+
+          <ng-container matColumnDef="emergencyType">
+            <mat-header-cell *matHeaderCellDef>Tipo</mat-header-cell>
+            <mat-cell *matCellDef="let emergency">
+              <mat-chip class="type-chip">{{ emergency.emergencyType?.emergencyType || 'N/A' }}</mat-chip>
+            </mat-cell>
+          </ng-container>
+
+          <ng-container matColumnDef="ubication">
+            <mat-header-cell *matHeaderCellDef>Ubicación</mat-header-cell>
+            <mat-cell *matCellDef="let emergency">
+              <span class="location-text">{{ emergency.ubication }}</span>
+            </mat-cell>
+          </ng-container>
+
+          <ng-container matColumnDef="actions">
+            <mat-header-cell *matHeaderCellDef>Acciones</mat-header-cell>
+            <mat-cell *matCellDef="let emergency">
+              <button mat-icon-button 
+                      color="primary" 
+                      (click)="previewEmergency(emergency)"
+                      matTooltip="Previsualizar emergencia">
+                <mat-icon>visibility</mat-icon>
+              </button>
+            </mat-cell>
+          </ng-container>
+
+          <mat-header-row *matHeaderRowDef="emergencyColumns"></mat-header-row>
+          <mat-row *matRowDef="let row; columns: emergencyColumns;"></mat-row>
+        </mat-table>
+
+        <div *ngIf="emergenciesList.length === 0 && !isLoadingEmergencies" class="no-emergencies">
+          <mat-icon class="large-icon">info</mat-icon>
+          <p>No se encontraron emergencias para los filtros seleccionados</p>
+        </div>
+      </div>
+    </mat-card-content>
+  </mat-card>
 
   <!-- Tabs para diferentes reportes -->
   <mat-tab-group class="reports-tabs" *ngIf="!isLoadingData">
@@ -328,16 +406,44 @@
 
   <!-- Acciones de reporte -->
   <div class="report-actions">
-    <button mat-raised-button color="primary" 
-      (click)="exportReport('pdf')" 
-      [disabled]="isGeneratingPdf">
-      <mat-icon *ngIf="!isGeneratingPdf">picture_as_pdf</mat-icon>
-      <mat-icon *ngIf="isGeneratingPdf" class="spinner">refresh</mat-icon>
-      {{ isGeneratingPdf ? 'Generando PDF...' : 'Exportar PDF' }}
-    </button>
-    <button mat-raised-button (click)="printReport()">
-      <mat-icon>print</mat-icon>
-      Imprimir
-    </button>
+    <div class="action-group">
+      <h3>
+        <mat-icon style="vertical-align: middle; margin-right: 8px;">description</mat-icon>
+        Reporte de Emergencias
+      </h3>
+      <p>Para entidades externas - Contiene detalle completo de cada emergencia</p>
+      <div class="buttons">
+        <button mat-raised-button color="primary" 
+                (click)="downloadEmergencyReport()" 
+                [disabled]="isGeneratingEmergencyPdf">
+          <mat-icon *ngIf="!isGeneratingEmergencyPdf">download</mat-icon>
+          <mat-icon *ngIf="isGeneratingEmergencyPdf" class="spinner">refresh</mat-icon>
+          {{ isGeneratingEmergencyPdf ? 'Descargando...' : 'Descargar PDF' }}
+        </button>
+      </div>
+    </div>
+
+    <mat-divider [vertical]="true"></mat-divider>
+
+    <div class="action-group">
+      <h3>
+        <mat-icon style="vertical-align: middle; margin-right: 8px;">assessment</mat-icon>
+        Reporte de Estadísticas
+      </h3>
+      <p>Para análisis interno - Contiene métricas y gráficos estadísticos</p>
+      <div class="buttons">
+        <button mat-raised-button color="accent" 
+                (click)="downloadStatisticsReport()" 
+                [disabled]="isGeneratingStatisticsPdf">
+          <mat-icon *ngIf="!isGeneratingStatisticsPdf">bar_chart</mat-icon>
+          <mat-icon *ngIf="isGeneratingStatisticsPdf" class="spinner">refresh</mat-icon>
+          {{ isGeneratingStatisticsPdf ? 'Descargando...' : 'Descargar PDF' }}
+        </button>
+        <button mat-raised-button (click)="printReport()">
+          <mat-icon>print</mat-icon>
+          Imprimir Estadísticas
+        </button>
+      </div>
+    </div>
   </div>
 </div> 

@@ -39,7 +39,7 @@ export interface EmergencyStatistics {
 }
 
 export interface StatisticsFilters {
-  period?: 'LAST_WEEK' | 'LAST_MONTH' | 'LAST_3_MONTHS' | 'LAST_YEAR' | 'CUSTOM';
+  period?: 'last_7_days' | 'last_month' | 'last_3_months' | 'last_year' | 'custom';
   startDate?: string;
   endDate?: string;
   emergencyTypeId?: number;
@@ -48,7 +48,7 @@ export interface StatisticsFilters {
 }
 
 export interface ReportFilters {
-  period?: 'LAST_WEEK' | 'LAST_MONTH' | 'LAST_3_MONTHS' | 'LAST_YEAR' | 'CUSTOM';
+  period?: 'last_7_days' | 'last_month' | 'last_3_months' | 'last_year' | 'custom';
   startDate?: string;
   endDate?: string;
   emergencyTypeId?: number;

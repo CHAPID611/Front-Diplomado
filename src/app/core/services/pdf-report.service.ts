@@ -1,4 +1,7 @@
 import { Injectable } from '@angular/core';
+import { HttpClient, HttpHeaders } from '@angular/common/http';
+import { Observable } from 'rxjs';
+import { environment } from '../../../environments/environment';
 
 export interface ReportFilters {
   period: string;
@@ -32,8 +35,68 @@ export interface MonthlyStats {
   providedIn: 'root'
 })
 export class PdfReportService {
+  private apiUrl = environment.apiUrl;
 
-  constructor() { }
+  constructor(private http: HttpClient) { }
+
+  private getHeaders(): HttpHeaders {
+    const token = localStorage.getItem('auth_token');
+    return new HttpHeaders({
+      'Authorization': token ? `Bearer ${token}` : ''
+    });
+  }
+
+  // Obtener preview de emergencias (para la lista)
+  getEmergenciesPreview(filters: ReportFilters): Observable<any> {
+    const params = new URLSearchParams();
+    
+    if (filters.period) params.append('period', filters.period);
+    if (filters.startDate) params.append('startDate', filters.startDate);
+    if (filters.endDate) params.append('endDate', filters.endDate);
+    if (filters.emergencyType !== 'all' && filters.emergencyType) {
+      params.append('emergencyTypeId', filters.emergencyType);
+    }
+
+    return this.http.get(`${this.apiUrl}/reportes/preview?${params.toString()}`, {
+      headers: this.getHeaders()
+    });
+  }
+
+  // Descargar reporte de emergencias (para entidades)
+  downloadEmergencyReport(filters: ReportFilters): Observable<Blob> {
+    const params = new URLSearchParams();
+    params.append('format', 'pdf');
+    
+    if (filters.period) params.append('period', filters.period);
+    if (filters.startDate) params.append('startDate', filters.startDate);
+    if (filters.endDate) params.append('endDate', filters.endDate);
+    if (filters.emergencyType !== 'all' && filters.emergencyType) {
+      params.append('emergencyTypeId', filters.emergencyType);
+    }
+
+    return this.http.get(`${this.apiUrl}/reportes/emergencias?${params.toString()}`, {
+      headers: this.getHeaders(),
+      responseType: 'blob'
+    });
+  }
+
+  // Descargar reporte de estadísticas (para análisis interno)
+  downloadStatisticsReport(filters: ReportFilters): Observable<Blob> {
+    const params = new URLSearchParams();
+    params.append('format', 'pdf');
+    
+    if (filters.period) params.append('period', filters.period);
+    if (filters.startDate) params.append('startDate', filters.startDate);
+    if (filters.endDate) params.append('endDate', filters.endDate);
+    if (filters.emergencyType !== 'all' && filters.emergencyType) {
+      params.append('emergencyTypeId', filters.emergencyType);
+    }
+
+    return this.http.get(`${this.apiUrl}/reportes/estadisticas?${params.toString()}`, {
+      headers: this.getHeaders(),
+      responseType: 'blob'
+    });
+  }
 
   async generateEmergencyReport(
     reportData: ReportData,
