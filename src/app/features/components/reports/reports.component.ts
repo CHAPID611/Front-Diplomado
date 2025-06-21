@@ -63,17 +63,25 @@ import { forkJoin } from 'rxjs';
 export class ReportsComponent implements OnInit {
   filtersForm: FormGroup;
   displayedColumns: string[] = ['month', 'emergencies', 'avgResponseTime'];
+  emergencyColumns: string[] = ['emergencyId', 'emergencyDate', 'emergencyType', 'ubication', 'actions'];
   isGeneratingPdf = false;
+  isGeneratingEmergencyPdf = false;
+  isGeneratingStatisticsPdf = false;
   isLoadingData = false;
+  isLoadingEmergencies = false;
   emergencyTypes: EmergencyType[] = [];
   emergencyTypeLabels: { [key: string]: string } = {};
+  
+  // Lista de emergencias para mostrar
+  emergenciesList: any[] = [];
+  emergenciesPreview: any = null;
   
   // Datos de estadísticas del backend
   backendStatistics: EmergencyStatistics | null = null;
   
   // Datos de análisis de tiempo para la UI
   timeAnalysisData = {
-    targetTime: 15,
+    targetTime: 0,
     minTime: 0,
     maxTime: 0,
     averageTime: 0,
@@ -119,7 +127,7 @@ export class ReportsComponent implements OnInit {
 
   ngOnInit() {
     this.filtersForm = this.fb.group({
-      period: ['LAST_MONTH'],
+      period: ['last_month'],
       startDate: [''],
       endDate: [''],
       emergencyType: ['all']
@@ -134,10 +142,14 @@ export class ReportsComponent implements OnInit {
 
     // Cargar estadísticas iniciales
     this.loadStatisticsFromBackend();
+    
+    // Cargar preview de emergencias inicial
+    this.loadEmergenciesPreview();
 
     // Observar cambios en los filtros para actualizar automáticamente
     this.filtersForm.valueChanges.subscribe(() => {
       this.loadStatisticsFromBackend();
+      this.loadEmergenciesPreview();
     });
   }
 
@@ -169,6 +181,38 @@ export class ReportsComponent implements OnInit {
   }
 
   /**
+   * Carga preview de emergencias del backend
+   */
+  loadEmergenciesPreview(): void {
+    this.isLoadingEmergencies = true;
+    
+    const formValue = this.filtersForm.value;
+    const filters: ReportFilters = {
+      period: formValue.period,
+      emergencyType: formValue.emergencyType
+    };
+
+    // Si es período personalizado, agregar fechas
+    if (formValue.period === 'custom' && formValue.startDate && formValue.endDate) {
+      filters.startDate = formValue.startDate;
+      filters.endDate = formValue.endDate;
+    }
+
+    this.pdfReportService.getEmergenciesPreview(filters).subscribe({
+      next: (data) => {
+        this.emergenciesPreview = data.preview;
+        this.emergenciesList = data.preview.sampleEmergencies || [];
+        this.isLoadingEmergencies = false;
+      },
+      error: (error) => {
+        console.error('Error al cargar preview de emergencias:', error);
+        this.snackBar.open('Error al cargar lista de emergencias', 'Cerrar', { duration: 3000 });
+        this.isLoadingEmergencies = false;
+      }
+    });
+  }
+
+  /**
    * Carga estadísticas reales del backend
    */
   loadStatisticsFromBackend(): void {
@@ -182,7 +226,7 @@ export class ReportsComponent implements OnInit {
     };
 
     // Si es período personalizado, agregar fechas
-    if (formValue.period === 'CUSTOM' && formValue.startDate && formValue.endDate) {
+    if (formValue.period === 'custom' && formValue.startDate && formValue.endDate) {
       filters.startDate = formValue.startDate;
       filters.endDate = formValue.endDate;
     }
@@ -262,20 +306,106 @@ export class ReportsComponent implements OnInit {
 
   private getPeriodLabel(period: string): string {
     const labels: { [key: string]: string } = {
-      // Nuevos valores del backend
-      'LAST_WEEK': 'Última semana',
-      'LAST_MONTH': 'Último mes',
-      'LAST_3_MONTHS': 'Últimos 3 meses',
-      'LAST_YEAR': 'Último año',
-      'CUSTOM': 'Período personalizado',
-      // Valores legacy para compatibilidad
-      '7days': 'Últimos 7 días',
-      '30days': 'Últimos 30 días',
-      '3months': 'Últimos 3 meses',
-      'year': 'Último año',
+      'last_7_days': 'Última semana',
+      'last_month': 'Último mes',
+      'last_3_months': 'Últimos 3 meses',
+      'last_year': 'Último año',
       'custom': 'Período personalizado'
     };
     return labels[period] || period;
+  }
+
+  // Descargar reporte de emergencias (para entidades)
+  downloadEmergencyReport() {
+    this.isGeneratingEmergencyPdf = true;
+    
+    const formValue = this.filtersForm.value;
+    const filters: ReportFilters = {
+      period: formValue.period,
+      emergencyType: formValue.emergencyType
+    };
+
+    if (formValue.period === 'custom' && formValue.startDate && formValue.endDate) {
+      filters.startDate = formValue.startDate;
+      filters.endDate = formValue.endDate;
+    }
+
+    console.log('Descargando reporte de emergencias con filtros:', filters);
+    console.log('Valores del formulario:', formValue);
+
+    this.pdfReportService.downloadEmergencyReport(filters).subscribe({
+      next: (blob) => {
+        const url = window.URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = `reporte_emergencias_${new Date().toISOString().slice(0, 10)}.pdf`;
+        link.click();
+        window.URL.revokeObjectURL(url);
+        this.isGeneratingEmergencyPdf = false;
+        this.snackBar.open('Reporte de emergencias descargado correctamente', 'Cerrar', { duration: 3000 });
+      },
+      error: (error) => {
+        console.error('Error al descargar reporte de emergencias:', error);
+        this.snackBar.open('Error al descargar el reporte de emergencias', 'Cerrar', { duration: 5000 });
+        this.isGeneratingEmergencyPdf = false;
+      }
+    });
+  }
+
+  // Descargar reporte de estadísticas (para análisis interno)
+  downloadStatisticsReport() {
+    this.isGeneratingStatisticsPdf = true;
+    
+    const formValue = this.filtersForm.value;
+    const filters: ReportFilters = {
+      period: formValue.period,
+      emergencyType: formValue.emergencyType
+    };
+
+    if (formValue.period === 'custom' && formValue.startDate && formValue.endDate) {
+      filters.startDate = formValue.startDate;
+      filters.endDate = formValue.endDate;
+    }
+
+    this.pdfReportService.downloadStatisticsReport(filters).subscribe({
+      next: (blob) => {
+        const url = window.URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = `estadisticas_emergencias_${new Date().toISOString().slice(0, 10)}.pdf`;
+        link.click();
+        window.URL.revokeObjectURL(url);
+        this.isGeneratingStatisticsPdf = false;
+        this.snackBar.open('Reporte de estadísticas descargado correctamente', 'Cerrar', { duration: 3000 });
+      },
+      error: (error) => {
+        console.error('Error al descargar reporte de estadísticas:', error);
+        this.snackBar.open('Error al descargar el reporte de estadísticas', 'Cerrar', { duration: 5000 });
+        this.isGeneratingStatisticsPdf = false;
+      }
+    });
+  }
+
+  // Previsualizar emergencia individual (ventana modal o nueva pestaña)
+  previewEmergency(emergency: any) {
+    // Por ahora abrimos una ventana simple con la información
+    const previewWindow = window.open('', '_blank', 'width=800,height=600');
+    if (previewWindow) {
+      previewWindow.document.write(`
+        <html>
+          <head><title>Preview - Emergencia #${emergency.emergencyId}</title></head>
+          <body style="font-family: Arial, sans-serif; padding: 20px;">
+            <h2>Emergencia #${emergency.emergencyId}</h2>
+            <p><strong>Fecha:</strong> ${new Date(emergency.emergencyDate).toLocaleDateString()}</p>
+            <p><strong>Tipo:</strong> ${emergency.emergencyType?.emergencyType || 'N/A'}</p>
+            <p><strong>Ubicación:</strong> ${emergency.ubication}</p>
+            <p><strong>Informante:</strong> ${emergency.informant}</p>
+            <p><strong>Turno:</strong> ${emergency.turn}</p>
+            <button onclick="window.close()">Cerrar</button>
+          </body>
+        </html>
+      `);
+    }
   }
 
   async exportReport(format: 'pdf') {
