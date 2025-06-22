@@ -65,14 +65,9 @@
                         <mat-select formControlName="vehiculo" required multiple
                                    (selectionChange)="onVehicleSelectionChange($event.value)">
                           <mat-option *ngFor="let vehiculo of availableVehicles" 
-                                     [value]="vehiculo.vehicleId"
-                                     [disabled]="isVehicleOccupiedInOtherForm(vehiculo.vehicleId)"
-                                     [class.occupied-vehicle]="isVehicleOccupiedInOtherForm(vehiculo.vehicleId)">
-                            <span [class.disabled-text]="isVehicleOccupiedInOtherForm(vehiculo.vehicleId)">
+                                     [value]="vehiculo.vehicleId">
+                            <span>
                               {{vehiculo.name}} - {{vehiculo.plate}}
-                              <small *ngIf="isVehicleOccupiedInOtherForm(vehiculo.vehicleId)" class="conflict-warning">
-                                (Ocupado en Emergencia #{{getFormNumberWhereVehicleIsOccupied(vehiculo.vehicleId)}})
-                              </small>
                             </span>
                           </mat-option>
                         </mat-select>
@@ -332,16 +327,13 @@
                           *ngFor="let persona of personalDisponible" 
                           [value]="persona.personalId.toString()"
                           [checked]="isUnidadSelected(persona.personalId)"
-                          [disabled]="isGuardiaSelected(persona.personalId) || isPersonOccupiedInOtherForm(persona.personalId)"
+                          [disabled]="isGuardiaSelected(persona.personalId)"
                           (change)="onUnidadChange($event, persona.personalId)">
                           <span class="personal-item" 
-                                [class.disabled]="isGuardiaSelected(persona.personalId) || isPersonOccupiedInOtherForm(persona.personalId)">
+                                [class.disabled]="isGuardiaSelected(persona.personalId)">
                             <strong>{{persona.rango}}</strong> {{persona.nombre}}
                             <small *ngIf="isGuardiaSelected(persona.personalId)" class="conflict-warning">
                               (Ya seleccionado como Personal de Guardia en este formulario)
-                            </small>
-                            <small *ngIf="isPersonOccupiedInOtherForm(persona.personalId)" class="conflict-warning">
-                              (Ocupado en Emergencia #{{getFormNumberWherePersonIsOccupied(persona.personalId)}})
                             </small>
                           </span>
                         </mat-checkbox>
@@ -357,20 +349,17 @@
                       </h3>
                       <p>Selecciona el personal que prestó guardia durante la emergencia:</p>
                       <div class="personal-grid">
-                                                <mat-checkbox 
+                        <mat-checkbox 
                           *ngFor="let persona of personalDisponible" 
                           [value]="persona.personalId.toString()"
                           [checked]="isGuardiaSelected(persona.personalId)"
-                          [disabled]="isUnidadSelected(persona.personalId) || isPersonOccupiedInOtherForm(persona.personalId)"
+                          [disabled]="isUnidadSelected(persona.personalId)"
                           (change)="onGuardiaChange($event, persona.personalId)">
                           <span class="personal-item" 
-                                [class.disabled]="isUnidadSelected(persona.personalId) || isPersonOccupiedInOtherForm(persona.personalId)">
+                                [class.disabled]="isUnidadSelected(persona.personalId)">
                             <strong>{{persona.rango}}</strong> {{persona.nombre}}
                             <small *ngIf="isUnidadSelected(persona.personalId)" class="conflict-warning">
                               (Ya seleccionado como Unidad de Respuesta en este formulario)
-                            </small>
-                            <small *ngIf="isPersonOccupiedInOtherForm(persona.personalId)" class="conflict-warning">
-                              (Ocupado como Unidad de Respuesta en Emergencia #{{getFormNumberWherePersonIsOccupied(persona.personalId)}})
                             </small>
                           </span>
                         </mat-checkbox>

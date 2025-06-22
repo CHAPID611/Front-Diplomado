@@ -1,5 +1,7 @@
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { HttpClient } from '@angular/common/http';
+import { Router } from '@angular/router';
 import { MatCardModule } from '@angular/material/card';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
@@ -15,7 +17,7 @@ import { MatDividerModule } from '@angular/material/divider';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatTooltipModule } from '@angular/material/tooltip';
-import { FormBuilder, FormGroup, ReactiveFormsModule, FormsModule } from '@angular/forms';
+import { FormBuilder, FormGroup, ReactiveFormsModule, FormsModule, Validators } from '@angular/forms';
 import { 
   PdfReportService, 
   ReportData, 
@@ -67,6 +69,7 @@ export class ReportsComponent implements OnInit {
   isGeneratingPdf = false;
   isGeneratingEmergencyPdf = false;
   isGeneratingStatisticsPdf = false;
+  isGeneratingIndividualPdf: number | null = null; // ID de la emergencia que se está generando
   isLoadingData = false;
   isLoadingEmergencies = false;
   emergencyTypes: EmergencyType[] = [];
@@ -94,8 +97,10 @@ export class ReportsComponent implements OnInit {
   // Variables para edición del tiempo objetivo
   isEditingTargetTime = false;
   isSavingTargetTime = false;
-  newTargetTime = 15;
+  newTargetTime = 0;
   isAdmin = false;
+
+
 
   // Datos que se llenan desde el backend
   reportData: ReportData = {
@@ -115,7 +120,9 @@ export class ReportsComponent implements OnInit {
     private emergencyService: EmergencyService,
     private statisticsService: StatisticsService,
     private authService: AuthService,
-    private snackBar: MatSnackBar
+    private snackBar: MatSnackBar,
+    private http: HttpClient,
+    private router: Router
   ) {
     this.filtersForm = this.fb.group({
       period: ['30days'],
@@ -132,6 +139,28 @@ export class ReportsComponent implements OnInit {
       endDate: [''],
       emergencyType: ['all']
       // targetTime removido - ahora se obtiene de la configuración del sistema
+    });
+
+    // Observar cambios en el período para agregar/quitar validaciones
+    this.filtersForm.get('period')?.valueChanges.subscribe(period => {
+      const startDateControl = this.filtersForm.get('startDate');
+      const endDateControl = this.filtersForm.get('endDate');
+      
+      if (period === 'custom') {
+        // Agregar validaciones requeridas para fechas
+        startDateControl?.setValidators([Validators.required]);
+        endDateControl?.setValidators([Validators.required]);
+      } else {
+        // Remover validaciones para otros períodos
+        startDateControl?.clearValidators();
+        endDateControl?.clearValidators();
+        // Limpiar valores de fechas cuando no es período personalizado
+        startDateControl?.setValue('');
+        endDateControl?.setValue('');
+      }
+      
+      startDateControl?.updateValueAndValidity();
+      endDateControl?.updateValueAndValidity();
     });
 
     // Verificar si el usuario es administrador
@@ -187,22 +216,42 @@ export class ReportsComponent implements OnInit {
     this.isLoadingEmergencies = true;
     
     const formValue = this.filtersForm.value;
+    
+    // Validar que si es período personalizado, las fechas estén presentes
+    if (formValue.period === 'custom') {
+      if (!formValue.startDate || !formValue.endDate) {
+        console.log('Período personalizado seleccionado pero fechas no definidas, omitiendo carga de preview');
+        this.isLoadingEmergencies = false;
+        this.emergenciesList = [];
+        this.emergenciesPreview = null;
+        return;
+      }
+    }
+    
     const filters: ReportFilters = {
       period: formValue.period,
       emergencyType: formValue.emergencyType
     };
 
-    // Si es período personalizado, agregar fechas
+    // Si es período personalizado, agregar fechas (ya validadas arriba)
     if (formValue.period === 'custom' && formValue.startDate && formValue.endDate) {
-      filters.startDate = formValue.startDate;
-      filters.endDate = formValue.endDate;
+      // Convertir fechas a formato ISO string
+      filters.startDate = formValue.startDate instanceof Date 
+        ? formValue.startDate.toISOString().split('T')[0] 
+        : formValue.startDate;
+      filters.endDate = formValue.endDate instanceof Date 
+        ? formValue.endDate.toISOString().split('T')[0] 
+        : formValue.endDate;
     }
+
+    console.log('Cargando preview de emergencias con filtros:', filters);
 
     this.pdfReportService.getEmergenciesPreview(filters).subscribe({
       next: (data) => {
         this.emergenciesPreview = data.preview;
         this.emergenciesList = data.preview.sampleEmergencies || [];
         this.isLoadingEmergencies = false;
+        console.log('Preview cargado exitosamente:', data.preview);
       },
       error: (error) => {
         console.error('Error al cargar preview de emergencias:', error);
@@ -219,16 +268,31 @@ export class ReportsComponent implements OnInit {
     this.isLoadingData = true;
     
     const formValue = this.filtersForm.value;
+    
+    // Validar que si es período personalizado, las fechas estén presentes
+    if (formValue.period === 'custom') {
+      if (!formValue.startDate || !formValue.endDate) {
+        console.log('Período personalizado seleccionado pero fechas no definidas, omitiendo carga de estadísticas');
+        this.isLoadingData = false;
+        return;
+      }
+    }
+    
     const filters: StatisticsFilters = {
       period: formValue.period,
       emergencyTypeId: formValue.emergencyType !== 'all' ? Number(formValue.emergencyType) : undefined
       // targetTime removido - ahora se obtiene de la configuración del sistema
     };
 
-    // Si es período personalizado, agregar fechas
+    // Si es período personalizado, agregar fechas (ya validadas arriba)
     if (formValue.period === 'custom' && formValue.startDate && formValue.endDate) {
-      filters.startDate = formValue.startDate;
-      filters.endDate = formValue.endDate;
+      // Convertir fechas a formato ISO string
+      filters.startDate = formValue.startDate instanceof Date 
+        ? formValue.startDate.toISOString().split('T')[0] 
+        : formValue.startDate;
+      filters.endDate = formValue.endDate instanceof Date 
+        ? formValue.endDate.toISOString().split('T')[0] 
+        : formValue.endDate;
     }
 
     console.log('Cargando estadísticas con filtros:', filters);
@@ -317,17 +381,31 @@ export class ReportsComponent implements OnInit {
 
   // Descargar reporte de emergencias (para entidades)
   downloadEmergencyReport() {
+    const formValue = this.filtersForm.value;
+    
+    // Validar que si es período personalizado, las fechas estén presentes
+    if (formValue.period === 'custom') {
+      if (!formValue.startDate || !formValue.endDate) {
+        this.snackBar.open('Por favor selecciona las fechas de inicio y fin para el período personalizado', 'Cerrar', { duration: 5000 });
+        return;
+      }
+    }
+    
     this.isGeneratingEmergencyPdf = true;
     
-    const formValue = this.filtersForm.value;
     const filters: ReportFilters = {
       period: formValue.period,
       emergencyType: formValue.emergencyType
     };
 
     if (formValue.period === 'custom' && formValue.startDate && formValue.endDate) {
-      filters.startDate = formValue.startDate;
-      filters.endDate = formValue.endDate;
+      // Convertir fechas a formato ISO string
+      filters.startDate = formValue.startDate instanceof Date 
+        ? formValue.startDate.toISOString().split('T')[0] 
+        : formValue.startDate;
+      filters.endDate = formValue.endDate instanceof Date 
+        ? formValue.endDate.toISOString().split('T')[0] 
+        : formValue.endDate;
     }
 
     console.log('Descargando reporte de emergencias con filtros:', filters);
@@ -354,17 +432,31 @@ export class ReportsComponent implements OnInit {
 
   // Descargar reporte de estadísticas (para análisis interno)
   downloadStatisticsReport() {
+    const formValue = this.filtersForm.value;
+    
+    // Validar que si es período personalizado, las fechas estén presentes
+    if (formValue.period === 'custom') {
+      if (!formValue.startDate || !formValue.endDate) {
+        this.snackBar.open('Por favor selecciona las fechas de inicio y fin para el período personalizado', 'Cerrar', { duration: 5000 });
+        return;
+      }
+    }
+    
     this.isGeneratingStatisticsPdf = true;
     
-    const formValue = this.filtersForm.value;
     const filters: ReportFilters = {
       period: formValue.period,
       emergencyType: formValue.emergencyType
     };
 
     if (formValue.period === 'custom' && formValue.startDate && formValue.endDate) {
-      filters.startDate = formValue.startDate;
-      filters.endDate = formValue.endDate;
+      // Convertir fechas a formato ISO string
+      filters.startDate = formValue.startDate instanceof Date 
+        ? formValue.startDate.toISOString().split('T')[0] 
+        : formValue.startDate;
+      filters.endDate = formValue.endDate instanceof Date 
+        ? formValue.endDate.toISOString().split('T')[0] 
+        : formValue.endDate;
     }
 
     this.pdfReportService.downloadStatisticsReport(filters).subscribe({
@@ -386,26 +478,151 @@ export class ReportsComponent implements OnInit {
     });
   }
 
-  // Previsualizar emergencia individual (ventana modal o nueva pestaña)
+  // Previsualizar emergencia individual
   previewEmergency(emergency: any) {
-    // Por ahora abrimos una ventana simple con la información
-    const previewWindow = window.open('', '_blank', 'width=800,height=600');
-    if (previewWindow) {
-      previewWindow.document.write(`
-        <html>
-          <head><title>Preview - Emergencia #${emergency.emergencyId}</title></head>
-          <body style="font-family: Arial, sans-serif; padding: 20px;">
-            <h2>Emergencia #${emergency.emergencyId}</h2>
-            <p><strong>Fecha:</strong> ${new Date(emergency.emergencyDate).toLocaleDateString()}</p>
-            <p><strong>Tipo:</strong> ${emergency.emergencyType?.emergencyType || 'N/A'}</p>
-            <p><strong>Ubicación:</strong> ${emergency.ubication}</p>
-            <p><strong>Informante:</strong> ${emergency.informant}</p>
-            <p><strong>Turno:</strong> ${emergency.turn}</p>
-            <button onclick="window.close()">Cerrar</button>
-          </body>
-        </html>
-      `);
+    console.log('Abriendo vista previa para emergencia:', emergency.emergencyId);
+    
+    // Navegar a la vista previa con parámetros
+    this.router.navigate(['/pdf-preview'], {
+      queryParams: {
+        type: 'individual',
+        emergencyId: emergency.emergencyId,
+        period: 'last_year',
+        emergencyType: 'all'
+      }
+    });
+  }
+
+  // Previsualizar reporte general
+  previewGeneralReport() {
+    const formValue = this.filtersForm.value;
+    
+    // Validar que si es período personalizado, las fechas estén presentes
+    if (formValue.period === 'custom') {
+      if (!formValue.startDate || !formValue.endDate) {
+        this.snackBar.open('Por favor selecciona las fechas de inicio y fin para el período personalizado', 'Cerrar', { duration: 5000 });
+        return;
+      }
     }
+
+    console.log('Abriendo vista previa de reporte general');
+    
+    const queryParams: any = {
+      type: 'general',
+      period: formValue.period,
+      emergencyType: formValue.emergencyType
+    };
+
+    // Agregar fechas si es período personalizado
+    if (formValue.period === 'custom' && formValue.startDate && formValue.endDate) {
+      queryParams.startDate = formValue.startDate instanceof Date 
+        ? formValue.startDate.toISOString().split('T')[0] 
+        : formValue.startDate;
+      queryParams.endDate = formValue.endDate instanceof Date 
+        ? formValue.endDate.toISOString().split('T')[0] 
+        : formValue.endDate;
+    }
+
+    this.router.navigate(['/pdf-preview'], { queryParams });
+  }
+
+  // Previsualizar reporte de estadísticas
+  previewStatisticsReport() {
+    const formValue = this.filtersForm.value;
+    
+    // Validar que si es período personalizado, las fechas estén presentes
+    if (formValue.period === 'custom') {
+      if (!formValue.startDate || !formValue.endDate) {
+        this.snackBar.open('Por favor selecciona las fechas de inicio y fin para el período personalizado', 'Cerrar', { duration: 5000 });
+        return;
+      }
+    }
+
+    console.log('Abriendo vista previa de reporte de estadísticas');
+    
+    const queryParams: any = {
+      type: 'statistics',
+      period: formValue.period,
+      emergencyType: formValue.emergencyType
+    };
+
+    // Agregar fechas si es período personalizado
+    if (formValue.period === 'custom' && formValue.startDate && formValue.endDate) {
+      queryParams.startDate = formValue.startDate instanceof Date 
+        ? formValue.startDate.toISOString().split('T')[0] 
+        : formValue.startDate;
+      queryParams.endDate = formValue.endDate instanceof Date 
+        ? formValue.endDate.toISOString().split('T')[0] 
+        : formValue.endDate;
+    }
+
+    this.router.navigate(['/pdf-preview'], { queryParams });
+  }
+
+  /**
+   * Descarga reporte individual de una emergencia específica
+   */
+  downloadIndividualReport(emergency: any) {
+    // Validar que la emergencia tenga ID
+    if (!emergency.emergencyId) {
+      this.snackBar.open('Error: No se puede generar reporte para esta emergencia', 'Cerrar', { duration: 3000 });
+      return;
+    }
+
+    this.isGeneratingIndividualPdf = emergency.emergencyId;
+    
+    // Usar el ID específico para filtrar exactamente esta emergencia
+    // Para emergencias individuales, usar un período que no requiera fechas
+    const filters: ReportFilters = {
+      period: 'last_year', // Usar un período amplio en lugar de custom
+      emergencyType: 'all', // No filtrar por tipo cuando usamos ID específico
+      emergencyId: emergency.emergencyId // Filtro específico por ID
+    };
+
+    console.log('=== DEBUG DESCARGA INDIVIDUAL ===');
+    console.log('Emergencia ID:', emergency.emergencyId);
+    console.log('Filtros enviados:', filters);
+    console.log('Objeto emergency completo:', emergency);
+    console.log('Token disponible:', localStorage.getItem('auth_token') ? 'SÍ' : 'NO');
+    
+    // Construir URL manualmente para debug
+    const baseUrl = 'http://localhost:3000/reportes/emergencias';
+    const params = new URLSearchParams();
+    params.append('format', 'pdf');
+    params.append('period', filters.period);
+    params.append('emergencyType', filters.emergencyType);
+    if (filters.emergencyId) {
+      params.append('emergencyId', filters.emergencyId.toString());
+    }
+    
+    const fullUrl = `${baseUrl}?${params.toString()}`;
+    console.log('URL completa que se va a llamar:', fullUrl);
+    console.log('Parámetros individuales:');
+    params.forEach((value, key) => {
+      console.log(`  ${key}: ${value} (tipo: ${typeof value})`);
+    });
+
+    this.pdfReportService.downloadEmergencyReport(filters).subscribe({
+      next: (blob) => {
+        console.log('✅ Descarga exitosa, tamaño del blob:', blob.size);
+        const url = window.URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = `reporte_emergencia_${emergency.emergencyId}_${new Date().toISOString().slice(0, 10)}.pdf`;
+        link.click();
+        window.URL.revokeObjectURL(url);
+        this.isGeneratingIndividualPdf = null;
+        this.snackBar.open(`Reporte de emergencia #${emergency.emergencyId} descargado correctamente`, 'Cerrar', { duration: 3000 });
+      },
+      error: (error) => {
+        console.error('❌ Error al descargar reporte individual:', error);
+        console.error('Status:', error.status);
+        console.error('Error message:', error.message);
+        console.error('Error details:', error.error);
+        this.snackBar.open(`Error al descargar el reporte de la emergencia #${emergency.emergencyId}`, 'Cerrar', { duration: 5000 });
+        this.isGeneratingIndividualPdf = null;
+      }
+    });
   }
 
   async exportReport(format: 'pdf') {
@@ -482,9 +699,7 @@ export class ReportsComponent implements OnInit {
     }
   }
 
-  printReport() {
-    window.print();
-  }
+
 
   // ===== MÉTODOS PARA EDICIÓN DE TIEMPO OBJETIVO =====
 
@@ -549,4 +764,66 @@ export class ReportsComponent implements OnInit {
       }
     });
   }
+
+  /**
+   * Método de debug para probar endpoints
+   */
+  async testDebugEndpoints() {
+    try {
+      const filters = {
+        period: 'custom',
+        emergencyType: 'all',
+        emergencyId: 1,
+        format: 'pdf'
+      };
+      
+      console.log('🔍 Probando endpoint debug SIN AUTH con filtros:', filters);
+      
+      // Test sin autenticación
+      const responseNoAuth = await this.http.get('http://localhost:3000/reportes/debug', {
+        params: filters
+      }).toPromise();
+      
+      console.log('✅ Debug response (sin auth):', responseNoAuth);
+      
+      // Test con autenticación
+      console.log('🔍 Probando endpoint debug CON AUTH...');
+      const responseWithAuth = await this.http.get('http://localhost:3000/reportes/debug-auth', {
+        params: filters
+      }).toPromise();
+      
+      console.log('✅ Debug response (con auth):', responseWithAuth);
+      
+      // Test del token
+      const token = this.authService.getToken();
+      console.log('🔑 Token actual:', token ? `Presente (${token.length} chars)` : 'Ausente');
+      
+      if (token) {
+        console.log('🎯 Primeros 50 chars del token:', token.substring(0, 50) + '...');
+      }
+
+      // Test directo del endpoint de descarga individual
+      console.log('🔍 Probando endpoint de descarga individual...');
+      const downloadFilters: ReportFilters = {
+        period: 'custom',
+        emergencyType: 'all',
+        emergencyId: 1
+      };
+      
+      this.pdfReportService.downloadEmergencyReport(downloadFilters).subscribe({
+        next: (blob) => {
+          console.log('✅ Descarga individual exitosa, tamaño del blob:', blob.size);
+          this.snackBar.open('Test de descarga individual exitoso', 'Cerrar', { duration: 3000 });
+        },
+        error: (error) => {
+          console.error('❌ Error en descarga individual:', error);
+          this.snackBar.open('Error en test de descarga individual', 'Cerrar', { duration: 3000 });
+        }
+      });
+      
+    } catch (error) {
+      console.error('❌ Error en debug endpoints:', error);
+    }
+  }
+
 } 

@@ -22,6 +22,7 @@ import { MatTableDataSource } from '@angular/material/table';
 import { Personal, PersonalStats, Cualidad, Rango } from '../../../core/interfaces/personal.interface';
 import { PersonalService } from '../../../core/services/personal.service';
 import { AuthService } from '../../../core/services/auth.service';
+import { FormPersistenceService, FormPersistenceConfig } from '../../../core/services/form-persistence.service';
 import { PersonalFormComponent } from './personal-form/personal-form.component';
 import { CualidadesDialogComponent } from './cualidades-dialog/cualidades-dialog.component';
 import { PersonalDetailsComponent } from './personal-details/personal-details.component';
@@ -63,6 +64,15 @@ export class PersonalComponent implements OnInit {
   filterForm: FormGroup;
   loading = false;
 
+  // Configuración de persistencia para filtros
+  private persistenceConfig: FormPersistenceConfig = {
+    key: 'personal_filters',
+    autoSave: true,
+    autoSaveDelay: 1000,
+    storageType: 'localStorage', // Los filtros pueden persistir entre sesiones
+    excludeFields: []
+  };
+
   @ViewChild(MatPaginator) paginator!: MatPaginator;
   @ViewChild(MatSort) sort!: MatSort;
 
@@ -71,6 +81,7 @@ export class PersonalComponent implements OnInit {
   constructor(
     private personalService: PersonalService,
     private authService: AuthService,
+    private formPersistenceService: FormPersistenceService,
     private dialog: MatDialog,
     private snackBar: MatSnackBar,
     private fb: FormBuilder
@@ -85,6 +96,8 @@ export class PersonalComponent implements OnInit {
   ngOnInit() {
     this.loadData();
     this.setupFilters();
+    this.restoreFilters();
+    this.setupFilterPersistence();
   }
 
   loadData() {
@@ -391,5 +404,44 @@ export class PersonalComponent implements OnInit {
         }
       }
     });
+  }
+
+  // ===== MÉTODOS DE PERSISTENCIA DE FILTROS =====
+
+  private restoreFilters(): void {
+    try {
+      const savedData = this.formPersistenceService.loadFormData(this.persistenceConfig);
+      
+      if (savedData) {
+        setTimeout(() => {
+          this.filterForm.patchValue(savedData, { emitEvent: false });
+          console.log('✅ Filtros de personal restaurados:', savedData);
+          
+          // Aplicar filtros restaurados
+          this.applyFilters();
+        }, 100);
+      }
+    } catch (error) {
+      console.error('Error al restaurar filtros de personal:', error);
+    }
+  }
+
+  private setupFilterPersistence(): void {
+    this.formPersistenceService.setupAutoSave(this.filterForm, this.persistenceConfig);
+  }
+
+  saveFilters(): void {
+    this.formPersistenceService.saveFormData(this.filterForm, this.persistenceConfig);
+    this.snackBar.open('Filtros guardados', 'Cerrar', { duration: 2000 });
+  }
+
+  clearSavedFilters(): void {
+    this.formPersistenceService.clearFormData(this.persistenceConfig);
+    this.filterForm.reset();
+    this.snackBar.open('Filtros limpiados', 'Cerrar', { duration: 2000 });
+  }
+
+  getFiltersInfo(): { exists: boolean; timestamp?: string; size?: number } {
+    return this.formPersistenceService.getFormDataInfo(this.persistenceConfig);
   }
 } 

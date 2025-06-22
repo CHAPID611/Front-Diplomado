@@ -19,6 +19,7 @@ import localeEs from '@angular/common/locales/es';
 
 import { Personal, Cualidad, Rango } from '../../../../core/interfaces/personal.interface';
 import { PersonalService } from '../../../../core/services/personal.service';
+import { FormPersistenceService, FormPersistenceConfig } from '../../../../core/services/form-persistence.service';
 
 registerLocaleData(localeEs, 'es');
 
@@ -98,9 +99,19 @@ export class PersonalFormComponent implements OnInit {
   cualidadesSeleccionadas: string[] = [];
   isEditMode = false;
 
+  // Configuración de persistencia
+  private persistenceConfig: FormPersistenceConfig = {
+    key: 'personal_form_draft',
+    autoSave: true,
+    autoSaveDelay: 3000, // 3 segundos para formularios largos
+    storageType: 'sessionStorage', // Datos sensibles, usar sessionStorage
+    excludeFields: ['cedula'] // Excluir cédula por privacidad
+  };
+
   constructor(
     private fb: FormBuilder,
     private personalService: PersonalService,
+    private formPersistenceService: FormPersistenceService,
     private dialogRef: MatDialogRef<PersonalFormComponent>,
     @Inject(MAT_DIALOG_DATA) public data: DialogData
   ) {
@@ -112,6 +123,14 @@ export class PersonalFormComponent implements OnInit {
   ngOnInit() {
     if (this.data.personal) {
       this.loadPersonalDataAfterConstants();
+    } else {
+      // Solo restaurar datos si NO estamos editando
+      this.restoreFormData();
+    }
+    
+    // Configurar auto-guardado solo para formularios nuevos
+    if (!this.isEditMode) {
+      this.setupFormPersistence();
     }
   }
 
@@ -438,6 +457,11 @@ export class PersonalFormComponent implements OnInit {
         }
       };
 
+      // Limpiar borrador después de envío exitoso
+      if (!this.isEditMode) {
+        this.clearDraft();
+      }
+      
       this.dialogRef.close(personalData);
     } else {
       this.showValidationErrors();
@@ -479,6 +503,23 @@ export class PersonalFormComponent implements OnInit {
   }
 
   onCancel() {
+    // Mostrar confirmación si hay datos guardados en modo creación
+    if (!this.isEditMode) {
+      const hasData = this.formPersistenceService.getFormDataInfo(this.persistenceConfig).exists;
+      
+      if (hasData && this.hasSignificantData(this.personalForm.value)) {
+        const confirmClear = confirm('¿Deseas guardar el borrador antes de cerrar?');
+        if (confirmClear) {
+          this.saveDraftManually();
+        } else {
+          const confirmDelete = confirm('¿Deseas eliminar el borrador guardado?');
+          if (confirmDelete) {
+            this.clearDraft();
+          }
+        }
+      }
+    }
+    
     this.dialogRef.close();
   }
 
@@ -676,5 +717,73 @@ export class PersonalFormComponent implements OnInit {
     if (picker) {
       picker.open();
     }
+  }
+
+  // ===== MÉTODOS DE PERSISTENCIA =====
+
+  private restoreFormData(): void {
+    try {
+      const savedData = this.formPersistenceService.loadFormData(this.persistenceConfig);
+      
+      if (savedData) {
+        // Esperar a que el formulario y constantes estén cargados
+        setTimeout(() => {
+          this.personalForm.patchValue(savedData, { emitEvent: false });
+          
+          // Restaurar cualidades seleccionadas si existen
+          if (savedData.cualidades) {
+            this.cualidadesSeleccionadas = savedData.cualidades;
+          }
+          
+          console.log('✅ Borrador de personal restaurado:', savedData);
+        }, 500); // Más tiempo para cargar constantes
+      }
+    } catch (error) {
+      console.error('Error al restaurar borrador de personal:', error);
+    }
+  }
+
+  private setupFormPersistence(): void {
+    // Configurar auto-guardado para el formulario
+    this.formPersistenceService.setupAutoSave(this.personalForm, this.persistenceConfig);
+    
+    // También guardar cuando cambien las cualidades
+    this.personalForm.valueChanges.subscribe(() => {
+      // Verificar si tiene datos significativos antes de guardar
+      if (this.hasSignificantData(this.personalForm.value)) {
+        this.saveFormWithCualidades();
+      }
+    });
+  }
+
+  private saveFormWithCualidades(): void {
+    const formValueWithCualidades = {
+      ...this.personalForm.value,
+      cualidades: this.cualidadesSeleccionadas
+    };
+    
+    // Crear formulario temporal para guardar con cualidades
+    const tempForm = this.fb.group(formValueWithCualidades);
+    this.formPersistenceService.saveFormData(tempForm, this.persistenceConfig);
+  }
+
+  private hasSignificantData(formValue: any): boolean {
+    return this.formPersistenceService.hasSignificantChanges(formValue, [
+      'nombres', 'apellidos', 'telefono', 'email', 'direccion'
+    ]);
+  }
+
+  saveDraftManually(): void {
+    this.saveFormWithCualidades();
+    console.log('📝 Borrador guardado manualmente');
+  }
+
+  clearDraft(): void {
+    this.formPersistenceService.clearFormData(this.persistenceConfig);
+    console.log('🗑️ Borrador eliminado');
+  }
+
+  getDraftInfo(): { exists: boolean; timestamp?: string; size?: number } {
+    return this.formPersistenceService.getFormDataInfo(this.persistenceConfig);
   }
 } 

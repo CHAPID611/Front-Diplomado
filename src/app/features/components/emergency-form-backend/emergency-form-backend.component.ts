@@ -1,4 +1,4 @@
-import { Component, OnInit, OnDestroy, Input, Output, EventEmitter } from '@angular/core';
+import { Component, OnInit, OnDestroy, Input, Output, EventEmitter, ChangeDetectorRef } from '@angular/core';
 import { FormBuilder, FormGroup, FormArray, Validators, ReactiveFormsModule, AbstractControl, ValidationErrors } from '@angular/forms';
 import { CommonModule } from '@angular/common';
 import { MatCardModule } from '@angular/material/card';
@@ -25,6 +25,7 @@ import { PersonalDisponible } from '../../../core/interfaces/personal.interface'
 import { Emergency, EmergencyType, EmergencyFile, TipoEmergencia } from '../../../core/interfaces/emergency.interface';
 import { AuthService } from '../../../core/services/auth.service';
 import { VehiclesService, Vehicle } from '../../../core/services/vehicles.service';
+import { FormPersistenceService, FormPersistenceConfig } from '../../../core/services/form-persistence.service';
 
 interface Formulario {
   tipo: string;
@@ -98,12 +99,27 @@ export class EmergencyFormBackendComponent implements OnInit, OnDestroy {
 
   // Variables para sistema de pestañas con estado independiente
   private autoSaveTimeout: any;
+  private formSubscription: any; // Para limpiar subscripciones anteriores
+  
+  // Configuración de persistencia mejorada
+  private persistenceConfig: FormPersistenceConfig = {
+    key: 'emergency_form_draft',
+    autoSave: true,
+    autoSaveDelay: 3000,
+    storageType: 'localStorage', // Cambiado a localStorage para persistir después de recargar
+    excludeFields: [] // Las emergencias no tienen datos sensibles críticos
+  };
+  
+  // Nueva configuración para persistir la estructura de formularios múltiples
+  private tabsStructureConfig: FormPersistenceConfig = {
+    key: 'emergency_forms_structure',
+    autoSave: false, // Se guardará manualmente
+    storageType: 'localStorage',
+    excludeFields: []
+  };
   
   // Personal ocupado globalmente como Unidades de Respuesta
-  private globalOccupiedUnits: Set<number> = new Set();
-  
-  // Vehículos ocupados globalmente en todas las emergencias
-  private globalOccupiedVehicles: Set<number> = new Set();
+  // Las validaciones de ocupación han sido removidas
 
   constructor(
     private fb: FormBuilder,
@@ -112,8 +128,10 @@ export class EmergencyFormBackendComponent implements OnInit, OnDestroy {
     private emergencyDataService: EmergencyDataService,
     private authService: AuthService,
     private vehiclesService: VehiclesService,
+    private formPersistenceService: FormPersistenceService,
     private snackBar: MatSnackBar,
-    private router: Router
+    private router: Router,
+    private cdr: ChangeDetectorRef
   ) {
     this.createForm();
     this.loadEmergencyTypes();
@@ -125,6 +143,20 @@ export class EmergencyFormBackendComponent implements OnInit, OnDestroy {
     this.loadFormData();
     this.loadAvailableVehicles();
     this.loadAvailablePersonnel();
+    
+    // REMOVIDO: La persistencia se configura ahora en createForm()
+    // this.setupFormPersistence();
+    
+    // Esperar a que todo esté cargado antes de restaurar datos
+    setTimeout(() => {
+      // NUEVO: Primero restaurar la estructura de formularios múltiples
+      const hasMultipleForms = this.restoreFormulariesStructure();
+      
+      // Solo restaurar datos individuales si no se restauró una estructura múltiple
+      if (!hasMultipleForms) {
+        this.restoreFormDataFromPersistence();
+      }
+    }, 500);
     
     // Agregar listener para cambios en la selección de vehículos después de que se cree el formulario
     setTimeout(() => {
@@ -197,20 +229,8 @@ export class EmergencyFormBackendComponent implements OnInit, OnDestroy {
       eventosAdicionalesLlegadaHospital: this.fb.array([])
     });
 
-    // Listener para guardar automáticamente cuando cambien los valores
-    this.emergencyForm.valueChanges.subscribe(() => {
-      // Usar timeout para evitar llamadas excesivas
-      if (this.autoSaveTimeout) {
-        clearTimeout(this.autoSaveTimeout);
-      }
-      this.autoSaveTimeout = setTimeout(() => {
-        // Solo guardar si el formulario tiene datos significativos
-        const formValue = this.emergencyForm.value;
-        if (formValue.quienInforma || formValue.ubicacion || formValue.tipoEmergencia) {
-          this.saveCurrentFormState();
-        }
-      }, 3000); // Guardar después de 3 segundos de inactividad
-    });
+    // MEJORADO: Configurar persistencia automática para cada nuevo formulario
+    this.setupFormPersistence();
   }
 
   loadEmergencyTypes(): void {
@@ -260,6 +280,9 @@ export class EmergencyFormBackendComponent implements OnInit, OnDestroy {
     // Actualizar el nombre de la pestaña actual
     if (this.formularios[this.selectedIndex]) {
       this.formularios[this.selectedIndex].tipo = tipoNombre;
+      
+      // NUEVO: Guardar la estructura actualizada con el nuevo nombre de la pestaña
+      this.saveFormulariesStructure();
     }
     
     // Emitir el cambio si es necesario
@@ -402,107 +425,7 @@ export class EmergencyFormBackendComponent implements OnInit, OnDestroy {
 
   // Métodos para gestión global de personal ocupado
 
-  /**
-   * Actualiza el estado global de personal ocupado como Unidades de Respuesta
-   */
-  private updateGlobalOccupiedUnits(): void {
-    this.globalOccupiedUnits.clear();
-    
-    // Recorrer todos los formularios y recopilar las unidades ocupadas
-    this.formularios.forEach((form, index) => {
-      if (form.formData && form.formData.unidades) {
-        const unidades = Array.isArray(form.formData.unidades) ? form.formData.unidades : [];
-        unidades.forEach((id: number) => this.globalOccupiedUnits.add(id));
-      }
-    });
-    
-    // También incluir las unidades del formulario actual si no está guardado aún
-    const currentUnidades = this.emergencyForm.get('unidades')?.value || [];
-    currentUnidades.forEach((id: number) => this.globalOccupiedUnits.add(id));
-  }
-
-  /**
-   * Verifica si una persona está ocupada como Unidad de Respuesta en otro formulario
-   */
-  isPersonOccupiedInOtherForm(personalId: number): boolean {
-    // Actualizar el estado global
-    this.updateGlobalOccupiedUnits();
-    
-    // Verificar si está ocupado en otro formulario (no en el actual)
-    const currentFormUnidades = this.emergencyForm.get('unidades')?.value || [];
-    
-    // Si está en el set global pero NO en el formulario actual, está ocupado en otro formulario
-    return this.globalOccupiedUnits.has(personalId) && !currentFormUnidades.includes(personalId);
-  }
-
-  /**
-   * Obtiene el número del formulario donde está ocupada una persona
-   */
-  getFormNumberWherePersonIsOccupied(personalId: number): number | null {
-    for (let i = 0; i < this.formularios.length; i++) {
-      const form = this.formularios[i];
-      if (form.formData && form.formData.unidades) {
-        const unidades = Array.isArray(form.formData.unidades) ? form.formData.unidades : [];
-        if (unidades.includes(personalId) && i !== this.selectedIndex) {
-          return i + 1; // +1 porque los formularios se muestran desde 1
-        }
-      }
-    }
-    return null;
-  }
-
-  // Métodos para gestión global de vehículos ocupados
-
-  /**
-   * Actualiza el estado global de vehículos ocupados
-   */
-  private updateGlobalOccupiedVehicles(): void {
-    this.globalOccupiedVehicles.clear();
-    
-    // Recorrer todos los formularios y recopilar los vehículos ocupados
-    this.formularios.forEach((form, index) => {
-      if (form.formData && form.formData.vehiculo) {
-        const vehiculos = Array.isArray(form.formData.vehiculo) ? form.formData.vehiculo : [form.formData.vehiculo];
-        vehiculos.forEach((id: number) => this.globalOccupiedVehicles.add(id));
-      }
-    });
-    
-    // También incluir los vehículos del formulario actual si no está guardado aún
-    const currentVehiculos = this.emergencyForm.get('vehiculo')?.value || [];
-    const vehiculosArray = Array.isArray(currentVehiculos) ? currentVehiculos : [currentVehiculos];
-    vehiculosArray.forEach((id: number) => this.globalOccupiedVehicles.add(id));
-  }
-
-  /**
-   * Verifica si un vehículo está ocupado en otro formulario
-   */
-  isVehicleOccupiedInOtherForm(vehicleId: number): boolean {
-    // Actualizar el estado global
-    this.updateGlobalOccupiedVehicles();
-    
-    // Verificar si está ocupado en otro formulario (no en el actual)
-    const currentFormVehiculos = this.emergencyForm.get('vehiculo')?.value || [];
-    const vehiculosArray = Array.isArray(currentFormVehiculos) ? currentFormVehiculos : [currentFormVehiculos];
-    
-    // Si está en el set global pero NO en el formulario actual, está ocupado en otro formulario
-    return this.globalOccupiedVehicles.has(vehicleId) && !vehiculosArray.includes(vehicleId);
-  }
-
-  /**
-   * Obtiene el número del formulario donde está ocupado un vehículo
-   */
-  getFormNumberWhereVehicleIsOccupied(vehicleId: number): number | null {
-    for (let i = 0; i < this.formularios.length; i++) {
-      const form = this.formularios[i];
-      if (form.formData && form.formData.vehiculo) {
-        const vehiculos = Array.isArray(form.formData.vehiculo) ? form.formData.vehiculo : [form.formData.vehiculo];
-        if (vehiculos.includes(vehicleId) && i !== this.selectedIndex) {
-          return i + 1; // +1 porque los formularios se muestran desde 1
-        }
-      }
-    }
-    return null;
-  }
+  // Métodos de validación de ocupación removidos - ahora se permite seleccionar el mismo personal/vehículo en múltiples emergencias
 
   isUnidadSelected(personalId: number): boolean {
     const unidades = this.emergencyForm.get('unidades')?.value || [];
@@ -521,39 +444,11 @@ export class EmergencyFormBackendComponent implements OnInit, OnDestroy {
     return vehiculosArray.includes(vehicleId);
   }
 
-  private isUpdatingVehicles = false; // Bandera para evitar recursión
+  // Bandera removida - ya no se necesita para validaciones de ocupación
 
   onVehicleSelectionChange(selectedIds: number[]): void {
-    if (this.isUpdatingVehicles) return; // Evitar recursión
-    
-    // Verificar si algún vehículo está ocupado en otro formulario
-    const occupiedVehicles = selectedIds.filter(id => this.isVehicleOccupiedInOtherForm(id));
-    
-    if (occupiedVehicles.length > 0) {
-      this.isUpdatingVehicles = true; // Establecer bandera
-      
-      // Remover vehículos ocupados de la selección
-      const availableVehicles = selectedIds.filter(id => !this.isVehicleOccupiedInOtherForm(id));
-      
-      // Actualizar el formulario con solo los vehículos disponibles
-      this.emergencyForm.get('vehiculo')?.setValue(availableVehicles, { emitEvent: false });
-      
-      // Mostrar mensaje de error para cada vehículo ocupado
-      occupiedVehicles.forEach(vehicleId => {
-        const vehicle = this.availableVehicles.find(v => v.vehicleId === vehicleId);
-        const formNumber = this.getFormNumberWhereVehicleIsOccupied(vehicleId);
-        this.snackBar.open(
-          `El vehículo "${vehicle?.name || 'ID: ' + vehicleId}" ya está asignado a la Emergencia #${formNumber}`, 
-          'Cerrar', 
-          { duration: 4000 }
-        );
-      });
-      
-      this.isUpdatingVehicles = false; // Limpiar bandera
-    }
-    
-    // Actualizar estado global después del cambio
-    this.updateGlobalOccupiedVehicles();
+    // Ya no hay validaciones de ocupación - los vehículos pueden ser seleccionados en múltiples emergencias
+    console.log('Vehículos seleccionados:', selectedIds);
   }
 
   onUnidadChange(event: any, personalId: number): void {
@@ -561,20 +456,9 @@ export class EmergencyFormBackendComponent implements OnInit, OnDestroy {
     const guardia = this.emergencyForm.get('guardia')?.value || [];
     
     if (event.checked) {
-      // Verificar que no esté ya en guardia del mismo formulario
+      // Solo verificar que no esté ya en guardia del mismo formulario
       if (guardia.includes(personalId)) {
         this.snackBar.open('Esta persona ya está seleccionada como Personal de Guardia en este formulario', 'Cerrar', { duration: 3000 });
-        return;
-      }
-      
-      // Verificar que no esté ocupado en otro formulario como Unidad de Respuesta
-      if (this.isPersonOccupiedInOtherForm(personalId)) {
-        const formNumber = this.getFormNumberWherePersonIsOccupied(personalId);
-        this.snackBar.open(
-          `Esta persona ya está asignada como Unidad de Respuesta en la Emergencia #${formNumber}`, 
-          'Cerrar', 
-          { duration: 4000 }
-        );
         return;
       }
       
@@ -587,10 +471,6 @@ export class EmergencyFormBackendComponent implements OnInit, OnDestroy {
     }
     this.emergencyForm.get('unidades')?.setValue(unidades);
     this.emergencyForm.get('unidades')?.markAsTouched();
-    
-    // Actualizar estado global después del cambio
-    this.updateGlobalOccupiedUnits();
-    this.updateGlobalOccupiedVehicles();
   }
 
   onGuardiaChange(event: any, personalId: number): void {
@@ -598,25 +478,12 @@ export class EmergencyFormBackendComponent implements OnInit, OnDestroy {
     const unidades = this.emergencyForm.get('unidades')?.value || [];
     
     if (event.checked) {
-      // Verificar que no esté ya en unidades del mismo formulario
+      // Solo verificar que no esté ya en unidades del mismo formulario
       if (unidades.includes(personalId)) {
         this.snackBar.open('Esta persona ya está seleccionada como Unidad de Respuesta en este formulario', 'Cerrar', { duration: 3000 });
         return;
       }
       
-      // Verificar que no esté ocupado en otro formulario como Unidad de Respuesta
-      if (this.isPersonOccupiedInOtherForm(personalId)) {
-        const formNumber = this.getFormNumberWherePersonIsOccupied(personalId);
-        this.snackBar.open(
-          `Esta persona ya está asignada como Unidad de Respuesta en la Emergencia #${formNumber}. No puede ser Personal de Guardia mientras esté en campo.`, 
-          'Cerrar', 
-          { duration: 5000 }
-        );
-        return;
-      }
-      
-      // El personal de guardia SÍ puede estar en múltiples formularios
-      // ya que coordina desde la estación
       guardia.push(personalId);
     } else {
       const index = guardia.indexOf(personalId);
@@ -754,6 +621,10 @@ export class EmergencyFormBackendComponent implements OnInit, OnDestroy {
         console.log('Respuesta del backend:', response);
         this.submitSuccess = true;
         this.submitError = null;
+        
+        // Limpiar datos de persistencia después del envío exitoso
+        this.clearCurrentTabPersistence();
+        
         this.snackBar.open('✅ Emergencia guardada con éxito', 'Cerrar', { 
           duration: 4000,
           horizontalPosition: 'center',
@@ -850,12 +721,13 @@ export class EmergencyFormBackendComponent implements OnInit, OnDestroy {
       esTurnoSinConvenio: false
     });
 
+    // NUEVO: Guardar la estructura de formularios múltiples
+    this.saveFormulariesStructure();
+
     // Cambiar a la nueva pestaña
     setTimeout(() => {
       this.selectedIndex = this.formularios.length - 1;
-      // Actualizar estado global de personal ocupado y vehículos
-      this.updateGlobalOccupiedUnits();
-      this.updateGlobalOccupiedVehicles();
+      // Las validaciones de ocupación han sido removidas
     });
   }
 
@@ -863,10 +735,61 @@ export class EmergencyFormBackendComponent implements OnInit, OnDestroy {
   saveCurrentFormState(): void {
     const currentFormulario = this.formularios[this.selectedIndex];
     if (currentFormulario && this.emergencyForm) {
-      // Usar el ID único del formulario en lugar del índice
-      currentFormulario.formData = JSON.parse(JSON.stringify(this.emergencyForm.value));
+      const formValue = this.emergencyForm.value;
+      
+      // Preparar datos con tipos correctos para persistencia
+      const formValueWithExtras = {
+        ...formValue,
+        // Asegurar que los arrays se mantengan como arrays
+        vehiculo: Array.isArray(formValue.vehiculo) ? formValue.vehiculo : (formValue.vehiculo ? [formValue.vehiculo] : []),
+        unidades: Array.isArray(formValue.unidades) ? formValue.unidades : (formValue.unidades ? [formValue.unidades] : []),
+        guardia: Array.isArray(formValue.guardia) ? formValue.guardia : (formValue.guardia ? [formValue.guardia] : []),
+        
+        // NUEVO: Asegurar que los FormArrays de eventos se guarden correctamente como arrays
+        eventosAdicionalesSalida: Array.isArray(formValue.eventosAdicionalesSalida) ? formValue.eventosAdicionalesSalida : [],
+        eventosAdicionalesLlegadaEscena: Array.isArray(formValue.eventosAdicionalesLlegadaEscena) ? formValue.eventosAdicionalesLlegadaEscena : [],
+        eventosAdicionalesLlegadaHospital: Array.isArray(formValue.eventosAdicionalesLlegadaHospital) ? formValue.eventosAdicionalesLlegadaHospital : [],
+        
+        // Metadatos de archivos
+        selectedFiles: this.selectedFiles.map(f => ({ 
+          name: f.name, 
+          size: f.size, 
+          type: f.type, 
+          lastModified: f.lastModified 
+        })),
+        
+        // Estados adicionales
+        esTurnoSinConvenio: this.esTurnoSinConvenio,
+        tabIndex: this.selectedIndex,
+        totalTabs: this.formularios.length,
+        savedAt: new Date().toISOString()
+      };
+      
+      // Guardar en memoria local (para cambio de pestañas) con copia profunda
+      currentFormulario.formData = JSON.parse(JSON.stringify(formValueWithExtras));
       currentFormulario.selectedFiles = [...this.selectedFiles];
       currentFormulario.esTurnoSinConvenio = this.esTurnoSinConvenio;
+      
+      // Guardar en persistencia usando el servicio centralizado
+      const tabConfig: FormPersistenceConfig = {
+        ...this.persistenceConfig,
+        key: `${this.persistenceConfig.key}_tab_${this.selectedIndex}`
+      };
+      
+      // Crear formulario temporal con datos extendidos
+      const extendedForm = this.fb.group(formValueWithExtras);
+      
+      // Usar el servicio de persistencia centralizado
+      this.formPersistenceService.saveFormData(extendedForm, tabConfig);
+      
+      console.log(`💾 Estado guardado para pestaña ${this.selectedIndex}:`, {
+        vehiculo: formValueWithExtras.vehiculo,
+        unidades: formValueWithExtras.unidades,
+        guardia: formValueWithExtras.guardia,
+        eventosAdicionalesSalida: formValueWithExtras.eventosAdicionalesSalida,
+        eventosAdicionalesLlegadaEscena: formValueWithExtras.eventosAdicionalesLlegadaEscena,
+        eventosAdicionalesLlegadaHospital: formValueWithExtras.eventosAdicionalesLlegadaHospital
+      });
     }
   }
 
@@ -875,68 +798,125 @@ export class EmergencyFormBackendComponent implements OnInit, OnDestroy {
     const formulario = this.formularios[index];
     
     if (formulario && formulario.formData) {
-      // Primero recrear el formulario limpio
+      // Primero recrear el formulario limpio (esto ya configura la persistencia)
       this.createForm();
       
-      // Restaurar los FormArrays antes de hacer patchValue
-      this.restoreFormArrays(formulario.formData);
+      // Normalizar datos antes de restaurar
+      const normalizedData = this.normalizeFormData(formulario.formData);
       
-      // Restaurar los datos del formulario
-      this.emergencyForm.patchValue(formulario.formData);
+      // Restaurar los FormArrays antes de hacer patchValue
+      this.restoreFormArrays(normalizedData);
+      
+      // Restaurar los datos del formulario con datos normalizados
+      this.emergencyForm.patchValue(normalizedData, { emitEvent: false }); // Cambio a false para evitar auto-guardado inmediato
       
       // Restaurar archivos seleccionados
       this.selectedFiles = formulario.selectedFiles || [];
       
       // Restaurar estado del turno
       this.esTurnoSinConvenio = formulario.esTurnoSinConvenio || false;
+      
+      // Forzar actualización visual
+      this.forceFormUpdate();
+      
+      console.log(`📋 Formulario ${index} restaurado con auto-guardado configurado`);
     } else {
       // Si no hay datos guardados, limpiar el formulario
       this.resetForm();
-      this.createForm();
+      this.createForm(); // Esto también configura la persistencia automáticamente
+      
+      console.log(`📋 Formulario ${index} inicializado limpio con auto-guardado configurado`);
     }
   }
 
   // Restaurar FormArrays específicos
   restoreFormArrays(formData: any): void {
-    // Limpiar FormArrays actuales
-    while (this.eventosAdicionalesSalida.length !== 0) {
-      this.eventosAdicionalesSalida.removeAt(0);
-    }
-    while (this.eventosAdicionalesLlegadaEscena.length !== 0) {
-      this.eventosAdicionalesLlegadaEscena.removeAt(0);
-    }
-    while (this.eventosAdicionalesLlegadaHospital.length !== 0) {
-      this.eventosAdicionalesLlegadaHospital.removeAt(0);
+    if (!formData) {
+      console.warn('⚠️ No hay datos para restaurar FormArrays');
+      return;
     }
 
-    // Restaurar eventos adicionales de salida
-    if (formData.eventosAdicionalesSalida && Array.isArray(formData.eventosAdicionalesSalida) && formData.eventosAdicionalesSalida.length > 0) {
-      formData.eventosAdicionalesSalida.forEach((evento: any) => {
-        this.eventosAdicionalesSalida.push(this.fb.group({
-          hora: [evento.hora || '', Validators.required],
-          descripcion: [evento.descripcion || '']
-        }));
-      });
-    }
+    try {
+      // Limpiar FormArrays actuales de forma segura
+      this.clearFormArrays();
 
-    // Restaurar eventos adicionales de llegada a escena
-    if (formData.eventosAdicionalesLlegadaEscena && Array.isArray(formData.eventosAdicionalesLlegadaEscena) && formData.eventosAdicionalesLlegadaEscena.length > 0) {
-      formData.eventosAdicionalesLlegadaEscena.forEach((evento: any) => {
-        this.eventosAdicionalesLlegadaEscena.push(this.fb.group({
-          hora: [evento.hora || '', Validators.required],
-          descripcion: [evento.descripcion || '']
-        }));
-      });
-    }
+      // Restaurar eventos adicionales de salida
+      this.restoreFormArray(
+        'eventosAdicionalesSalida',
+        formData.eventosAdicionalesSalida,
+        this.eventosAdicionalesSalida
+      );
 
-    // Restaurar eventos adicionales de llegada al hospital
-    if (formData.eventosAdicionalesLlegadaHospital && Array.isArray(formData.eventosAdicionalesLlegadaHospital) && formData.eventosAdicionalesLlegadaHospital.length > 0) {
-      formData.eventosAdicionalesLlegadaHospital.forEach((evento: any) => {
-        this.eventosAdicionalesLlegadaHospital.push(this.fb.group({
-          hora: [evento.hora || '', Validators.required],
-          descripcion: [evento.descripcion || '']
-        }));
-      });
+      // Restaurar eventos adicionales de llegada a escena
+      this.restoreFormArray(
+        'eventosAdicionalesLlegadaEscena',
+        formData.eventosAdicionalesLlegadaEscena,
+        this.eventosAdicionalesLlegadaEscena
+      );
+
+      // Restaurar eventos adicionales de llegada al hospital
+      this.restoreFormArray(
+        'eventosAdicionalesLlegadaHospital',
+        formData.eventosAdicionalesLlegadaHospital,
+        this.eventosAdicionalesLlegadaHospital
+      );
+
+      console.log('✅ FormArrays restaurados exitosamente');
+    } catch (error) {
+      console.error('❌ Error al restaurar FormArrays:', error);
+      // En caso de error, asegurar que los FormArrays estén limpios
+      this.clearFormArrays();
+    }
+  }
+
+  /**
+   * Limpia todos los FormArrays de forma segura
+   */
+  private clearFormArrays(): void {
+    try {
+      // Limpiar FormArrays actuales de forma segura
+      while (this.eventosAdicionalesSalida && this.eventosAdicionalesSalida.length > 0) {
+        this.eventosAdicionalesSalida.removeAt(0);
+      }
+      while (this.eventosAdicionalesLlegadaEscena && this.eventosAdicionalesLlegadaEscena.length > 0) {
+        this.eventosAdicionalesLlegadaEscena.removeAt(0);
+      }
+      while (this.eventosAdicionalesLlegadaHospital && this.eventosAdicionalesLlegadaHospital.length > 0) {
+        this.eventosAdicionalesLlegadaHospital.removeAt(0);
+      }
+    } catch (error) {
+      console.error('Error al limpiar FormArrays:', error);
+    }
+  }
+
+  /**
+   * Restaura un FormArray específico de forma segura
+   */
+  private restoreFormArray(fieldName: string, data: any, formArray: FormArray): void {
+    try {
+      if (data && Array.isArray(data) && data.length > 0) {
+        console.log(`📋 Restaurando ${fieldName} con ${data.length} elementos`);
+        
+        data.forEach((evento: any, index: number) => {
+          try {
+            // Validar que el evento tenga la estructura correcta
+            if (evento && typeof evento === 'object') {
+              formArray.push(this.fb.group({
+                hora: [evento.hora || '', Validators.required],
+                descripcion: [evento.descripcion || '']
+              }));
+            } else {
+              console.warn(`⚠️ Elemento ${index} en ${fieldName} no tiene estructura válida:`, evento);
+            }
+          } catch (elementError) {
+            console.error(`❌ Error al restaurar elemento ${index} de ${fieldName}:`, elementError);
+          }
+        });
+      } else {
+        console.log(`ℹ️ No hay datos para restaurar en ${fieldName}`);
+      }
+    } catch (error) {
+      console.error(`❌ Error al restaurar FormArray ${fieldName}:`, error);
     }
   }
 
@@ -949,8 +929,15 @@ export class EmergencyFormBackendComponent implements OnInit, OnDestroy {
         // Guardar el estado actual antes de eliminar
         this.saveCurrentFormState();
         
+        // Limpiar datos persistidos de la pestaña que se va a eliminar
+        const tabConfig: FormPersistenceConfig = {
+          ...this.persistenceConfig,
+          key: `${this.persistenceConfig.key}_tab_${index}`
+        };
+        this.formPersistenceService.clearFormData(tabConfig);
+        
         // Eliminar el formulario específico
-      this.formularios.splice(index, 1);
+        this.formularios.splice(index, 1);
         
         // Determinar el nuevo índice seleccionado
         let newSelectedIndex: number;
@@ -975,13 +962,15 @@ export class EmergencyFormBackendComponent implements OnInit, OnDestroy {
         // Actualizar el índice seleccionado
         this.selectedIndex = newSelectedIndex;
         
+        // NUEVO: Guardar la nueva estructura de formularios
+        this.saveFormulariesStructure();
+        
         // Restaurar los datos de la nueva pestaña activa
         this.restoreFormState(this.selectedIndex);
-        
-
       }
     } else {
       // No se puede eliminar el último formulario
+      this.snackBar.open('No puedes eliminar el último formulario de emergencia', 'Cerrar', { duration: 3000 });
     }
   }
 
@@ -1000,12 +989,13 @@ export class EmergencyFormBackendComponent implements OnInit, OnDestroy {
     // Cambiar al nuevo índice
     this.selectedIndex = newIndex;
     
+    // NUEVO: Guardar la estructura actualizada con el nuevo índice seleccionado
+    this.saveFormulariesStructure();
+    
     // Restaurar el estado del formulario de la nueva pestaña
     this.restoreFormState(newIndex);
     
-    // Actualizar estado global de personal ocupado y vehículos
-    this.updateGlobalOccupiedUnits();
-    this.updateGlobalOccupiedVehicles();
+    // Las validaciones de ocupación han sido removidas
   }
 
   // Nuevo método para manejar el cambio de pestañas desde el template
@@ -1018,12 +1008,13 @@ export class EmergencyFormBackendComponent implements OnInit, OnDestroy {
       const oldIndex = this.selectedIndex;
       this.selectedIndex = newIndex;
       
+      // NUEVO: Guardar la estructura actualizada con el nuevo índice seleccionado
+      this.saveFormulariesStructure();
+      
       // Restaurar estado del nuevo formulario
       this.restoreFormState(newIndex);
       
-      // Actualizar estado global de personal ocupado y vehículos
-      this.updateGlobalOccupiedUnits();
-      this.updateGlobalOccupiedVehicles();
+      // Las validaciones de ocupación han sido removidas
     }
   }
 
@@ -1046,10 +1037,16 @@ export class EmergencyFormBackendComponent implements OnInit, OnDestroy {
       hora: ['', Validators.required],
       descripcion: ['']
     }));
+    
+    // NUEVO: Guardar inmediatamente cuando se agrega una novedad
+    this.saveEventAfterDelay();
   }
 
   removeEventoAdicionalSalida(index: number): void {
     this.eventosAdicionalesSalida.removeAt(index);
+    
+    // NUEVO: Guardar inmediatamente cuando se elimina una novedad
+    this.saveEventAfterDelay();
   }
 
   addEventoAdicionalLlegadaEscena(): void {
@@ -1057,10 +1054,16 @@ export class EmergencyFormBackendComponent implements OnInit, OnDestroy {
       hora: ['', Validators.required],
       descripcion: ['']
     }));
+    
+    // NUEVO: Guardar inmediatamente cuando se agrega una novedad
+    this.saveEventAfterDelay();
   }
 
   removeEventoAdicionalLlegadaEscena(index: number): void {
     this.eventosAdicionalesLlegadaEscena.removeAt(index);
+    
+    // NUEVO: Guardar inmediatamente cuando se elimina una novedad
+    this.saveEventAfterDelay();
   }
 
   addEventoAdicionalLlegadaHospital(): void {
@@ -1068,10 +1071,16 @@ export class EmergencyFormBackendComponent implements OnInit, OnDestroy {
       hora: ['', Validators.required],
       descripcion: ['']
     }));
+    
+    // NUEVO: Guardar inmediatamente cuando se agrega una novedad
+    this.saveEventAfterDelay();
   }
 
   removeEventoAdicionalLlegadaHospital(index: number): void {
     this.eventosAdicionalesLlegadaHospital.removeAt(index);
+    
+    // NUEVO: Guardar inmediatamente cuando se elimina una novedad
+    this.saveEventAfterDelay();
   }
 
   ngOnDestroy(): void {
@@ -1081,6 +1090,11 @@ export class EmergencyFormBackendComponent implements OnInit, OnDestroy {
     // Limpiar timeout de auto-guardado
     if (this.autoSaveTimeout) {
       clearTimeout(this.autoSaveTimeout);
+    }
+
+    // NUEVO: Limpiar subscripción del formulario
+    if (this.formSubscription) {
+      this.formSubscription.unsubscribe();
     }
     
     // Limpiar URLs blob para liberar memoria al destruir el componente
@@ -1202,5 +1216,554 @@ export class EmergencyFormBackendComponent implements OnInit, OnDestroy {
         }
       }, 1500);
     }
+  }
+
+  // ===== MÉTODOS ADICIONALES DE PERSISTENCIA =====
+
+  /**
+   * Guarda manualmente la pestaña actual
+   */
+  saveDraftManually(): void {
+    this.saveCurrentFormState();
+    this.snackBar.open('Borrador guardado exitosamente', 'Cerrar', { duration: 2000 });
+  }
+
+  /**
+   * NUEVO: Guarda el formulario después de un breve delay cuando se agregan/eliminan eventos
+   */
+  private saveEventAfterDelay(): void {
+    // Limpiar timeout anterior si existe
+    if (this.autoSaveTimeout) {
+      clearTimeout(this.autoSaveTimeout);
+    }
+    
+    // Guardar después de un breve delay para permitir que el FormArray se actualice
+    this.autoSaveTimeout = setTimeout(() => {
+      this.saveCurrentFormState();
+      console.log(`💾 Auto-guardado de eventos/novedades ejecutado para pestaña ${this.selectedIndex}`);
+    }, 500); // Delay más corto para eventos/novedades
+  }
+
+  /**
+   * Método de debug para verificar el estado del formulario
+   */
+  debugFormState(): void {
+    console.log('🔍 === DEBUG DEL FORMULARIO ===');
+    console.log('📋 Valores del formulario:', this.emergencyForm.value);
+    console.log('✅ ¿Formulario válido?:', this.emergencyForm.valid);
+    console.log('💾 ¿Formulario sucio?:', this.emergencyForm.dirty);
+    console.log('👆 ¿Formulario tocado?:', this.emergencyForm.touched);
+    
+    // Verificar campos específicos
+    const importantFields = ['quienInforma', 'ubicacion', 'horaReporte', 'horaSalida'];
+    console.log('\n📝 Estado de campos importantes:');
+    importantFields.forEach(field => {
+      const control = this.emergencyForm.get(field);
+      if (control) {
+        console.log(`  ${field}:`, {
+          value: control.value,
+          valid: control.valid,
+          dirty: control.dirty,
+          touched: control.touched,
+          errors: control.errors
+        });
+      }
+    });
+    
+    // Verificar datos de persistencia
+    const tabConfig = {
+      ...this.persistenceConfig,
+      key: `${this.persistenceConfig.key}_tab_${this.selectedIndex}`
+    };
+    const savedData = this.formPersistenceService.loadFormData(tabConfig);
+    console.log('\n💾 Datos en persistencia:', savedData);
+  }
+
+  /**
+   * Limpia todos los datos de persistencia de emergencias
+   */
+  clearAllEmergencyData(): void {
+    // Limpiar todas las pestañas
+    for (let i = 0; i < this.formularios.length; i++) {
+      const tabConfig: FormPersistenceConfig = {
+        ...this.persistenceConfig,
+        key: `${this.persistenceConfig.key}_tab_${i}`
+      };
+      this.formPersistenceService.clearFormData(tabConfig);
+    }
+    
+    // Limpiar datos principales
+    this.formPersistenceService.clearFormData(this.persistenceConfig);
+    
+    // NUEVO: Limpiar la estructura de formularios múltiples
+    this.formPersistenceService.clearFormData(this.tabsStructureConfig);
+    
+    // Reiniciar a la estructura por defecto
+    this.formularios = [{ 
+      tipo: 'Emergencia Principal', 
+      id: 1,
+      formData: null,
+      selectedFiles: [],
+      esTurnoSinConvenio: false
+    }];
+    this.selectedIndex = 0;
+    
+    // Recrear el formulario
+    this.createForm();
+    
+    this.snackBar.open('Todos los borradores eliminados', 'Cerrar', { duration: 2000 });
+  }
+
+  /**
+   * Configura la persistencia automática usando el servicio centralizado
+   */
+  private setupFormPersistence(): void {
+    // Limpiar subscripción anterior si existe
+    if (this.formSubscription) {
+      this.formSubscription.unsubscribe();
+      console.log('🧹 Subscripción anterior limpiada');
+    }
+
+    // Limpiar timeout anterior si existe
+    if (this.autoSaveTimeout) {
+      clearTimeout(this.autoSaveTimeout);
+    }
+
+    // Configurar auto-guardado personalizado que solo guarde cuando hay datos significativos
+    this.formSubscription = this.emergencyForm.valueChanges.subscribe(values => {
+      // Solo guardar si hay datos significativos
+      if (this.hasSignificantData(values)) {
+        // Usar timeout para evitar llamadas excesivas
+        if (this.autoSaveTimeout) {
+          clearTimeout(this.autoSaveTimeout);
+        }
+        
+        this.autoSaveTimeout = setTimeout(() => {
+          this.saveCurrentFormState();
+          console.log(`💾 Auto-guardado ejecutado para pestaña ${this.selectedIndex} con datos significativos`);
+        }, this.persistenceConfig.autoSaveDelay || 3000);
+      }
+    });
+    
+    console.log(`✅ Persistencia automática configurada para formulario pestaña ${this.selectedIndex}`);
+  }
+
+  /**
+   * Verifica si el formulario tiene datos significativos para guardar
+   */
+  private hasSignificantData(formValue: any): boolean {
+    // Campos que indican que hay datos reales
+    const significantFields = [
+      'quienInforma', 
+      'ubicacion', 
+      'tipoEmergencia', 
+      'horaReporte', 
+      'horaSalida',
+      'horaRegresoEstacion'
+    ];
+
+    return significantFields.some(field => {
+      const value = formValue[field];
+      return value && value.toString().trim() !== '';
+    });
+  }
+
+  /**
+   * Normaliza los datos del formulario para evitar errores de tipo al restaurar
+   */
+  private normalizeFormData(savedData: any): any {
+    if (!savedData) return {};
+
+    const normalized = { ...savedData };
+
+    // Campos que deben ser arrays para selección múltiple
+    const multiSelectFields = ['vehiculo', 'unidades', 'guardia'];
+    
+    // Campos que deben ser strings
+    const stringFields = [
+      'quienInforma', 'ubicacion', 'tipoEmergencia', 'numeroTurno',
+      'horaReporte', 'horaReporteDescripcion',
+      'horaSalida', 'horaSalidaDescripcion',
+      'horaLlegadaEscena', 'horaLlegadaEscenaDescripcion',
+      'horaLlegadaHospital', 'horaLlegadaHospitalDescripcion',
+      'horaRegresoEstacion', 'horaRegresoEstacionDescripcion'
+    ];
+
+    // Campos que deben ser booleanos
+    const booleanFields = ['sinConvenio', 'esTurnoSinConvenio'];
+
+    // Normalizar campos de selección múltiple
+    multiSelectFields.forEach(field => {
+      if (normalized[field] !== undefined) {
+        if (Array.isArray(normalized[field])) {
+          // Ya es array, mantener
+          normalized[field] = normalized[field];
+        } else if (normalized[field] === null || normalized[field] === '') {
+          // Valor vacío, convertir a array vacío
+          normalized[field] = [];
+        } else if (typeof normalized[field] === 'string') {
+          // String, intentar parsear como JSON o convertir a array
+          try {
+            const parsed = JSON.parse(normalized[field]);
+            normalized[field] = Array.isArray(parsed) ? parsed : [normalized[field]];
+          } catch {
+            // Si no se puede parsear, crear array con el valor
+            normalized[field] = [normalized[field]];
+          }
+        } else {
+          // Otro tipo, convertir a array
+          normalized[field] = [normalized[field]];
+        }
+      }
+    });
+
+    // Normalizar campos de string
+    stringFields.forEach(field => {
+      if (normalized[field] !== undefined) {
+        if (normalized[field] === null) {
+          normalized[field] = '';
+        } else {
+          normalized[field] = normalized[field].toString();
+        }
+      }
+    });
+
+    // Normalizar campos booleanos
+    booleanFields.forEach(field => {
+      if (normalized[field] !== undefined) {
+        if (typeof normalized[field] === 'string') {
+          normalized[field] = normalized[field] === 'true';
+        } else {
+          normalized[field] = Boolean(normalized[field]);
+        }
+      }
+    });
+
+    // Manejar fechas
+    if (normalized.fechaReporte) {
+      try {
+        normalized.fechaReporte = new Date(normalized.fechaReporte);
+      } catch {
+        normalized.fechaReporte = new Date();
+      }
+    }
+
+    // Normalizar FormArrays (eventos adicionales/novedades)
+    const formArrayFields = [
+      'eventosAdicionalesSalida',
+      'eventosAdicionalesLlegadaEscena', 
+      'eventosAdicionalesLlegadaHospital'
+    ];
+
+    formArrayFields.forEach(field => {
+      if (normalized[field] !== undefined) {
+        if (Array.isArray(normalized[field])) {
+          // Ya es array, validar que cada elemento tenga la estructura correcta
+          normalized[field] = normalized[field].map((item: any) => {
+            if (typeof item === 'object' && item !== null) {
+              return {
+                hora: item.hora || '',
+                descripcion: item.descripcion || ''
+              };
+            } else {
+              // Si no es un objeto válido, crear estructura por defecto
+              return {
+                hora: '',
+                descripcion: ''
+              };
+            }
+          });
+        } else if (normalized[field] === null || normalized[field] === '') {
+          // Valor vacío, convertir a array vacío
+          normalized[field] = [];
+        } else if (typeof normalized[field] === 'object' && normalized[field] !== null) {
+          // NUEVO: Si es un objeto (probablemente un solo elemento mal serializado), convertir a array
+          const singleItem = normalized[field];
+          if (singleItem.hora !== undefined || singleItem.descripcion !== undefined) {
+            console.warn(`Campo FormArray ${field} era un objeto, convirtiéndolo a array con un elemento:`, singleItem);
+            normalized[field] = [{
+              hora: singleItem.hora || '',
+              descripcion: singleItem.descripcion || ''
+            }];
+          } else {
+            console.warn(`Campo FormArray ${field} es un objeto sin estructura válida, inicializando como array vacío:`, singleItem);
+            normalized[field] = [];
+          }
+        } else {
+          // Otro tipo, convertir a array vacío para evitar errores
+          console.warn(`Campo FormArray ${field} no es un array válido, inicializando como array vacío:`, normalized[field]);
+          normalized[field] = [];
+        }
+      } else {
+        // Si no existe, inicializar como array vacío
+        normalized[field] = [];
+      }
+    });
+
+    console.log('📋 Datos normalizados para restauración:', {
+      original: savedData,
+      normalized: normalized
+    });
+
+    return normalized;
+  }
+
+  /**
+   * Restaura datos guardados desde el servicio de persistencia
+   */
+  private restoreFormDataFromPersistence(): void {
+    try {
+      // Intentar cargar datos de la pestaña actual
+      const tabConfig: FormPersistenceConfig = {
+        ...this.persistenceConfig,
+        key: `${this.persistenceConfig.key}_tab_${this.selectedIndex}`
+      };
+      
+      const savedData = this.formPersistenceService.loadFormData(tabConfig);
+      
+      if (savedData) {
+        console.log('📥 Datos encontrados para restaurar:', savedData);
+        
+        // ✅ VERIFICAR SI LOS DATOS SON SIGNIFICATIVOS
+        if (!this.hasSignificantData(savedData)) {
+          console.log('⚠️ Los datos guardados están vacíos, limpiando almacenamiento');
+          this.formPersistenceService.clearFormData(tabConfig);
+          return;
+        }
+        
+        // Esperar a que el formulario esté completamente inicializado
+        setTimeout(() => {
+          // Restaurar FormArrays antes de hacer patchValue
+          this.restoreFormArrays(savedData);
+          
+          // Normalizar datos antes de restaurar para evitar errores de tipo
+          const normalizedData = this.normalizeFormData(savedData);
+          
+          // Restaurar datos del formulario con emitEvent: true para activar change detection
+          this.emergencyForm.patchValue(normalizedData, { emitEvent: true });
+          
+          // Forzar detección de cambios
+          this.emergencyForm.markAsDirty();
+          this.emergencyForm.updateValueAndValidity();
+          
+          // Restaurar estado adicional
+          if (savedData.esTurnoSinConvenio !== undefined) {
+            this.esTurnoSinConvenio = savedData.esTurnoSinConvenio;
+            // Actualizar el checkbox manualmente si es necesario
+            const sinConvenioControl = this.emergencyForm.get('sinConvenio');
+            if (sinConvenioControl) {
+              sinConvenioControl.setValue(savedData.esTurnoSinConvenio, { emitEvent: true });
+            }
+          }
+          
+          // Restaurar metadatos de archivos si existen
+          if (savedData.selectedFiles && Array.isArray(savedData.selectedFiles)) {
+            console.log('📁 Archivos previamente seleccionados:', savedData.selectedFiles);
+            this.snackBar.open(
+              `Se encontraron ${savedData.selectedFiles.length} archivos previamente seleccionados. Deberás volver a seleccionarlos.`, 
+              'Cerrar', 
+              { duration: 5000 }
+            );
+          }
+          
+          // Forzar actualización visual múltiple para asegurar visualización
+          this.forceFormUpdate();
+          
+          // Segunda actualización después de un momento
+          setTimeout(() => {
+            this.forceFormUpdate();
+          }, 100);
+          
+          console.log('✅ Datos de emergencia restaurados y mostrados');
+          console.log('📋 Estado final del formulario:', this.emergencyForm.value);
+          this.snackBar.open('Borrador de emergencia restaurado', 'Cerrar', { duration: 3000 });
+        }, 300); // Aumentar el tiempo de espera para asegurar inicialización completa
+      } else {
+        console.log('ℹ️ No hay datos guardados para restaurar en esta pestaña');
+      }
+    } catch (error) {
+      console.error('Error al restaurar datos de persistencia:', error);
+    }
+  }
+
+  /**
+   * Limpia los datos de persistencia de la pestaña actual
+   */
+  private clearCurrentTabPersistence(): void {
+    const tabConfig: FormPersistenceConfig = {
+      ...this.persistenceConfig,
+      key: `${this.persistenceConfig.key}_tab_${this.selectedIndex}`
+    };
+    
+    this.formPersistenceService.clearFormData(tabConfig);
+    console.log(`🗑️ Datos de persistencia limpiados para pestaña ${this.selectedIndex}`);
+  }
+
+  /**
+   * Fuerza la actualización visual de todos los controles del formulario
+   */
+  private forceFormUpdate(): void {
+    // Forzar actualización de todos los controles
+    Object.keys(this.emergencyForm.controls).forEach(key => {
+      const control = this.emergencyForm.get(key);
+      if (control) {
+        control.markAsTouched();
+        control.updateValueAndValidity();
+      }
+    });
+
+    // Forzar actualización de FormArrays
+    const formArrays = ['eventosAdicionalesSalida', 'eventosAdicionalesLlegadaEscena', 'eventosAdicionalesLlegadaHospital'];
+    formArrays.forEach(arrayName => {
+      const formArray = this.emergencyForm.get(arrayName) as FormArray;
+      if (formArray) {
+        formArray.controls.forEach(control => {
+          control.markAsTouched();
+          control.updateValueAndValidity();
+        });
+      }
+    });
+
+    // Forzar detección de cambios de Angular
+    this.cdr.detectChanges();
+    
+    // Marcar para verificación en el próximo ciclo
+    this.cdr.markForCheck();
+
+    console.log('🔄 Actualización visual del formulario forzada con ChangeDetectorRef');
+  }
+
+  /**
+   * NUEVO: Guarda la estructura de formularios múltiples en localStorage
+   */
+  private saveFormulariesStructure(): void {
+    try {
+      const structureData = {
+        formularios: this.formularios.map(form => ({
+          tipo: form.tipo,
+          id: form.id,
+          esTurnoSinConvenio: form.esTurnoSinConvenio || false
+        })),
+        selectedIndex: this.selectedIndex,
+        timestamp: new Date().toISOString()
+      };
+
+      // Crear un FormGroup temporal para usar el servicio de persistencia
+      const tempForm = this.fb.group({ structureData: [structureData] });
+      
+      this.formPersistenceService.saveFormData(tempForm, this.tabsStructureConfig);
+      
+      console.log('📂 Estructura de formularios múltiples guardada:', structureData);
+    } catch (error) {
+      console.error('❌ Error al guardar estructura de formularios:', error);
+    }
+  }
+
+  /**
+   * NUEVO: Restaura la estructura de formularios múltiples desde localStorage
+   * @returns true si restauró múltiples formularios, false si no había datos guardados
+   */
+  private restoreFormulariesStructure(): boolean {
+    try {
+      const savedStructure = this.formPersistenceService.loadFormData(this.tabsStructureConfig);
+      
+      if (savedStructure && savedStructure.structureData) {
+        const structureData = savedStructure.structureData;
+        
+        if (structureData.formularios && Array.isArray(structureData.formularios) && structureData.formularios.length > 0) {
+          // Restaurar la estructura de formularios
+          this.formularios = structureData.formularios.map((savedForm: any) => ({
+            tipo: savedForm.tipo || 'Nueva Emergencia',
+            id: savedForm.id || Date.now(),
+            formData: null, // Se restaurará individualmente
+            selectedFiles: [],
+            esTurnoSinConvenio: savedForm.esTurnoSinConvenio || false
+          }));
+
+          // Restaurar el índice seleccionado
+          this.selectedIndex = structureData.selectedIndex || 0;
+          
+          // Validar que el índice sea válido
+          if (this.selectedIndex >= this.formularios.length) {
+            this.selectedIndex = this.formularios.length - 1;
+          }
+
+          // NUEVO: Restaurar el contenido de todos los formularios
+          this.restoreAllFormulariesContent();
+
+          console.log('📂 Estructura de formularios múltiples restaurada:', {
+            formularios: this.formularios.length,
+            selectedIndex: this.selectedIndex
+          });
+
+          this.snackBar.open(
+            `Se restauraron ${this.formularios.length} formulario(s) de emergencia`,
+            'Cerrar',
+            { duration: 4000 }
+          );
+          
+          return true; // Se restauraron múltiples formularios
+        } else {
+          console.log('ℹ️ No hay estructura de formularios múltiples para restaurar');
+          return false; // No había estructura guardada
+        }
+      } else {
+        console.log('ℹ️ No se encontró estructura guardada de formularios múltiples');
+        return false; // No había datos guardados
+      }
+    } catch (error) {
+      console.error('❌ Error al restaurar estructura de formularios:', error);
+      // En caso de error, mantener la estructura por defecto
+      this.formularios = [{ 
+        tipo: 'Emergencia Principal', 
+        id: 1,
+        formData: null,
+        selectedFiles: [],
+        esTurnoSinConvenio: false
+      }];
+      this.selectedIndex = 0;
+      return false; // Error, no se restauró
+    }
+  }
+
+  /**
+   * NUEVO: Restaura el contenido guardado de todos los formularios
+   */
+  private restoreAllFormulariesContent(): void {
+    console.log('🔄 Iniciando restauración de contenido para todos los formularios...');
+    
+    // Restaurar contenido de cada formulario en memoria
+    for (let i = 0; i < this.formularios.length; i++) {
+      const tabConfig: FormPersistenceConfig = {
+        ...this.persistenceConfig,
+        key: `${this.persistenceConfig.key}_tab_${i}`
+      };
+      
+      try {
+        const savedFormData = this.formPersistenceService.loadFormData(tabConfig);
+        
+        if (savedFormData && this.hasSignificantData(savedFormData)) {
+          // Guardar el contenido en el objeto formulario
+          this.formularios[i].formData = savedFormData;
+          
+          // Restaurar estado adicional
+          if (savedFormData.esTurnoSinConvenio !== undefined) {
+            this.formularios[i].esTurnoSinConvenio = savedFormData.esTurnoSinConvenio;
+          }
+          
+          console.log(`📋 Contenido restaurado para formulario ${i}:`, this.formularios[i].tipo);
+        } else {
+          console.log(`ℹ️ No hay contenido significativo para restaurar en formulario ${i}`);
+        }
+      } catch (error) {
+        console.error(`❌ Error al restaurar contenido del formulario ${i}:`, error);
+      }
+    }
+    
+    // Después de restaurar todos los contenidos, cargar el formulario activo
+    setTimeout(() => {
+      this.restoreFormState(this.selectedIndex);
+      console.log('✅ Restauración completa de todos los formularios finalizada');
+    }, 100);
   }
 }
