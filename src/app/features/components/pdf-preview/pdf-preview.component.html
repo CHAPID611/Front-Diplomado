@@ -1,0 +1,83 @@
+<div class="pdf-preview-container">
+  <!-- Toolbar superior con botones -->
+  <mat-toolbar class="preview-toolbar" color="primary">
+    <div class="toolbar-content">
+      <!-- Título del reporte -->
+      <div class="report-title">
+        <mat-icon>picture_as_pdf</mat-icon>
+        <span>{{ getReportTitle() }}</span>
+      </div>
+      
+      <!-- Botones de acción -->
+      <div class="action-buttons">
+        <button mat-raised-button 
+                color="accent" 
+                (click)="downloadPdf()"
+                [disabled]="isLoading || error"
+                class="download-btn">
+          <mat-icon>download</mat-icon>
+          Descargar PDF
+        </button>
+        
+        <button mat-raised-button 
+                (click)="goBack()"
+                class="back-btn">
+          <mat-icon>arrow_back</mat-icon>
+          Volver a Reportes
+        </button>
+      </div>
+    </div>
+  </mat-toolbar>
+
+  <!-- Contenido principal -->
+  <div class="preview-content">
+    <!-- Estado de carga -->
+    <div *ngIf="isLoading" class="loading-state">
+      <div class="loading-content">
+        <mat-spinner diameter="50"></mat-spinner>
+        <h3>Cargando vista previa del PDF...</h3>
+        <p>Por favor espera mientras se genera el reporte</p>
+      </div>
+    </div>
+
+    <!-- Estado de error -->
+    <div *ngIf="error && !isLoading" class="error-state">
+      <div class="error-content">
+        <mat-icon class="error-icon">error_outline</mat-icon>
+        <h3>Error al cargar la vista previa</h3>
+        <p>{{ error }}</p>
+        <button mat-raised-button color="primary" (click)="retryLoad()">
+          <mat-icon>refresh</mat-icon>
+          Reintentar
+        </button>
+      </div>
+    </div>
+
+    <!-- Vista previa del PDF -->
+    <div *ngIf="pdfUrl && !isLoading && !error" class="pdf-viewer">
+      <iframe 
+        [src]="pdfUrl" 
+        class="pdf-iframe"
+        title="Vista previa del PDF">
+      </iframe>
+    </div>
+  </div>
+
+  <!-- Overlay de acciones flotantes (para móvil) -->
+  <div class="floating-actions" *ngIf="!isLoading && !error">
+    <button mat-fab 
+            color="accent" 
+            (click)="downloadPdf()"
+            matTooltip="Descargar PDF"
+            class="fab-download">
+      <mat-icon>download</mat-icon>
+    </button>
+    
+    <button mat-fab 
+            (click)="goBack()"
+            matTooltip="Volver a Reportes"
+            class="fab-back">
+      <mat-icon>arrow_back</mat-icon>
+    </button>
+  </div>
+</div>

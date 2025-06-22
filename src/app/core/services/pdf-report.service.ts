@@ -8,6 +8,7 @@ export interface ReportFilters {
   startDate?: string;
   endDate?: string;
   emergencyType: string;
+  emergencyId?: number; // Para filtrar por emergencia específica
 }
 
 export interface ReportData {
@@ -56,6 +57,9 @@ export class PdfReportService {
     if (filters.emergencyType !== 'all' && filters.emergencyType) {
       params.append('emergencyTypeId', filters.emergencyType);
     }
+    if (filters.emergencyId) {
+      params.append('emergencyId', filters.emergencyId.toString());
+    }
 
     return this.http.get(`${this.apiUrl}/reportes/preview?${params.toString()}`, {
       headers: this.getHeaders()
@@ -73,9 +77,15 @@ export class PdfReportService {
     if (filters.emergencyType !== 'all' && filters.emergencyType) {
       params.append('emergencyTypeId', filters.emergencyType);
     }
+    if (filters.emergencyId) {
+      params.append('emergencyId', filters.emergencyId.toString());
+    }
 
+    console.log('PdfReportService: URL siendo llamada:', `${this.apiUrl}/reportes/emergencias?${params.toString()}`);
+    console.log('PdfReportService: Parámetros enviados:', Object.fromEntries(params.entries()));
+
+    // NO usar headers manuales, confiar en el interceptor de Angular
     return this.http.get(`${this.apiUrl}/reportes/emergencias?${params.toString()}`, {
-      headers: this.getHeaders(),
       responseType: 'blob'
     });
   }

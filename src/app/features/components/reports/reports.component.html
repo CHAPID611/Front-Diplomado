@@ -30,18 +30,30 @@
           </mat-form-field>
 
           <mat-form-field appearance="outline" *ngIf="filtersForm.get('period')?.value === 'custom'">
-            <mat-label>Fecha inicio</mat-label>
-            <input matInput [matDatepicker]="startPicker" formControlName="startDate" placeholder="Seleccionar fecha de inicio">
+            <mat-label>Fecha inicio *</mat-label>
+            <input matInput [matDatepicker]="startPicker" formControlName="startDate" placeholder="Seleccionar fecha de inicio" required>
             <mat-datepicker-toggle matIconSuffix [for]="startPicker"></mat-datepicker-toggle>
             <mat-datepicker #startPicker></mat-datepicker>
+            <mat-error *ngIf="filtersForm.get('startDate')?.hasError('required')">
+              La fecha de inicio es requerida para el período personalizado
+            </mat-error>
           </mat-form-field>
 
           <mat-form-field appearance="outline" *ngIf="filtersForm.get('period')?.value === 'custom'">
-            <mat-label>Fecha fin</mat-label>
-            <input matInput [matDatepicker]="endPicker" formControlName="endDate" placeholder="Seleccionar fecha de fin">
+            <mat-label>Fecha fin *</mat-label>
+            <input matInput [matDatepicker]="endPicker" formControlName="endDate" placeholder="Seleccionar fecha de fin" required>
             <mat-datepicker-toggle matIconSuffix [for]="endPicker"></mat-datepicker-toggle>
             <mat-datepicker #endPicker></mat-datepicker>
+            <mat-error *ngIf="filtersForm.get('endDate')?.hasError('required')">
+              La fecha de fin es requerida para el período personalizado
+            </mat-error>
           </mat-form-field>
+
+          <!-- Mensaje informativo para período personalizado -->
+          <div *ngIf="filtersForm.get('period')?.value === 'custom'" class="custom-period-info" style="margin: 8px 0; padding: 8px; background-color: #e3f2fd; border-radius: 4px; font-size: 12px; color: #1976d2;">
+            <mat-icon style="font-size: 16px; vertical-align: middle; margin-right: 4px;">info</mat-icon>
+            Selecciona ambas fechas para cargar los datos del período personalizado
+          </div>
 
           <!-- Tiempo objetivo removido - ahora se configura desde el panel de administración -->
 
@@ -60,6 +72,8 @@
             Aplicar Filtros
           </button>
         </div>
+
+
       </form>
     </mat-card-content>
   </mat-card>
@@ -100,16 +114,7 @@
       </div>
     </mat-card>
 
-    <mat-card class="stat-card warning">
-      <div class="stat-content">
-        <mat-icon class="stat-icon">check_circle</mat-icon>
-        <div class="stat-info">
-          <h3>Tasa de Éxito</h3>
-          <p class="stat-number">{{ reportData.successRate }}%</p>
-          <small>emergencias resueltas</small>
-        </div>
-      </div>
-    </mat-card>
+
 
     <mat-card class="stat-card info">
       <div class="stat-content">
@@ -143,11 +148,6 @@
 
       <!-- Tabla de emergencias -->
       <div *ngIf="!isLoadingEmergencies">
-        <div class="list-summary" *ngIf="emergenciesPreview">
-          <p><strong>Total de emergencias en el período:</strong> {{ emergenciesPreview.totalEmergencies }}</p>
-          <p><strong>Mostrando:</strong> {{ emergenciesList.length }} emergencias de muestra</p>
-        </div>
-
         <mat-table [dataSource]="emergenciesList" class="emergencies-table" *ngIf="emergenciesList.length > 0">
           <ng-container matColumnDef="emergencyId">
             <mat-header-cell *matHeaderCellDef>ID</mat-header-cell>
@@ -185,6 +185,14 @@
                       (click)="previewEmergency(emergency)"
                       matTooltip="Previsualizar emergencia">
                 <mat-icon>visibility</mat-icon>
+              </button>
+              <button mat-icon-button 
+                      color="accent" 
+                      (click)="downloadIndividualReport(emergency)"
+                      [disabled]="isGeneratingIndividualPdf === emergency.emergencyId"
+                      matTooltip="Descargar reporte individual">
+                <mat-icon *ngIf="isGeneratingIndividualPdf !== emergency.emergencyId">download</mat-icon>
+                <mat-icon *ngIf="isGeneratingIndividualPdf === emergency.emergencyId" class="spinner">refresh</mat-icon>
               </button>
             </mat-cell>
           </ng-container>
@@ -409,17 +417,31 @@
     <div class="action-group">
       <h3>
         <mat-icon style="vertical-align: middle; margin-right: 8px;">description</mat-icon>
-        Reporte de Emergencias
+        Reporte General de Emergencias
       </h3>
-      <p>Para entidades externas - Contiene detalle completo de cada emergencia</p>
+      <p>Descarga todas las emergencias según los filtros aplicados - Para entidades externas</p>
       <div class="buttons">
+        <button mat-raised-button 
+                color="primary" 
+                (click)="previewGeneralReport()"
+                [disabled]="emergenciesList.length === 0"
+                style="margin-right: 8px;">
+          <mat-icon>visibility</mat-icon>
+          Vista Previa
+        </button>
         <button mat-raised-button color="primary" 
                 (click)="downloadEmergencyReport()" 
-                [disabled]="isGeneratingEmergencyPdf">
+                [disabled]="isGeneratingEmergencyPdf || emergenciesList.length === 0">
           <mat-icon *ngIf="!isGeneratingEmergencyPdf">download</mat-icon>
           <mat-icon *ngIf="isGeneratingEmergencyPdf" class="spinner">refresh</mat-icon>
-          {{ isGeneratingEmergencyPdf ? 'Descargando...' : 'Descargar PDF' }}
+          {{ isGeneratingEmergencyPdf ? 'Generando...' : 'Descargar Reporte General' }}
         </button>
+        <small *ngIf="emergenciesList.length > 0" style="display: block; margin-top: 4px; color: #666;">
+          Se incluirán {{ emergenciesPreview?.totalEmergencies || emergenciesList.length }} emergencias
+        </small>
+        <small *ngIf="emergenciesList.length === 0" style="display: block; margin-top: 4px; color: #999;">
+          No hay emergencias para descargar con los filtros actuales
+        </small>
       </div>
     </div>
 
@@ -432,6 +454,13 @@
       </h3>
       <p>Para análisis interno - Contiene métricas y gráficos estadísticos</p>
       <div class="buttons">
+        <button mat-raised-button 
+                color="accent" 
+                (click)="previewStatisticsReport()"
+                style="margin-right: 8px;">
+          <mat-icon>visibility</mat-icon>
+          Vista Previa
+        </button>
         <button mat-raised-button color="accent" 
                 (click)="downloadStatisticsReport()" 
                 [disabled]="isGeneratingStatisticsPdf">
@@ -439,11 +468,9 @@
           <mat-icon *ngIf="isGeneratingStatisticsPdf" class="spinner">refresh</mat-icon>
           {{ isGeneratingStatisticsPdf ? 'Descargando...' : 'Descargar PDF' }}
         </button>
-        <button mat-raised-button (click)="printReport()">
-          <mat-icon>print</mat-icon>
-          Imprimir Estadísticas
-        </button>
       </div>
     </div>
   </div>
+
+
 </div> 

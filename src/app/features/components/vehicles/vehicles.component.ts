@@ -3,6 +3,7 @@ import { FormBuilder, FormGroup, ReactiveFormsModule } from '@angular/forms';
 import { MatDialog } from '@angular/material/dialog';
 import { VehiclesService, Vehicle, VehicleStats } from '../../../core/services/vehicles.service';
 import { VehicleFormComponent } from './vehicle-form/vehicle-form.component';
+import { FormPersistenceService, FormPersistenceConfig } from '../../../core/services/form-persistence.service';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { CommonModule } from '@angular/common';
 import { MatCardModule } from '@angular/material/card';
@@ -55,6 +56,15 @@ export class VehiclesComponent implements OnInit {
   isLoading = true;
   filterForm: FormGroup;
 
+  // Configuración de persistencia para filtros
+  private persistenceConfig: FormPersistenceConfig = {
+    key: 'vehicles_filters',
+    autoSave: true,
+    autoSaveDelay: 1000,
+    storageType: 'localStorage',
+    excludeFields: []
+  };
+
   statusOptions = [
     { value: 'disponible', label: 'Disponible' },
     { value: 'en_emergencia', label: 'En Emergencia' },
@@ -63,6 +73,7 @@ export class VehiclesComponent implements OnInit {
 
   constructor(
     private vehiclesService: VehiclesService,
+    private formPersistenceService: FormPersistenceService,
     private dialog: MatDialog,
     private snackBar: MatSnackBar,
     private fb: FormBuilder
@@ -76,6 +87,8 @@ export class VehiclesComponent implements OnInit {
   ngOnInit(): void {
     this.loadVehicles();
     this.setupFilters();
+    this.restoreFilters();
+    this.setupFilterPersistence();
   }
 
   setupFilters(): void {
@@ -190,5 +203,44 @@ export class VehiclesComponent implements OnInit {
       default:
         return status;
     }
+  }
+
+  // ===== MÉTODOS DE PERSISTENCIA DE FILTROS =====
+
+  private restoreFilters(): void {
+    try {
+      const savedData = this.formPersistenceService.loadFormData(this.persistenceConfig);
+      
+      if (savedData) {
+        setTimeout(() => {
+          this.filterForm.patchValue(savedData, { emitEvent: false });
+          console.log('✅ Filtros de vehículos restaurados:', savedData);
+          
+          // Aplicar filtros restaurados
+          this.applyFilters();
+        }, 100);
+      }
+    } catch (error) {
+      console.error('Error al restaurar filtros de vehículos:', error);
+    }
+  }
+
+  private setupFilterPersistence(): void {
+    this.formPersistenceService.setupAutoSave(this.filterForm, this.persistenceConfig);
+  }
+
+  saveFilters(): void {
+    this.formPersistenceService.saveFormData(this.filterForm, this.persistenceConfig);
+    this.snackBar.open('Filtros guardados', 'Cerrar', { duration: 2000 });
+  }
+
+  clearSavedFilters(): void {
+    this.formPersistenceService.clearFormData(this.persistenceConfig);
+    this.filterForm.reset();
+    this.snackBar.open('Filtros limpiados', 'Cerrar', { duration: 2000 });
+  }
+
+  getFiltersInfo(): { exists: boolean; timestamp?: string; size?: number } {
+    return this.formPersistenceService.getFormDataInfo(this.persistenceConfig);
   }
 } 

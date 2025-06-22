@@ -8,9 +8,15 @@ import { ReportsComponent } from './features/components/reports/reports.componen
 import { VehiclesComponent } from './features/components/vehicles/vehicles.component';
 import { LayoutComponent } from './shared/components/layout/layout.component';
 import { EmergencyFormBackendComponent } from './features/components/emergency-form-backend/emergency-form-backend.component';
+import { PdfPreviewComponent } from './features/components/pdf-preview/pdf-preview.component';
 
 export const routes: Routes = [
     { path: 'login', component: LoginComponent },
+    { 
+        path: 'pdf-preview', 
+        component: PdfPreviewComponent,
+        canActivate: [AuthGuard]
+    },
     {
         path: '',
         component: LayoutComponent,
