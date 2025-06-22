@@ -1,54 +1,44 @@
-import { Component, OnInit } from '@angular/core';
-import { DashboardService } from '../../../core/services/dashboard.service';
-import { EmergencyOld } from '../../../core/interfaces/emergency.interface';
-import { CommonModule } from '@angular/common';
-import { MatCardModule } from '@angular/material/card';
-import { MatListModule } from '@angular/material/list';
-import { MatChipsModule } from '@angular/material/chips';
-import { MatIconModule } from '@angular/material/icon';
+import { Component, OnInit, OnDestroy } from '@angular/core';
 
 @Component({
   selector: 'app-dashboard',
   templateUrl: './dashboard.component.html',
-  styleUrls: ['./dashboard.component.css'],
-  standalone: true,
-  imports: [
-    CommonModule,
-    MatCardModule,
-    MatListModule,
-    MatChipsModule,
-    MatIconModule
-  ]
+  styleUrls: ['./dashboard.component.css']
 })
-export class DashboardComponent implements OnInit {
-  totalEmergencies: number = 0;
-  activeEmergencies: number = 0;
-  latestEmergencies: EmergencyOld[] = [];
-  emergencyTypes: { tipo: string; cantidad: number }[] = [];
+export class DashboardComponent implements OnInit, OnDestroy {
+  // Ya no necesitas propiedades como totalEmergencies, activeEmergencies, etc.
 
-  constructor(private dashboardService: DashboardService) {}
-
-  ngOnInit(): void {
-    this.loadDashboardData();
+  ngOnInit() {
+    // Ocultar barra de scroll del body y html cuando se carga el dashboard
+    document.body.style.overflow = 'hidden';
+    document.documentElement.style.overflow = 'hidden';
+    
+    // También aplicar al contenedor del layout si existe
+    const sidenavContainer = document.querySelector('.sidenav-container') as HTMLElement;
+    if (sidenavContainer) {
+      sidenavContainer.style.overflow = 'hidden';
+    }
+    
+    const contentDiv = document.querySelector('.content') as HTMLElement;
+    if (contentDiv) {
+      contentDiv.style.overflow = 'hidden';
+    }
   }
 
-  private loadDashboardData(): void {
-    this.totalEmergencies = this.dashboardService.getTotalEmergencies();
-    this.activeEmergencies = this.dashboardService.getActiveEmergencies();
-    this.latestEmergencies = this.dashboardService.getLatestEmergencies();
-    this.emergencyTypes = this.dashboardService.getEmergencyTypes();
-  }
-
-  getStatusText(status: string): string {
-    switch (status) {
-      case 'activa':
-        return 'Activa';
-      case 'en_proceso':
-        return 'En Proceso';
-      case 'resuelta':
-        return 'Resuelta';
-      default:
-        return status;
+  ngOnDestroy() {
+    // Restaurar barra de scroll cuando se sale del dashboard
+    document.body.style.overflow = 'auto';
+    document.documentElement.style.overflow = 'auto';
+    
+    // Restaurar el contenedor del layout
+    const sidenavContainer = document.querySelector('.sidenav-container') as HTMLElement;
+    if (sidenavContainer) {
+      sidenavContainer.style.overflow = 'auto';
+    }
+    
+    const contentDiv = document.querySelector('.content') as HTMLElement;
+    if (contentDiv) {
+      contentDiv.style.overflow = 'auto';
     }
   }
 }
