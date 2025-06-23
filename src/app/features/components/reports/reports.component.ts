@@ -14,7 +14,7 @@ import { MatTabsModule } from '@angular/material/tabs';
 import { MatTableModule } from '@angular/material/table';
 import { MatChipsModule } from '@angular/material/chips';
 import { MatDividerModule } from '@angular/material/divider';
-import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
+import { NotificationService } from '../../../shared/services/notification.service';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { FormBuilder, FormGroup, ReactiveFormsModule, FormsModule, Validators } from '@angular/forms';
@@ -53,7 +53,7 @@ import { forkJoin } from 'rxjs';
     MatTableModule,
     MatChipsModule,
     MatDividerModule,
-    MatSnackBarModule,
+
     MatProgressSpinnerModule,
     MatTooltipModule,
     ReactiveFormsModule,
@@ -120,7 +120,7 @@ export class ReportsComponent implements OnInit {
     private emergencyService: EmergencyService,
     private statisticsService: StatisticsService,
     private authService: AuthService,
-    private snackBar: MatSnackBar,
+    private notificationService: NotificationService,
     private http: HttpClient,
     private router: Router
   ) {
@@ -196,7 +196,7 @@ export class ReportsComponent implements OnInit {
       },
       error: (error) => {
         console.error('Error loading emergency types for reports:', error);
-        this.snackBar.open('Error al cargar tipos de emergencia', 'Cerrar', { duration: 3000 });
+        this.notificationService.error('Error de Carga', 'No se pudieron cargar los tipos de emergencia.');
         // Fallback a datos hardcodeados si el backend falla
         this.emergencyTypeLabels = {
           'incendio': 'Incendio Estructural',
@@ -255,7 +255,7 @@ export class ReportsComponent implements OnInit {
       },
       error: (error) => {
         console.error('Error al cargar preview de emergencias:', error);
-        this.snackBar.open('Error al cargar lista de emergencias', 'Cerrar', { duration: 3000 });
+        this.notificationService.error('Error de Carga', 'No se pudo cargar la lista de emergencias.');
         this.isLoadingEmergencies = false;
       }
     });
@@ -309,9 +309,7 @@ export class ReportsComponent implements OnInit {
         this.isLoadingData = false;
         
         // Mostrar mensaje de error
-        this.snackBar.open('Error al cargar estadísticas del backend', 'Cerrar', { 
-          duration: 5000 
-        });
+        this.notificationService.error('Error de Estadísticas', 'No se pudieron cargar las estadísticas del sistema.');
       }
     });
   }
@@ -361,7 +359,7 @@ export class ReportsComponent implements OnInit {
 
   applyFilters() {
     // Los filtros se aplican automáticamente con valueChanges
-    this.snackBar.open('Filtros aplicados correctamente', 'Cerrar', { duration: 3000 });
+    this.notificationService.success('Filtros Aplicados', 'Los filtros se han aplicado correctamente.');
   }
 
   getEmergencyTypeLabel(type: string): string {
@@ -386,7 +384,7 @@ export class ReportsComponent implements OnInit {
     // Validar que si es período personalizado, las fechas estén presentes
     if (formValue.period === 'custom') {
       if (!formValue.startDate || !formValue.endDate) {
-        this.snackBar.open('Por favor selecciona las fechas de inicio y fin para el período personalizado', 'Cerrar', { duration: 5000 });
+          this.notificationService.warning('Filtros', 'Por favor selecciona las fechas de inicio y fin para el período personalizado');
         return;
       }
     }
@@ -420,11 +418,11 @@ export class ReportsComponent implements OnInit {
         link.click();
         window.URL.revokeObjectURL(url);
         this.isGeneratingEmergencyPdf = false;
-        this.snackBar.open('Reporte de emergencias descargado correctamente', 'Cerrar', { duration: 3000 });
+        this.notificationService.success('Descarga Exitosa', 'El reporte de emergencias se ha descargado correctamente.');
       },
       error: (error) => {
         console.error('Error al descargar reporte de emergencias:', error);
-        this.snackBar.open('Error al descargar el reporte de emergencias', 'Cerrar', { duration: 5000 });
+        this.notificationService.error('Error de Descarga', 'No se pudo descargar el reporte de emergencias.');
         this.isGeneratingEmergencyPdf = false;
       }
     });
@@ -437,7 +435,7 @@ export class ReportsComponent implements OnInit {
     // Validar que si es período personalizado, las fechas estén presentes
     if (formValue.period === 'custom') {
       if (!formValue.startDate || !formValue.endDate) {
-        this.snackBar.open('Por favor selecciona las fechas de inicio y fin para el período personalizado', 'Cerrar', { duration: 5000 });
+        this.notificationService.warning('Filtros', 'Por favor selecciona las fechas de inicio y fin para el período personalizado');
         return;
       }
     }
@@ -468,11 +466,11 @@ export class ReportsComponent implements OnInit {
         link.click();
         window.URL.revokeObjectURL(url);
         this.isGeneratingStatisticsPdf = false;
-        this.snackBar.open('Reporte de estadísticas descargado correctamente', 'Cerrar', { duration: 3000 });
+        this.notificationService.success('Descarga Exitosa', 'El reporte de estadísticas se ha descargado correctamente.');
       },
       error: (error) => {
         console.error('Error al descargar reporte de estadísticas:', error);
-        this.snackBar.open('Error al descargar el reporte de estadísticas', 'Cerrar', { duration: 5000 });
+        this.notificationService.error('Error de Descarga', 'No se pudo descargar el reporte de estadísticas.');
         this.isGeneratingStatisticsPdf = false;
       }
     });
@@ -500,7 +498,7 @@ export class ReportsComponent implements OnInit {
     // Validar que si es período personalizado, las fechas estén presentes
     if (formValue.period === 'custom') {
       if (!formValue.startDate || !formValue.endDate) {
-        this.snackBar.open('Por favor selecciona las fechas de inicio y fin para el período personalizado', 'Cerrar', { duration: 5000 });
+        this.notificationService.warning('Filtros', 'Por favor selecciona las fechas de inicio y fin para el período personalizado');
         return;
       }
     }
@@ -533,7 +531,7 @@ export class ReportsComponent implements OnInit {
     // Validar que si es período personalizado, las fechas estén presentes
     if (formValue.period === 'custom') {
       if (!formValue.startDate || !formValue.endDate) {
-        this.snackBar.open('Por favor selecciona las fechas de inicio y fin para el período personalizado', 'Cerrar', { duration: 5000 });
+        this.notificationService.warning('Filtros', 'Por favor selecciona las fechas de inicio y fin para el período personalizado');
         return;
       }
     }
@@ -565,7 +563,7 @@ export class ReportsComponent implements OnInit {
   downloadIndividualReport(emergency: any) {
     // Validar que la emergencia tenga ID
     if (!emergency.emergencyId) {
-      this.snackBar.open('Error: No se puede generar reporte para esta emergencia', 'Cerrar', { duration: 3000 });
+      this.notificationService.error('Error de Reporte', 'No se puede generar reporte para esta emergencia.');
       return;
     }
 
@@ -612,14 +610,14 @@ export class ReportsComponent implements OnInit {
         link.click();
         window.URL.revokeObjectURL(url);
         this.isGeneratingIndividualPdf = null;
-        this.snackBar.open(`Reporte de emergencia #${emergency.emergencyId} descargado correctamente`, 'Cerrar', { duration: 3000 });
+        this.notificationService.success('Reporte de Emergencia', `Reporte de emergencia #${emergency.emergencyId} descargado correctamente`);
       },
       error: (error) => {
         console.error('❌ Error al descargar reporte individual:', error);
         console.error('Status:', error.status);
         console.error('Error message:', error.message);
         console.error('Error details:', error.error);
-        this.snackBar.open(`Error al descargar el reporte de la emergencia #${emergency.emergencyId}`, 'Cerrar', { duration: 5000 });
+        this.notificationService.error('Error de Descarga', `No se pudo descargar el reporte de la emergencia #${emergency.emergencyId}`);
         this.isGeneratingIndividualPdf = null;
       }
     });
@@ -629,7 +627,7 @@ export class ReportsComponent implements OnInit {
     if (this.isGeneratingPdf) return;
 
     this.isGeneratingPdf = true;
-    this.snackBar.open('Generando reporte PDF desde backend...', '', { duration: 2000 });
+    this.notificationService.info('Generando Reporte', 'Generando reporte PDF...');
 
     try {
       const formValue = this.filtersForm.value;
@@ -652,11 +650,11 @@ export class ReportsComponent implements OnInit {
           link.click();
           window.URL.revokeObjectURL(url);
           
-          this.snackBar.open('Reporte PDF descargado exitosamente', 'Cerrar', { duration: 3000 });
+          this.notificationService.success('Reporte PDF', 'Reporte PDF descargado exitosamente');
         },
         error: (error) => {
           console.error('Error al descargar reporte del backend:', error);
-          this.snackBar.open('Error al generar reporte del backend', 'Cerrar', { duration: 3000 });
+          this.notificationService.error('Error de Descarga', 'No se pudo descargar el reporte PDF');
           
           // Fallback al método legacy
           this.generateLocalPDFReport();
@@ -668,7 +666,7 @@ export class ReportsComponent implements OnInit {
 
     } catch (error) {
       console.error('Error en exportReport:', error);
-      this.snackBar.open('Error al generar reporte', 'Cerrar', { duration: 3000 });
+      this.notificationService.error('Error de Descarga', 'No se pudo descargar el reporte PDF');
       this.isGeneratingPdf = false;
     }
   }
@@ -692,10 +690,10 @@ export class ReportsComponent implements OnInit {
         filters
       );
       
-      this.snackBar.open('Reporte local generado exitosamente', 'Cerrar', { duration: 3000 });
+      this.notificationService.success('Reporte PDF', 'Reporte generado exitosamente');
     } catch (error) {
       console.error('Error generando reporte local:', error);
-      this.snackBar.open('Error al generar reporte local', 'Cerrar', { duration: 3000 });
+      this.notificationService.error('Error de Descarga', 'No se pudo descargar el reporte PDF');
     }
   }
 
@@ -733,9 +731,7 @@ export class ReportsComponent implements OnInit {
    */
   saveTargetTime(): void {
     if (!this.newTargetTime || this.newTargetTime < 1 || this.newTargetTime > 120) {
-      this.snackBar.open('El tiempo objetivo debe estar entre 1 y 120 minutos', 'Cerrar', { 
-        duration: 3000 
-      });
+      this.notificationService.warning('Tiempo Objetivo', 'El tiempo objetivo debe estar entre 1 y 120 minutos');
       return;
     }
 
@@ -747,9 +743,7 @@ export class ReportsComponent implements OnInit {
         this.isEditingTargetTime = false;
         this.timeAnalysisData.targetTime = this.newTargetTime;
         
-        this.snackBar.open('Tiempo objetivo actualizado exitosamente', 'Cerrar', { 
-          duration: 3000 
-        });
+        this.notificationService.success('Tiempo Objetivo', 'Tiempo objetivo actualizado exitosamente');
 
         // Recargar estadísticas para reflejar el cambio
         this.loadStatisticsFromBackend();
@@ -758,9 +752,7 @@ export class ReportsComponent implements OnInit {
         console.error('Error al actualizar tiempo objetivo:', error);
         this.isSavingTargetTime = false;
         
-        this.snackBar.open('Error al actualizar el tiempo objetivo', 'Cerrar', { 
-          duration: 3000 
-        });
+        this.notificationService.error('Error de Actualización', 'No se pudo actualizar el tiempo objetivo');
       }
     });
   }
@@ -813,11 +805,11 @@ export class ReportsComponent implements OnInit {
       this.pdfReportService.downloadEmergencyReport(downloadFilters).subscribe({
         next: (blob) => {
           console.log('✅ Descarga individual exitosa, tamaño del blob:', blob.size);
-          this.snackBar.open('Test de descarga individual exitoso', 'Cerrar', { duration: 3000 });
+          this.notificationService.success('Test de Descarga', 'Test de descarga individual exitoso');
         },
         error: (error) => {
           console.error('❌ Error en descarga individual:', error);
-          this.snackBar.open('Error en test de descarga individual', 'Cerrar', { duration: 3000 });
+          this.notificationService.error('Error de Descarga', 'No se pudo descargar el reporte de la emergencia');
         }
       });
       

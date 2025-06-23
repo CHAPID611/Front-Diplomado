@@ -10,7 +10,7 @@ import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatSelectModule } from '@angular/material/select';
 import { MatDialogModule, MatDialog } from '@angular/material/dialog';
-import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
+import { NotificationService } from '../../../shared/services/notification.service';
 import { MatMenuModule } from '@angular/material/menu';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatDividerModule } from '@angular/material/divider';
@@ -42,7 +42,7 @@ import { PersonalDetailsComponent } from './personal-details/personal-details.co
     MatInputModule,
     MatSelectModule,
     MatDialogModule,
-    MatSnackBarModule,
+
     MatMenuModule,
     MatTooltipModule,
     MatDividerModule,
@@ -83,7 +83,7 @@ export class PersonalComponent implements OnInit {
     private authService: AuthService,
     private formPersistenceService: FormPersistenceService,
     private dialog: MatDialog,
-    private snackBar: MatSnackBar,
+    private notificationService: NotificationService,
     private fb: FormBuilder
   ) {
     this.filterForm = this.fb.group({
@@ -228,21 +228,21 @@ export class PersonalComponent implements OnInit {
         if (personal) {
           this.personalService.updatePersonal(personal.id!, result).subscribe({
             next: (response) => {
-              this.snackBar.open('Personal actualizado exitosamente', 'Cerrar', { duration: 3000 });
+              this.notificationService.success('Personal Actualizado', 'Los datos del personal han sido actualizados exitosamente.');
               this.loadData();
             },
             error: (error) => {
-              this.snackBar.open('Error al actualizar personal', 'Cerrar', { duration: 3000 });
+              this.notificationService.error('Error al actualizar personal', 'No se pudo actualizar la información del personal. Intenta nuevamente.');
             }
           });
         } else {
           this.personalService.createPersonal(result).subscribe({
             next: (response) => {
-              this.snackBar.open('Personal registrado exitosamente', 'Cerrar', { duration: 3000 });
+              this.notificationService.success('Personal Registrado', 'El nuevo personal ha sido registrado exitosamente');
               this.loadData();
             },
             error: (error) => {
-              this.snackBar.open('Error al registrar personal', 'Cerrar', { duration: 3000 });
+              this.notificationService.error('Error de Registro', 'No se pudo registrar el nuevo personal. Verifica los datos e intenta nuevamente.');
             }
           });
         }
@@ -254,11 +254,11 @@ export class PersonalComponent implements OnInit {
     if (confirm(`¿Está seguro que desea eliminar a ${personal.nombres} ${personal.apellidos}?`)) {
       this.personalService.deletePersonal(personal.id!).subscribe({
         next: () => {
-          this.snackBar.open('Personal eliminado exitosamente', 'Cerrar', { duration: 3000 });
+          this.notificationService.success('Personal Eliminado', 'El personal ha sido eliminado exitosamente');
           this.loadData();
         },
         error: () => {
-          this.snackBar.open('Error al eliminar personal', 'Cerrar', { duration: 3000 });
+          this.notificationService.error('Error de Eliminación', 'No se pudo eliminar el personal. Intenta nuevamente.');
         }
       });
     }
@@ -310,12 +310,6 @@ export class PersonalComponent implements OnInit {
   clearFilters() {
     this.filterForm.reset();
   }
-
-  exportData() {
-    // TODO: Implementar exportación
-    this.snackBar.open('Funcionalidad de exportación en desarrollo', 'Cerrar', { duration: 3000 });
-  }
-
   // Métodos de validación de permisos para administrador
   isAdmin(): boolean {
     const userRole = this.authService.getUserRole();
@@ -338,20 +332,21 @@ export class PersonalComponent implements OnInit {
   // Método mejorado para abrir formulario con validaciones
   openPersonalFormWithValidation(personal?: Personal) {
     if (!this.isAdmin()) {
-      this.snackBar.open('Solo los administradores pueden gestionar personal', 'Cerrar', { 
-        duration: 5000,
-        panelClass: ['warning-snackbar']
-      });
+      this.notificationService.warning(
+        'Acceso Restringido',
+        'Solo los administradores pueden gestionar personal del sistema.',
+        { duration: 5000 }
+      );
       return;
     }
 
     if (!personal && !this.canCreatePersonal()) {
-      this.snackBar.open('No tiene permisos para crear personal', 'Cerrar', { duration: 3000 });
+      this.notificationService.warning('Permisos Insuficientes', 'No tienes permisos para crear nuevo personal.');
       return;
     }
 
     if (personal && !this.canEditPersonal()) {
-      this.snackBar.open('No tiene permisos para editar personal', 'Cerrar', { duration: 3000 });
+      this.notificationService.warning('Permisos Insuficientes', 'No tienes permisos para editar información del personal.');
       return;
     }
 
@@ -361,7 +356,7 @@ export class PersonalComponent implements OnInit {
   // Método mejorado para eliminar con validaciones
   deletePersonalWithValidation(personal: Personal) {
     if (!this.canDeletePersonal()) {
-      this.snackBar.open('No tiene permisos para eliminar personal', 'Cerrar', { duration: 3000 });
+      this.notificationService.warning('Permisos Insuficientes', 'No tienes permisos para eliminar personal del sistema.');
       return;
     }
 
@@ -414,15 +409,12 @@ export class PersonalComponent implements OnInit {
       
       if (savedData) {
         setTimeout(() => {
-          this.filterForm.patchValue(savedData, { emitEvent: false });
-          console.log('✅ Filtros de personal restaurados:', savedData);
-          
+          this.filterForm.patchValue(savedData, { emitEvent: false });          
           // Aplicar filtros restaurados
           this.applyFilters();
         }, 100);
       }
     } catch (error) {
-      console.error('Error al restaurar filtros de personal:', error);
     }
   }
 
@@ -432,13 +424,13 @@ export class PersonalComponent implements OnInit {
 
   saveFilters(): void {
     this.formPersistenceService.saveFormData(this.filterForm, this.persistenceConfig);
-    this.snackBar.open('Filtros guardados', 'Cerrar', { duration: 2000 });
+    this.notificationService.success('Filtros Guardados', 'Los filtros han sido guardados correctamente.');
   }
 
   clearSavedFilters(): void {
     this.formPersistenceService.clearFormData(this.persistenceConfig);
     this.filterForm.reset();
-    this.snackBar.open('Filtros limpiados', 'Cerrar', { duration: 2000 });
+    this.notificationService.success('Filtros Limpiados', 'Los filtros han sido restablecidos correctamente.');
   }
 
   getFiltersInfo(): { exists: boolean; timestamp?: string; size?: number } {

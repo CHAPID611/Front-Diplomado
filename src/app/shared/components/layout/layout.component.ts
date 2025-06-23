@@ -1,14 +1,15 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, HostListener, ViewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { MatToolbarModule } from '@angular/material/toolbar';
-import { MatSidenavModule } from '@angular/material/sidenav';
+import { MatSidenavModule, MatSidenav } from '@angular/material/sidenav';
 import { MatIconModule } from '@angular/material/icon';
 import { MatButtonModule } from '@angular/material/button';
 import { MatListModule } from '@angular/material/list';
 import { MatDividerModule } from '@angular/material/divider';
 import { MatMenuModule } from '@angular/material/menu';
-import { RouterOutlet, RouterModule, Router } from '@angular/router';
+import { RouterOutlet, RouterModule, Router, NavigationEnd } from '@angular/router';
 import { AuthService } from '../../../core/services/auth.service';
+import { filter } from 'rxjs/operators';
 
 @Component({
   selector: 'app-layout',
@@ -26,56 +27,50 @@ import { AuthService } from '../../../core/services/auth.service';
     RouterModule
   ],
   template: `
-    <mat-sidenav-container class="sidenav-container">
+    <mat-sidenav-container class="sidenav-container" [class.dashboard-view]="isDashboard">
       <!-- Sidebar -->
-      <mat-sidenav #drawer class="sidenav" fixedInViewport mode="over">
+      <mat-sidenav #drawer class="sidenav" fixedInViewport="false" [mode]="sidenavMode" [opened]="sidenavOpened">
         <div class="sidenav-header">
           <div class="header-content">
             <mat-icon class="fire-icon">local_fire_department</mat-icon>
             <div class="header-text">
               <h3>Bomberos</h3>
-              <p>Sistema de Emergencias</p>
             </div>
           </div>
-          <button mat-icon-button (click)="drawer.toggle()" class="close-btn">
+          <button mat-icon-button (click)="toggleSidenav()" class="close-btn">
             <mat-icon>close</mat-icon>
           </button>
         </div>
         
         <mat-nav-list class="nav-list">
-          <a mat-list-item routerLink="/dashboard" (click)="drawer.close()" routerLinkActive="active">
+          <a mat-list-item routerLink="/dashboard" (click)="closeSidenavOnMobile()" routerLinkActive="active">
             <mat-icon matListItemIcon>dashboard</mat-icon>
             <span matListItemTitle>Dashboard</span>
           </a>
           
-          <a mat-list-item routerLink="/emergencias" (click)="drawer.close()" routerLinkActive="active">
+          <a mat-list-item routerLink="/emergencias" (click)="closeSidenavOnMobile()" routerLinkActive="active">
             <mat-icon matListItemIcon>local_fire_department</mat-icon>
             <span matListItemTitle>Emergencias</span>
           </a>
           
-          <a mat-list-item *ngIf="userRole === 'admin'" routerLink="/reportes" (click)="drawer.close()" routerLinkActive="active">
+          <a mat-list-item *ngIf="userRole === 'admin'" routerLink="/reportes" (click)="closeSidenavOnMobile()" routerLinkActive="active">
             <mat-icon matListItemIcon>assessment</mat-icon>
             <span matListItemTitle>Reportes</span>
           </a>
           
-          <a mat-list-item *ngIf="userRole === 'admin'" routerLink="/personal" (click)="drawer.close()" routerLinkActive="active">
+          <a mat-list-item *ngIf="userRole === 'admin'" routerLink="/personal" (click)="closeSidenavOnMobile()" routerLinkActive="active">
             <mat-icon matListItemIcon>people</mat-icon>
             <span matListItemTitle>Personal</span>
           </a>
 
-          <a mat-list-item *ngIf="userRole === 'admin'" routerLink="/vehiculos" (click)="drawer.close()" routerLinkActive="active">
+          <a mat-list-item *ngIf="userRole === 'admin'" routerLink="/vehiculos" (click)="closeSidenavOnMobile()" routerLinkActive="active">
             <mat-icon matListItemIcon>directions_car</mat-icon>
             <span matListItemTitle>Vehículos</span>
           </a>
           
           <mat-divider class="menu-divider"></mat-divider>
           
-          <a mat-list-item *ngIf="userRole === 'admin'" routerLink="/configuracion" (click)="drawer.close()" routerLinkActive="active">
-            <mat-icon matListItemIcon>settings</mat-icon>
-            <span matListItemTitle>Configuración</span>
-          </a>
-          
-          <a mat-list-item (click)="logout(); drawer.close()" class="logout-item">
+          <a mat-list-item (click)="logout(); closeSidenavOnMobile()" class="logout-item">
             <mat-icon matListItemIcon>logout</mat-icon>
             <span matListItemTitle>Cerrar Sesión</span>
           </a>
@@ -89,13 +84,13 @@ import { AuthService } from '../../../core/services/auth.service';
           <button
             type="button"
             mat-icon-button
-            (click)="drawer.toggle()"
-            class="menu-btn">
+            (click)="toggleSidenav()"
+            class="menu-btn"
+            *ngIf="!sidenavOpened || sidenavMode === 'over'">
             <mat-icon>menu</mat-icon>
           </button>
           
           <div class="navbar-brand">
-            <mat-icon class="brand-icon">local_fire_department</mat-icon>
             <span class="app-title">Sistema de Gestión de Emergencias</span>
           </div>
           
@@ -103,34 +98,54 @@ import { AuthService } from '../../../core/services/auth.service';
         </mat-toolbar>
 
         <!-- Page content -->
-        <div class="content">
+        <div class="content" [class.dashboard-content]="isDashboard">
           <router-outlet></router-outlet>
         </div>
       </mat-sidenav-content>
     </mat-sidenav-container>
   `,
   styles: [`
+    /* Deshabilitar overscroll en toda la aplicación */
+    :host {
+      overscroll-behavior: none;
+    }
+
+    :host ::ng-deep html,
+    :host ::ng-deep body {
+      overscroll-behavior: none;
+      overscroll-behavior-x: none;
+      overscroll-behavior-y: none;
+    }
+
     .sidenav-container {
       height: 100vh;
       background-color: var(--bg-secondary, #f8f9fa);
+      overscroll-behavior: none;
     }
 
     .sidenav {
       width: 280px;
       box-shadow: var(--shadow-lg, 0 8px 24px rgba(0, 0, 0, 0.12));
       background-color: var(--bg-primary, #ffffff);
-      border-right: 1px solid var(--border-light, #e9ecef);
+      border-right: 1px solid #ffffff;
+      overflow-x: hidden;
+      overflow-y: auto;
+      box-sizing: border-box;
+      border-radius: 0;
     }
 
     .sidenav-header {
-      background: var(--gradient-red, linear-gradient(135deg, #c62828 0%, #b71c1c 100%));
-      color: white;
+      background: black;
+      color: #ffffff;
       display: flex;
       justify-content: space-between;
       align-items: center;
       padding: 20px;
       min-height: 80px;
       box-shadow: var(--shadow-sm, 0 2px 4px rgba(0, 0, 0, 0.05));
+      overflow: hidden;
+      box-sizing: border-box;
+      width: 100%;
     }
 
     .header-content {
@@ -151,14 +166,10 @@ import { AuthService } from '../../../core/services/auth.service';
       margin: 0;
       font-size: 18px;
       font-weight: 600;
-      text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
-    }
-
-    .header-text p {
-      margin: 0;
-      font-size: 12px;
-      opacity: 0.9;
-      font-weight: 400;
+      color: #ffffff;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
     }
 
     .close-btn {
@@ -172,6 +183,9 @@ import { AuthService } from '../../../core/services/auth.service';
 
     .nav-list {
       padding: 16px 0;
+      overflow-x: hidden;
+      width: 100%;
+      box-sizing: border-box;
     }
 
     .nav-list a[mat-list-item] {
@@ -181,6 +195,11 @@ import { AuthService } from '../../../core/services/auth.service';
       color: var(--text-primary, #2c3e50);
       min-height: 48px;
       border: 1px solid transparent;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      max-width: calc(100% - 24px);
+      box-sizing: border-box;
     }
 
     .nav-list a[mat-list-item]:hover {
@@ -190,14 +209,14 @@ import { AuthService } from '../../../core/services/auth.service';
     }
 
     .nav-list a[mat-list-item].active {
-      background-color: var(--primary-red-subtle, rgba(198, 40, 40, 0.08));
-      color: var(--primary-red, #c62828);
-      border-color: var(--primary-red, #c62828);
+      background-color: var(--primary-blue-subtle, rgba(14, 40, 104, 0.08));
+      color: var(--primary-blue, #0e2868);
+      border-color: var(--primary-blue, #0e2868);
       font-weight: 500;
     }
 
     .nav-list a[mat-list-item].active mat-icon {
-      color: var(--primary-red, #c62828);
+      color: var(--primary-blue, #0e2868);
     }
 
     .nav-list a[mat-list-item] mat-icon {
@@ -206,7 +225,7 @@ import { AuthService } from '../../../core/services/auth.service';
     }
 
     .nav-list a[mat-list-item]:hover mat-icon {
-      color: var(--primary-red, #c62828);
+      color: var(--primary-blue, #0e2868);
     }
 
     .logout-item {
@@ -228,13 +247,13 @@ import { AuthService } from '../../../core/services/auth.service';
     }
 
     .navbar {
-      background: var(--primary-red, #c62828);
-      color: white;
+      background: black;
+      color: #ffffff;
       position: sticky;
       top: 0;
       z-index: 1000;
       box-shadow: var(--shadow-md, 0 4px 8px rgba(0, 0, 0, 0.1));
-      min-height: 64px;
+      min-height: 80px;
       border-bottom: 1px solid var(--border-light, #e9ecef);
     }
 
@@ -243,12 +262,6 @@ import { AuthService } from '../../../core/services/auth.service';
       align-items: center;
       gap: 12px;
       flex: 1;
-    }
-
-    .brand-icon {
-      color: #fff3cd;
-      font-size: 28px;
-      filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.2));
     }
 
     .app-title {
@@ -274,6 +287,20 @@ import { AuthService } from '../../../core/services/auth.service';
       padding: 0;
       background-color: var(--bg-secondary, #f8f9fa);
       min-height: calc(100vh - 64px);
+      transition: margin 0.3s ease-in-out;
+      overscroll-behavior: none;
+      overflow-y: auto;
+    }
+
+    /* Estilos específicos para la vista del dashboard */
+    .sidenav-container.dashboard-view {
+      overflow: hidden !important;
+    }
+
+    .sidenav-container.dashboard-view .content.dashboard-content {
+      overflow: hidden !important;
+      height: calc(100vh - 80px) !important;
+      min-height: unset !important;
     }
 
     /* Personalización del menú de usuario */
@@ -298,7 +325,7 @@ import { AuthService } from '../../../core/services/auth.service';
     }
 
     .mat-mdc-menu-item:hover mat-icon {
-      color: var(--primary-red, #c62828) !important;
+      color: var(--primary-blue, #0e2868) !important;
     }
 
     /* Responsive design */
@@ -359,13 +386,58 @@ import { AuthService } from '../../../core/services/auth.service';
   `]
 })
 export class LayoutComponent implements OnInit {
+  @ViewChild('drawer') drawer!: MatSidenav;
+  
   userRole: string = '';
+  sidenavMode: 'over' | 'side' = 'side';
+  sidenavOpened: boolean = true;
+  isDashboard: boolean = false;
 
   constructor(private authService: AuthService, private router: Router) { }
+
+  @HostListener('window:resize', ['$event'])
+  onResize(event: any) {
+    this.checkScreenSize();
+  }
 
   ngOnInit(): void {
     this.userRole = this.authService.getUserRole();
     console.log('LayoutComponent: Rol de usuario en ngOnInit:', this.userRole);
+    this.checkScreenSize();
+    
+    // Detectar cambios de ruta para ocultar scroll en dashboard
+    this.router.events.pipe(
+      filter(event => event instanceof NavigationEnd)
+    ).subscribe((event: NavigationEnd) => {
+      this.isDashboard = event.url === '/dashboard' || event.url === '/';
+    });
+    
+    // Verificar ruta inicial
+    this.isDashboard = this.router.url === '/dashboard' || this.router.url === '/';
+  }
+
+  checkScreenSize() {
+    if (window.innerWidth <= 768) {
+      this.sidenavMode = 'over';
+      this.sidenavOpened = false;
+    } else {
+      this.sidenavMode = 'side';
+      this.sidenavOpened = true;
+    }
+  }
+
+  toggleSidenav() {
+    if (this.sidenavMode === 'over') {
+      this.drawer.toggle();
+    } else {
+      this.sidenavOpened = !this.sidenavOpened;
+    }
+  }
+
+  closeSidenavOnMobile() {
+    if (this.sidenavMode === 'over') {
+      this.drawer.close();
+    }
   }
 
   logout() {

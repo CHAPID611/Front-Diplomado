@@ -8,7 +8,7 @@ import { MatSelectModule } from '@angular/material/select';
 import { MatDatepickerModule } from '@angular/material/datepicker';
 import { MatNativeDateModule } from '@angular/material/core';
 import { MatButtonModule } from '@angular/material/button';
-import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
+import { NotificationService } from '../../../shared/services/notification.service';
 import { MatCheckboxModule } from '@angular/material/checkbox';
 import { MatIconModule } from '@angular/material/icon';
 import { MatTabsModule } from '@angular/material/tabs';
@@ -48,7 +48,7 @@ interface Formulario {
     MatDatepickerModule,
     MatNativeDateModule,
     MatButtonModule,
-    MatSnackBarModule,
+
     MatCheckboxModule,
     MatIconModule,
     MatTabsModule,
@@ -129,7 +129,7 @@ export class EmergencyFormBackendComponent implements OnInit, OnDestroy {
     private authService: AuthService,
     private vehiclesService: VehiclesService,
     private formPersistenceService: FormPersistenceService,
-    private snackBar: MatSnackBar,
+    private notificationService: NotificationService,
     private router: Router,
     private cdr: ChangeDetectorRef
   ) {
@@ -175,11 +175,9 @@ export class EmergencyFormBackendComponent implements OnInit, OnDestroy {
     this.vehiclesService.getVehicles().subscribe({
       next: (vehicles) => {
         this.availableVehicles = vehicles.filter(v => v.status === 'disponible');
-        console.log('Vehículos disponibles cargados:', this.availableVehicles);
       },
       error: (error) => {
-        console.error('Error al cargar vehículos:', error);
-        this.snackBar.open('Error al cargar vehículos disponibles', 'Cerrar', { duration: 3000 });
+        this.notificationService.error('Error de Carga', 'No se pudieron cargar los vehículos disponibles.');
       }
     });
   }
@@ -188,11 +186,9 @@ export class EmergencyFormBackendComponent implements OnInit, OnDestroy {
     this.emergencyDataService.getPersonalDisponible().subscribe({
       next: (personnel) => {
         this.personalDisponible = personnel;
-        console.log('Personal disponible cargado:', this.personalDisponible);
       },
       error: (error) => {
-        console.error('Error al cargar personal:', error);
-        this.snackBar.open('Error al cargar personal disponible', 'Cerrar', { duration: 3000 });
+        this.notificationService.error('Error de Carga', 'No se pudo cargar el personal disponible.');
       }
     });
   }
@@ -243,12 +239,9 @@ export class EmergencyFormBackendComponent implements OnInit, OnDestroy {
           nombre: type.emergencyType,
           categoria: this.categorizeEmergencyType(type.emergencyType)
         }));
-        console.log('Tipos de emergencia cargados desde backend:', this.emergencyTypes);
-        console.log('Tipos mapeados para compatibilidad:', this.tiposEmergencia);
       },
       error: (error) => {
-        console.error('Error loading emergency types:', error);
-        this.snackBar.open('Error al cargar tipos de emergencia del backend', 'Cerrar', { duration: 3000 });
+        this.notificationService.error('Error de Carga', 'No se pudieron cargar los tipos de emergencia.');
       }
     });
   }
@@ -328,12 +321,12 @@ export class EmergencyFormBackendComponent implements OnInit, OnDestroy {
     const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png'];
     
     if (!allowedTypes.includes(file.type)) {
-      this.snackBar.open('Solo se permiten archivos JPG, JPEG y PNG', 'Cerrar', { duration: 3000 });
+      this.notificationService.warning('Archivo No Válido', 'Solo se permiten archivos JPG, JPEG y PNG.');
       return false;
     }
     
     if (file.size > maxSize) {
-      this.snackBar.open('El archivo no puede ser mayor a 5MB', 'Cerrar', { duration: 3000 });
+      this.notificationService.warning('Archivo Muy Grande', 'El archivo no puede ser mayor a 5MB.');
       return false;
     }
     
@@ -423,9 +416,6 @@ export class EmergencyFormBackendComponent implements OnInit, OnDestroy {
     }).join(', ');
   }
 
-  // Métodos para gestión global de personal ocupado
-
-  // Métodos de validación de ocupación removidos - ahora se permite seleccionar el mismo personal/vehículo en múltiples emergencias
 
   isUnidadSelected(personalId: number): boolean {
     const unidades = this.emergencyForm.get('unidades')?.value || [];
@@ -448,7 +438,6 @@ export class EmergencyFormBackendComponent implements OnInit, OnDestroy {
 
   onVehicleSelectionChange(selectedIds: number[]): void {
     // Ya no hay validaciones de ocupación - los vehículos pueden ser seleccionados en múltiples emergencias
-    console.log('Vehículos seleccionados:', selectedIds);
   }
 
   onUnidadChange(event: any, personalId: number): void {
@@ -458,7 +447,7 @@ export class EmergencyFormBackendComponent implements OnInit, OnDestroy {
     if (event.checked) {
       // Solo verificar que no esté ya en guardia del mismo formulario
       if (guardia.includes(personalId)) {
-        this.snackBar.open('Esta persona ya está seleccionada como Personal de Guardia en este formulario', 'Cerrar', { duration: 3000 });
+        this.notificationService.warning('Personal Duplicado', 'Esta persona ya está seleccionada como Personal de Guardia en este formulario.');
         return;
       }
       
@@ -480,7 +469,7 @@ export class EmergencyFormBackendComponent implements OnInit, OnDestroy {
     if (event.checked) {
       // Solo verificar que no esté ya en unidades del mismo formulario
       if (unidades.includes(personalId)) {
-        this.snackBar.open('Esta persona ya está seleccionada como Unidad de Respuesta en este formulario', 'Cerrar', { duration: 3000 });
+        this.notificationService.warning('Personal Duplicado', 'Esta persona ya está seleccionada como Unidad de Respuesta en este formulario.');
         return;
       }
       
@@ -504,7 +493,7 @@ export class EmergencyFormBackendComponent implements OnInit, OnDestroy {
     this.saveCurrentFormState();
 
     if (!this.emergencyForm.valid) {
-      this.snackBar.open('Por favor complete todos los campos requeridos', 'Cerrar', { duration: 5000 });
+      this.notificationService.warning('Formulario Incompleto', 'Por favor completa todos los campos requeridos antes de continuar.');
       return;
     }
     
@@ -512,28 +501,26 @@ export class EmergencyFormBackendComponent implements OnInit, OnDestroy {
 
     // Verificar autenticación antes de enviar
     if (!this.authService.isAuthenticated() || !this.authService.verifyAndRefreshSession()) {
-      console.log('❌ Usuario NO autenticado o sesión expirada - redirigiendo al login');
       this.authService.logout();
-      this.snackBar.open('Su sesión ha expirado. Por favor inicie sesión nuevamente.', 'Cerrar', { 
-        duration: 5000,
-        panelClass: ['warning-snackbar']
-      });
+      this.notificationService.warning(
+        'Sesión Expirada',
+        'Tu sesión ha expirado. Por favor inicia sesión nuevamente.',
+        { duration: 3000 }
+      );
       this.router.navigate(['/emergencias']);
       return;
     }
 
     // Mostrar información del token para debug
     const tokenInfo = this.authService.getTokenInfo();
-    if (tokenInfo) {
-      console.log('✅ Información del token:', tokenInfo);
-      console.log('✅ Usuario actual:', this.authService.getCurrentUser());
-      
+    if (tokenInfo) {      
       // Si el token está por expirar (menos de 2 minutos), mostrar advertencia
-      if (tokenInfo.timeLeft < 2 * 60 * 1000) {
-        this.snackBar.open('Su sesión expirará pronto. Por favor guarde su trabajo.', 'OK', { 
-          duration: 10000,
-          panelClass: ['warning-snackbar']
-        });
+      if (tokenInfo.timeLeft < 5 * 60 * 1000) {
+        this.notificationService.warning(
+          'Sesión por Expirar',
+          'Tu sesión expirará pronto. Por favor guarda tu trabajo.',
+          { duration: 10000 }
+        );
       }
     }
 
@@ -546,21 +533,19 @@ export class EmergencyFormBackendComponent implements OnInit, OnDestroy {
     const turno = formValues.sinConvenio ? 'false' : (formValues.numeroTurno?.toString() || '1');
     
     // Validar datos antes de crear el objeto
-    console.log('Valores del formulario:', formValues);
-    console.log('Usuario ID obtenido:', this.getCurrentUserId());
-    console.log('Turno procesado:', turno);
+
 
     // Validar campos críticos
     if (!formValues.tipoEmergencia) {
-      this.snackBar.open('Debe seleccionar un tipo de emergencia', 'Cerrar', { duration: 3000 });
+      this.notificationService.warning('Campo Requerido', 'Debes seleccionar un tipo de emergencia.');
       return;
     }
     if (!formValues.quienInforma) {
-      this.snackBar.open('Debe especificar quién informa', 'Cerrar', { duration: 3000 });
+      this.notificationService.warning('Campo Requerido', 'Debes especificar quién informa la emergencia.');
       return;
     }
     if (!formValues.ubicacion) {
-      this.snackBar.open('Debe especificar la ubicación', 'Cerrar', { duration: 3000 });
+      this.notificationService.warning('Campo Requerido', 'Debes especificar la ubicación de la emergencia.');
       return;
     }
 
@@ -599,18 +584,9 @@ export class EmergencyFormBackendComponent implements OnInit, OnDestroy {
       description: ''
     }));
 
-    // Debug de datos antes de enviar
-    console.log('Datos que se enviarán al backend:', emergencyData);
-    console.log('Archivos que se enviarán:', emergencyFiles);
-
     // Verificar que no hay valores undefined críticos
     if (!emergencyData.informant || !emergencyData.ubication || !emergencyData.emergencyTypeId) {
-      console.error('Faltan datos críticos:', {
-        informant: emergencyData.informant,
-        ubication: emergencyData.ubication,
-        emergencyTypeId: emergencyData.emergencyTypeId
-      });
-      this.snackBar.open('Error: Faltan datos críticos para enviar', 'Cerrar', { duration: 5000 });
+      this.notificationService.error('Datos Incompletos', 'Faltan datos requeridos para enviar la emergencia.');
       this.isSubmitting = false;
       return;
     }
@@ -618,50 +594,40 @@ export class EmergencyFormBackendComponent implements OnInit, OnDestroy {
     // Enviar al backend
     this.emergencyService.createEmergency(emergencyData, emergencyFiles).subscribe({
       next: (response: any) => {
-        console.log('Respuesta del backend:', response);
         this.submitSuccess = true;
         this.submitError = null;
         
         // Limpiar datos de persistencia después del envío exitoso
         this.clearCurrentTabPersistence();
         
-        this.snackBar.open('✅ Emergencia guardada con éxito', 'Cerrar', { 
-          duration: 4000,
-          horizontalPosition: 'center',
-          verticalPosition: 'top',
-          panelClass: ['success-snackbar-large']
-        });
+        this.notificationService.success(
+          '¡Emergencia Registrada!',
+          'La emergencia se ha guardado exitosamente en el sistema.',
+          { duration: 5000 }
+        );
 
         // Cerrar la pestaña actual después de guardar exitosamente
         this.closeCurrentTabAfterSave();
       },
-      error: (error: any) => {
-        console.error('❌ Error completo al guardar emergencia:', error);
-        console.error('❌ URL que falló:', error.url);
-        console.error('❌ Status HTTP:', error.status);
-        console.error('❌ Error object:', error.error);
-        console.error('❌ Error message:', error.message);
-        
+      error: (error: any) => {        
         this.submitError = error.error?.message || 'Error desconocido al registrar la emergencia';
         
         if (error.status === 401) {
-          console.log('🔒 Error 401: Token no válido o expirado - cerrando sesión automáticamente');
           this.authService.logout();
-          this.snackBar.open('Su sesión ha expirado. Será redirigido al login.', 'Cerrar', { 
-            duration: 3000,
-            panelClass: ['warning-snackbar']
-          });
+          this.notificationService.warning(
+            'Sesión Expirada',
+            'Tu sesión ha expirado. Serás redirigido al login en unos segundos.',
+            { duration: 3000 }
+          );
           setTimeout(() => {
             this.router.navigate(['/login']);
           }, 1000);
         } else if (error.status === 403) {
-          this.snackBar.open('No tiene permisos para realizar esta acción.', 'Cerrar', { duration: 5000 });
-        } else if (error.status === 404) {
-          this.snackBar.open('Error: Endpoint no encontrado. Verifique la configuración del servidor.', 'Cerrar', { duration: 5000 });
+          this.notificationService.error('Acceso Denegado', 'No tienes permisos para realizar esta acción.');
         } else if (error.status === 0) {
-          this.snackBar.open('Error de conexión: No se puede conectar al servidor.', 'Cerrar', { duration: 5000 });
+          this.notificationService.error('Error de Conexión', 'No se puede conectar al servidor. Verifica tu conexión a internet.');
         } else {
-          this.snackBar.open(`Error ${error.status}: ${this.submitError}`, 'Cerrar', { duration: 5000 });
+          this.notificationService.error('Error del Sistema', `Error ${error.status}: ${this.submitError}`);
         }
       },
       complete: () => {
@@ -782,14 +748,6 @@ export class EmergencyFormBackendComponent implements OnInit, OnDestroy {
       // Usar el servicio de persistencia centralizado
       this.formPersistenceService.saveFormData(extendedForm, tabConfig);
       
-      console.log(`💾 Estado guardado para pestaña ${this.selectedIndex}:`, {
-        vehiculo: formValueWithExtras.vehiculo,
-        unidades: formValueWithExtras.unidades,
-        guardia: formValueWithExtras.guardia,
-        eventosAdicionalesSalida: formValueWithExtras.eventosAdicionalesSalida,
-        eventosAdicionalesLlegadaEscena: formValueWithExtras.eventosAdicionalesLlegadaEscena,
-        eventosAdicionalesLlegadaHospital: formValueWithExtras.eventosAdicionalesLlegadaHospital
-      });
     }
   }
 
@@ -819,20 +777,17 @@ export class EmergencyFormBackendComponent implements OnInit, OnDestroy {
       // Forzar actualización visual
       this.forceFormUpdate();
       
-      console.log(`📋 Formulario ${index} restaurado con auto-guardado configurado`);
     } else {
       // Si no hay datos guardados, limpiar el formulario
       this.resetForm();
       this.createForm(); // Esto también configura la persistencia automáticamente
       
-      console.log(`📋 Formulario ${index} inicializado limpio con auto-guardado configurado`);
     }
   }
 
   // Restaurar FormArrays específicos
   restoreFormArrays(formData: any): void {
     if (!formData) {
-      console.warn('⚠️ No hay datos para restaurar FormArrays');
       return;
     }
 
@@ -861,9 +816,7 @@ export class EmergencyFormBackendComponent implements OnInit, OnDestroy {
         this.eventosAdicionalesLlegadaHospital
       );
 
-      console.log('✅ FormArrays restaurados exitosamente');
     } catch (error) {
-      console.error('❌ Error al restaurar FormArrays:', error);
       // En caso de error, asegurar que los FormArrays estén limpios
       this.clearFormArrays();
     }
@@ -885,7 +838,6 @@ export class EmergencyFormBackendComponent implements OnInit, OnDestroy {
         this.eventosAdicionalesLlegadaHospital.removeAt(0);
       }
     } catch (error) {
-      console.error('Error al limpiar FormArrays:', error);
     }
   }
 
@@ -895,7 +847,6 @@ export class EmergencyFormBackendComponent implements OnInit, OnDestroy {
   private restoreFormArray(fieldName: string, data: any, formArray: FormArray): void {
     try {
       if (data && Array.isArray(data) && data.length > 0) {
-        console.log(`📋 Restaurando ${fieldName} con ${data.length} elementos`);
         
         data.forEach((evento: any, index: number) => {
           try {
@@ -905,18 +856,13 @@ export class EmergencyFormBackendComponent implements OnInit, OnDestroy {
                 hora: [evento.hora || '', Validators.required],
                 descripcion: [evento.descripcion || '']
               }));
-            } else {
-              console.warn(`⚠️ Elemento ${index} en ${fieldName} no tiene estructura válida:`, evento);
             }
           } catch (elementError) {
-            console.error(`❌ Error al restaurar elemento ${index} de ${fieldName}:`, elementError);
           }
         });
       } else {
-        console.log(`ℹ️ No hay datos para restaurar en ${fieldName}`);
       }
     } catch (error) {
-      console.error(`❌ Error al restaurar FormArray ${fieldName}:`, error);
     }
   }
 
@@ -970,7 +916,7 @@ export class EmergencyFormBackendComponent implements OnInit, OnDestroy {
       }
     } else {
       // No se puede eliminar el último formulario
-      this.snackBar.open('No puedes eliminar el último formulario de emergencia', 'Cerrar', { duration: 3000 });
+      this.notificationService.warning('Acción No Permitida', 'No puedes eliminar el último formulario de emergencia.');
     }
   }
 
@@ -1119,38 +1065,32 @@ export class EmergencyFormBackendComponent implements OnInit, OnDestroy {
 
   private formatDateForBackend(date: any): string {
     if (!date) {
-      console.warn('formatDateForBackend: fecha vacía, usando fecha actual');
       return new Date().toISOString().split('T')[0];
     }
     try {
       const d = new Date(date);
       if (isNaN(d.getTime())) {
-        console.warn('formatDateForBackend: fecha inválida, usando fecha actual');
         return new Date().toISOString().split('T')[0];
       }
       return d.toISOString().split('T')[0];
     } catch (error) {
-      console.error('Error formateando fecha:', error);
       return new Date().toISOString().split('T')[0];
     }
   }
 
   private formatDateTimeForBackend(date: any, time: string): string {
     if (!date || !time) {
-      console.warn('formatDateTimeForBackend: fecha o hora vacía');
       return new Date().toISOString();
     }
     try {
       const dateObj = typeof date === 'string' ? new Date(date) : date;
       if (isNaN(dateObj.getTime())) {
-        console.warn('formatDateTimeForBackend: fecha inválida');
         return new Date().toISOString();
       }
       const [hours, minutes] = time.split(':');
       dateObj.setHours(parseInt(hours) || 0, parseInt(minutes) || 0, 0, 0);
       return dateObj.toISOString();
     } catch (error) {
-      console.error('Error formateando fecha-hora:', error);
       return new Date().toISOString();
     }
   }
@@ -1225,7 +1165,7 @@ export class EmergencyFormBackendComponent implements OnInit, OnDestroy {
    */
   saveDraftManually(): void {
     this.saveCurrentFormState();
-    this.snackBar.open('Borrador guardado exitosamente', 'Cerrar', { duration: 2000 });
+    this.notificationService.success('Borrador Guardado', 'El formulario se ha guardado correctamente.');
   }
 
   /**
@@ -1240,23 +1180,15 @@ export class EmergencyFormBackendComponent implements OnInit, OnDestroy {
     // Guardar después de un breve delay para permitir que el FormArray se actualice
     this.autoSaveTimeout = setTimeout(() => {
       this.saveCurrentFormState();
-      console.log(`💾 Auto-guardado de eventos/novedades ejecutado para pestaña ${this.selectedIndex}`);
     }, 500); // Delay más corto para eventos/novedades
   }
 
   /**
    * Método de debug para verificar el estado del formulario
    */
-  debugFormState(): void {
-    console.log('🔍 === DEBUG DEL FORMULARIO ===');
-    console.log('📋 Valores del formulario:', this.emergencyForm.value);
-    console.log('✅ ¿Formulario válido?:', this.emergencyForm.valid);
-    console.log('💾 ¿Formulario sucio?:', this.emergencyForm.dirty);
-    console.log('👆 ¿Formulario tocado?:', this.emergencyForm.touched);
-    
+  debugFormState(): void {    
     // Verificar campos específicos
     const importantFields = ['quienInforma', 'ubicacion', 'horaReporte', 'horaSalida'];
-    console.log('\n📝 Estado de campos importantes:');
     importantFields.forEach(field => {
       const control = this.emergencyForm.get(field);
       if (control) {
@@ -1276,7 +1208,6 @@ export class EmergencyFormBackendComponent implements OnInit, OnDestroy {
       key: `${this.persistenceConfig.key}_tab_${this.selectedIndex}`
     };
     const savedData = this.formPersistenceService.loadFormData(tabConfig);
-    console.log('\n💾 Datos en persistencia:', savedData);
   }
 
   /**
@@ -1311,7 +1242,7 @@ export class EmergencyFormBackendComponent implements OnInit, OnDestroy {
     // Recrear el formulario
     this.createForm();
     
-    this.snackBar.open('Todos los borradores eliminados', 'Cerrar', { duration: 2000 });
+    this.notificationService.success('Borradores Eliminados', 'Todos los borradores han sido eliminados correctamente.');
   }
 
   /**
@@ -1345,7 +1276,6 @@ export class EmergencyFormBackendComponent implements OnInit, OnDestroy {
       }
     });
     
-    console.log(`✅ Persistencia automática configurada para formulario pestaña ${this.selectedIndex}`);
   }
 
   /**
@@ -1559,9 +1489,9 @@ export class EmergencyFormBackendComponent implements OnInit, OnDestroy {
           // Restaurar metadatos de archivos si existen
           if (savedData.selectedFiles && Array.isArray(savedData.selectedFiles)) {
             console.log('📁 Archivos previamente seleccionados:', savedData.selectedFiles);
-            this.snackBar.open(
-              `Se encontraron ${savedData.selectedFiles.length} archivos previamente seleccionados. Deberás volver a seleccionarlos.`, 
-              'Cerrar', 
+            this.notificationService.info(
+              'Archivos Detectados',
+              `Se encontraron ${savedData.selectedFiles.length} archivos previamente seleccionados. Deberás volver a seleccionarlos.`,
               { duration: 5000 }
             );
           }
@@ -1576,7 +1506,7 @@ export class EmergencyFormBackendComponent implements OnInit, OnDestroy {
           
           console.log('✅ Datos de emergencia restaurados y mostrados');
           console.log('📋 Estado final del formulario:', this.emergencyForm.value);
-          this.snackBar.open('Borrador de emergencia restaurado', 'Cerrar', { duration: 3000 });
+          this.notificationService.success('Borrador Restaurado', 'El borrador de emergencia ha sido restaurado correctamente.');
         }, 300); // Aumentar el tiempo de espera para asegurar inicialización completa
       } else {
         console.log('ℹ️ No hay datos guardados para restaurar en esta pestaña');
@@ -1696,9 +1626,9 @@ export class EmergencyFormBackendComponent implements OnInit, OnDestroy {
             selectedIndex: this.selectedIndex
           });
 
-          this.snackBar.open(
-            `Se restauraron ${this.formularios.length} formulario(s) de emergencia`,
-            'Cerrar',
+          this.notificationService.success(
+            'Formularios Restaurados',
+            `Se restauraron ${this.formularios.length} formulario(s) de emergencia correctamente.`,
             { duration: 4000 }
           );
           

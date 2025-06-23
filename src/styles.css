@@ -45,6 +45,7 @@
   margin: 0;
   padding: 0;
   box-sizing: border-box;
+  overscroll-behavior: none;
 }
 
 html, body {
@@ -52,12 +53,16 @@ html, body {
   font-family: 'Roboto', sans-serif;
   color: var(--text-primary);
   background-color: var(--bg-secondary);
+  overscroll-behavior: none;
+  overscroll-behavior-x: none;
+  overscroll-behavior-y: none;
 }
 
 body {
   margin: 0;
   font-size: 14px;
   line-height: 1.5;
+  overscroll-behavior: none;
 }
 
 /* Personalización de scrollbars */

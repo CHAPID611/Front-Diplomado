@@ -1,0 +1,474 @@
+/* Estilos del Login - Diseño Dividido - Tema Bomberos */
+:host {
+  --primary-blue: #0e2868;
+  --primary-blue-light: #1a3a7a;
+  --primary-blue-dark: #0a1d4f;
+  --accent-orange: #ff8a50;
+  --accent-gold: #ffd700;
+  --bg-light: #f8f9fa;
+  --text-primary: #2c3e50;
+  --text-secondary: #6c757d;
+  --text-light: #ffffff;
+  --shadow-md: 0 4px 12px rgba(14, 40, 104, 0.15);
+  --shadow-lg: 0 8px 24px rgba(14, 40, 104, 0.2);
+  --shadow-xl: 0 16px 40px rgba(14, 40, 104, 0.25);
+}
+
+.login-split-container {
+  display: flex;
+  min-height: 100vh;
+  position: relative;
+  overflow: hidden;
+}
+
+/* ===== SECCIÓN IZQUIERDA - BRAND/LOGO ===== */
+.login-brand-section {
+  flex: 1;
+  background: linear-gradient(to bottom, #0e2868, #000000);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  overflow: hidden;
+}
+
+/* Efectos de fondo animados */
+.login-brand-section::before {
+  content: '';
+  position: absolute;
+  top: -50%;
+  left: -50%;
+  width: 200%;
+  height: 200%;
+  background: radial-gradient(circle, rgba(255, 255, 255, 0.1) 0%, transparent 70%);
+  animation: rotate 20s linear infinite;
+  z-index: 1;
+}
+
+.brand-content {
+  text-align: center;
+  z-index: 2;
+  position: relative;
+  padding: 40px;
+  animation: fadeInLeft 1s ease-out;
+}
+
+.bomberos-escudo {
+  width: 350px;
+  height: auto;
+  margin-bottom: 30px;
+  filter: drop-shadow(0 8px 32px rgba(0, 0, 0, 0.3));
+  transition: transform 0.5s ease;
+  animation: pulse 3s ease-in-out infinite;
+}
+
+.bomberos-escudo:hover {
+  transform: scale(1.05);
+}
+
+.brand-title {
+  font-size: 2.2em;
+  color: var(--text-light);
+  margin: 0 0 15px 0;
+  font-weight: 700;
+  text-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+  letter-spacing: 1px;
+  line-height: 1.2;
+}
+
+.brand-subtitle {
+  font-size: 1.3em;
+  color: var(--accent-gold);
+  margin: 0;
+  font-weight: 500;
+  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+  letter-spacing: 0.5px;
+}
+
+/* ===== SECCIÓN DERECHA - FORMULARIO ===== */
+.login-form-section {
+  flex: 1;
+  background: linear-gradient(135deg, #f8f9fa 0%, #ffffff 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 40px;
+  position: relative;
+}
+
+.login-form-section::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><defs><pattern id="grid" width="10" height="10" patternUnits="userSpaceOnUse"><path d="M 10 0 L 0 0 0 10" fill="none" stroke="%23e9ecef" stroke-width="0.5"/></pattern></defs><rect width="100" height="100" fill="url(%23grid)"/></svg>');
+  opacity: 0.3;
+  z-index: 0;
+}
+
+.form-container {
+  width: 100%;
+  max-width: 450px;
+  z-index: 1;
+  position: relative;
+  animation: fadeInRight 1s ease-out;
+}
+
+.form-header {
+  text-align: center;
+  margin-bottom: 40px;
+}
+
+.form-header h1 {
+  font-size: 2.5em;
+  color: var(--primary-blue);
+  margin: 0 0 10px 0;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+}
+
+.form-header p {
+  font-size: 1.1em;
+  color: var(--text-secondary);
+  margin: 0;
+  font-weight: 400;
+}
+
+/* ===== TARJETA DE LOGIN ===== */
+.login-card {
+  background: rgba(255, 255, 255, 0.9);
+  backdrop-filter: blur(10px);
+  border-radius: 20px;
+  box-shadow: var(--shadow-xl);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+  overflow: hidden;
+}
+
+.login-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 20px 48px rgba(14, 40, 104, 0.3);
+}
+
+.login-card mat-card-content {
+  padding: 40px;
+}
+
+.login-card mat-card-content form {
+  display: flex;
+  flex-direction: column;
+  gap: 25px;
+}
+
+/* ===== ESTILOS DE CAMPOS ===== */
+.login-card ::ng-deep .mat-mdc-form-field {
+  width: 100%;
+}
+
+.login-card ::ng-deep .mat-mdc-form-field-appearance-fill .mat-mdc-form-field-flex {
+  background-color: var(--bg-light);
+  border-radius: 12px;
+  border: 2px solid #e9ecef;
+  transition: all 0.3s ease;
+  padding: 8px 16px;
+}
+
+.login-card ::ng-deep .mat-mdc-form-field-appearance-fill.mat-focused .mat-mdc-form-field-flex {
+  border-color: var(--primary-blue);
+  background-color: #ffffff;
+  box-shadow: 0 0 0 3px rgba(14, 40, 104, 0.1);
+  transform: translateY(-1px);
+}
+
+.login-card ::ng-deep .mat-mdc-form-field-label {
+  color: var(--text-secondary);
+  font-weight: 500;
+  font-size: 0.95em;
+}
+
+.login-card ::ng-deep .mat-focused .mat-mdc-form-field-label {
+  color: var(--primary-blue) !important;
+  font-weight: 600;
+}
+
+.login-card ::ng-deep .mat-mdc-input-element {
+  color: var(--text-primary);
+  font-weight: 500;
+  font-size: 1em;
+}
+
+.login-card ::ng-deep .mat-icon {
+  color: var(--text-secondary);
+  transition: color 0.3s ease;
+}
+
+.login-card ::ng-deep .mat-focused .mat-icon {
+  color: var(--primary-blue);
+}
+
+/* ===== BOTÓN DE LOGIN ===== */
+.button-container {
+  display: flex;
+  justify-content: center;
+  margin-top: 20px;
+  color: white;
+}
+
+.login-btn {
+  background: linear-gradient(135deg, var(--primary-blue) 0%, var(--primary-blue-light) 100%);
+  color: white;
+  padding: 16px 40px;
+  font-size: 1.1em;
+  font-weight: 600;
+  border-radius: 12px;
+  min-width: 180px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  transition: all 0.4s ease;
+  box-shadow: 0 6px 20px rgba(14, 40, 104, 0.3);
+  border: none;
+  position: relative;
+  overflow: hidden;
+}
+
+.login-btn::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+  transition: left 0.5s ease;
+}
+
+.login-btn:hover:not(:disabled)::before {
+  left: 100%;
+}
+
+.login-btn:hover:not(:disabled) {
+  background: linear-gradient(135deg, var(--primary-blue-light) 0%, var(--primary-blue-dark) 100%);
+  transform: translateY(-2px);
+  box-shadow: 0 10px 28px rgba(14, 40, 104, 0.4);
+}
+
+.login-btn:active {
+  transform: translateY(0);
+}
+
+.login-btn:disabled {
+  background: #bdbdbd;
+  color: #757575;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+/* ===== ANIMACIONES ===== */
+@keyframes fadeInLeft {
+  from {
+    opacity: 0;
+    transform: translateX(-50px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes fadeInRight {
+  from {
+    opacity: 0;
+    transform: translateX(50px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes pulse {
+  0%, 100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.02);
+  }
+}
+
+@keyframes rotate {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes slide {
+  0%, 100% {
+    transform: translateX(-10px);
+  }
+  50% {
+    transform: translateX(10px);
+  }
+}
+
+@keyframes brandShimmerFast {
+  0% {
+    bottom: -120%;
+    left: -60%;
+  }
+  100% {
+    bottom: 120%;
+    left: 60%;
+  }
+}
+
+/* ===== RESPONSIVE DESIGN ===== */
+@media (max-width: 1024px) {
+  .login-split-container {
+    flex-direction: column;
+    min-height: 100vh;
+  }
+  
+  .login-brand-section {
+    flex: none;
+    min-height: 50vh;
+  }
+  
+  .bomberos-escudo {
+    width: 250px;
+  }
+  
+  .brand-title {
+    font-size: 1.8em;
+  }
+  
+  .brand-subtitle {
+    font-size: 1.1em;
+  }
+  
+  .login-form-section {
+    flex: none;
+    min-height: 50vh;
+    padding: 30px 20px;
+  }
+  
+  .form-header h1 {
+    font-size: 2em;
+  }
+}
+
+@media (max-width: 768px) {
+  .login-brand-section {
+    min-height: 40vh;
+    padding: 20px;
+  }
+  
+  .bomberos-escudo {
+    width: 200px;
+  }
+  
+  .brand-title {
+    font-size: 1.5em;
+  }
+  
+  .brand-subtitle {
+    font-size: 1em;
+  }
+  
+  .login-form-section {
+    padding: 20px;
+  }
+  
+  .form-header h1 {
+    font-size: 1.8em;
+  }
+  
+  .form-container {
+    max-width: 100%;
+  }
+  
+  .login-card mat-card-content {
+    padding: 30px 25px;
+  }
+  
+  .login-btn {
+    padding: 14px 32px;
+    font-size: 1em;
+    min-width: 160px;
+  }
+}
+
+@media (max-width: 480px) {
+  .login-brand-section {
+    min-height: 35vh;
+  }
+  
+  .bomberos-escudo {
+    width: 150px;
+  }
+  
+  .brand-title {
+    font-size: 1.3em;
+  }
+  
+  .brand-subtitle {
+    font-size: 0.9em;
+  }
+  
+  .login-card mat-card-content {
+    padding: 25px 20px;
+  }
+  
+  .form-header h1 {
+    font-size: 1.6em;
+  }
+}
+
+/* ===== ACCESIBILIDAD ===== */
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+.login-btn:focus-visible {
+  outline: 3px solid var(--accent-orange);
+  outline-offset: 2px;
+}
+
+.login-card ::ng-deep .mat-mdc-input-element:focus-visible {
+  outline: 2px solid var(--primary-blue);
+  outline-offset: 1px;
+}
+
+/* ===== ORIENTACIÓN HORIZONTAL EN MÓVILES ===== */
+@media (max-height: 600px) and (orientation: landscape) {
+  .login-split-container {
+    flex-direction: row;
+  }
+  
+  .login-brand-section {
+    flex: 0.6;
+    min-height: 100vh;
+  }
+  
+  .login-form-section {
+    flex: 1;
+    min-height: 100vh;
+  }
+  
+  .bomberos-escudo {
+    width: 180px;
+  }
+  
+  .brand-title {
+    font-size: 1.4em;
+  }
+} 
