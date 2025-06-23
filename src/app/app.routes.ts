@@ -11,11 +11,16 @@ import { EmergencyFormBackendComponent } from './features/components/emergency-f
 import { PdfPreviewComponent } from './features/components/pdf-preview/pdf-preview.component';
 
 export const routes: Routes = [
-    { path: 'login', component: LoginComponent },
+    { 
+        path: 'login',
+        component: LoginComponent,
+        title: 'Login'
+    },
     { 
         path: 'pdf-preview', 
         component: PdfPreviewComponent,
-        canActivate: [AuthGuard]
+        canActivate: [AuthGuard],
+        title: 'PDF Preview'
     },
     {
         path: '',
@@ -23,18 +28,20 @@ export const routes: Routes = [
         canActivate: [AuthGuard],
         children: [
             { path: '', redirectTo: 'dashboard', pathMatch: 'full' },
-            { path: 'dashboard', component: DashboardComponent },
-            { path: 'emergencias', component: EmergencyFormBackendComponent },
+            { path: 'dashboard', component: DashboardComponent, title: 'Dashboard' },
+            { path: 'emergencias', component: EmergencyFormBackendComponent, title: 'Emergencias' },
             { 
                 path: 'personal', 
                 component: PersonalComponent,
-                canActivate: [AdminGuard]
+                canActivate: [AdminGuard],
+                title: 'Personal'
             },
-            { path: 'reportes', component: ReportsComponent },
+            { path: 'reportes', component: ReportsComponent, title: 'Reportes' },
             {
                 path: 'vehiculos',
                 component: VehiclesComponent,
-                canActivate: [AdminGuard]
+                canActivate: [AdminGuard],
+                title: 'Vehículos'
             }
         ]
     }

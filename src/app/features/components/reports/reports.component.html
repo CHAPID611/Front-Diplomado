@@ -7,6 +7,44 @@
     <p>Análisis detallado del desempeño del sistema de emergencias</p>
   </div>
 
+    <!-- Resumen ejecutivo -->
+    <div class="summary-stats" *ngIf="!isLoadingData">
+      <mat-card class="stat-card primary">
+        <div class="stat-content">
+          <mat-icon class="stat-icon">local_fire_department</mat-icon>
+          <div class="stat-info">
+            <h3>Total Emergencias</h3>
+            <p class="stat-number">{{ reportData.totalEmergencies }}</p>
+            <small>en el período seleccionado</small>
+          </div>
+        </div>
+      </mat-card>
+  
+      <mat-card class="stat-card success">
+        <div class="stat-content">
+          <mat-icon class="stat-icon">timer</mat-icon>
+          <div class="stat-info">
+            <h3>Tiempo Promedio</h3>
+            <p class="stat-number">{{ reportData.responseTime }}min</p>
+            <small>tiempo de respuesta</small>
+          </div>
+        </div>
+      </mat-card>
+  
+  
+  
+      <mat-card class="stat-card info">
+        <div class="stat-content">
+          <mat-icon class="stat-icon">trending_up</mat-icon>
+          <div class="stat-info">
+            <h3>Tipo Más Común</h3>
+            <p class="stat-text">{{ reportData.mostCommonType }}</p>
+            <small>tipo de emergencia</small>
+          </div>
+        </div>
+      </mat-card>
+    </div>
+  
   <!-- Filtros -->
   <mat-card class="filters-card">
     <mat-card-header>
@@ -49,14 +87,6 @@
             </mat-error>
           </mat-form-field>
 
-          <!-- Mensaje informativo para período personalizado -->
-          <div *ngIf="filtersForm.get('period')?.value === 'custom'" class="custom-period-info" style="margin: 8px 0; padding: 8px; background-color: #e3f2fd; border-radius: 4px; font-size: 12px; color: #1976d2;">
-            <mat-icon style="font-size: 16px; vertical-align: middle; margin-right: 4px;">info</mat-icon>
-            Selecciona ambas fechas para cargar los datos del período personalizado
-          </div>
-
-          <!-- Tiempo objetivo removido - ahora se configura desde el panel de administración -->
-
           <mat-form-field appearance="outline">
             <mat-label>Tipo de emergencia</mat-label>
             <mat-select formControlName="emergencyType">
@@ -90,43 +120,6 @@
     </mat-card>
   </div>
 
-  <!-- Resumen ejecutivo -->
-  <div class="summary-stats" *ngIf="!isLoadingData">
-    <mat-card class="stat-card primary">
-      <div class="stat-content">
-        <mat-icon class="stat-icon">local_fire_department</mat-icon>
-        <div class="stat-info">
-          <h3>Total Emergencias</h3>
-          <p class="stat-number">{{ reportData.totalEmergencies }}</p>
-          <small>en el período seleccionado</small>
-        </div>
-      </div>
-    </mat-card>
-
-    <mat-card class="stat-card success">
-      <div class="stat-content">
-        <mat-icon class="stat-icon">timer</mat-icon>
-        <div class="stat-info">
-          <h3>Tiempo Promedio</h3>
-          <p class="stat-number">{{ reportData.responseTime }}min</p>
-          <small>tiempo de respuesta</small>
-        </div>
-      </div>
-    </mat-card>
-
-
-
-    <mat-card class="stat-card info">
-      <div class="stat-content">
-        <mat-icon class="stat-icon">trending_up</mat-icon>
-        <div class="stat-info">
-          <h3>Tipo Más Común</h3>
-          <p class="stat-text">{{ reportData.mostCommonType }}</p>
-          <small>tipo de emergencia</small>
-        </div>
-      </div>
-    </mat-card>
-  </div>
 
   <!-- Lista de Emergencias -->
   <mat-card class="emergencies-list-card" *ngIf="!isLoadingData">
@@ -419,7 +412,6 @@
         <mat-icon style="vertical-align: middle; margin-right: 8px;">description</mat-icon>
         Reporte General de Emergencias
       </h3>
-      <p>Descarga todas las emergencias según los filtros aplicados - Para entidades externas</p>
       <div class="buttons">
         <button mat-raised-button 
                 color="primary" 
@@ -452,7 +444,6 @@
         <mat-icon style="vertical-align: middle; margin-right: 8px;">assessment</mat-icon>
         Reporte de Estadísticas
       </h3>
-      <p>Para análisis interno - Contiene métricas y gráficos estadísticos</p>
       <div class="buttons">
         <button mat-raised-button 
                 color="accent" 

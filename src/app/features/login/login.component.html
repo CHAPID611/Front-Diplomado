@@ -1,43 +1,52 @@
-<div class="login-single-column-container">
-  <div class="login-header">
-    <h1>Sistema de Gestión de Emergencias</h1>
-    <!-- Aquí irá el logo -->
-    <img src="/assets/logo.png" alt="Logo Bomberos Mocoa" class="bomberos-logo">
+<div class="login-split-container">
+  <!-- Sección izquierda - Logo/Escudo -->
+  <div class="login-brand-section">
+    <div class="brand-content">
+      <img src="/assets/logo.png" alt="Logo Bomberos Mocoa" class="bomberos-escudo">
+      <h2 class="brand-title">Sistema de Gestión de Emergencias</h2>
+      <p class="brand-subtitle">Bomberos Voluntarios de Mocoa</p>
+    </div>
   </div>
   
-  <div class="login-content-area">
-    <mat-card class="login-card">
-      <mat-card-header>
-        <mat-card-title>Iniciar Sesión</mat-card-title>
-      </mat-card-header>
+  <!-- Sección derecha - Formulario -->
+  <div class="login-form-section">
+    <div class="form-container">
+      <div class="form-header">
+        <h1>Bienvenido</h1>
+        <p>Ingresa tus credenciales para acceder</p>
+      </div>
+      
+      <mat-card class="login-card">
+        <mat-card-content>
+          <form [formGroup]="loginForm" (submit)="onSubmit()">
+            <mat-form-field appearance="fill">
+              <mat-label>Usuario*</mat-label>
+              <input matInput formControlName="usuario" placeholder="Ingresa tu usuario" required>
+              <mat-icon matPrefix>person</mat-icon>
+              <mat-error *ngIf="loginForm.get('usuario')?.invalid">{{ getErrorMessage('usuario') }}</mat-error>
+            </mat-form-field>
 
-      <mat-card-content>
-        <form [formGroup]="loginForm" (submit)="onSubmit()">
-          <mat-form-field appearance="fill">
-            <mat-label>Usuario*</mat-label>
-            <input matInput formControlName="usuario" placeholder="Ingresa tu usuario" required>
-            <mat-error *ngIf="loginForm.get('usuario')?.invalid">{{ getErrorMessage('usuario') }}</mat-error>
-          </mat-form-field>
+            <mat-form-field appearance="fill">
+              <mat-label>Contraseña</mat-label>
+              <input matInput formControlName="password" [type]="hide ? 'password' : 'text'" required placeholder="Ingresa tu contraseña">
+              <mat-icon matPrefix>lock</mat-icon>
+              <button mat-icon-button matSuffix (click)="hide = !hide" [attr.aria-label]="'Hide password'" [attr.aria-pressed]="hide" type="button">
+                <mat-icon>{{hide ? 'visibility_off' : 'visibility'}}</mat-icon>
+              </button>
+              <mat-error *ngIf="loginForm.get('password')?.invalid && loginForm.get('password')?.touched">
+                {{ getErrorMessage('password') }}
+              </mat-error>
+            </mat-form-field>
 
-          <mat-form-field appearance="fill">
-            <mat-label>Contraseña</mat-label>
-            <input matInput formControlName="password" [type]="hide ? 'password' : 'text'" required placeholder="Ingresa tu contraseña">
-            <button mat-icon-button matSuffix (click)="hide = !hide" [attr.aria-label]="'Hide password'" [attr.aria-pressed]="hide" type="button">
-              <mat-icon>{{hide ? 'visibility_off' : 'visibility'}}</mat-icon>
-            </button>
-            <mat-error *ngIf="loginForm.get('password')?.invalid && loginForm.get('password')?.touched">
-              {{ getErrorMessage('password') }}
-            </mat-error>
-          </mat-form-field>
-
-          <div class="button-container">
-            <button mat-raised-button color="primary" type="submit" [disabled]="loginForm.invalid || loading">
-              <span *ngIf="!loading">INGRESAR</span>
-              <mat-spinner *ngIf="loading" [diameter]="24"></mat-spinner>
-            </button>
-          </div>
-        </form>
-      </mat-card-content>
-    </mat-card>
+            <div class="button-container">
+              <button mat-raised-button color="primary" type="submit" [disabled]="loginForm.invalid || loading" class="login-btn">
+                <span *ngIf="!loading">INGRESAR</span>
+                <mat-spinner *ngIf="loading" [diameter]="24"></mat-spinner>
+              </button>
+            </div>
+          </form>
+        </mat-card-content>
+      </mat-card>
+    </div>
   </div>
 </div> 

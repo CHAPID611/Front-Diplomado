@@ -1,7 +1,7 @@
 import { Component, Inject } from '@angular/core';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { MatDialogRef, MAT_DIALOG_DATA, MatDialogModule } from '@angular/material/dialog';
-import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
+import { NotificationService } from '../../../../shared/services/notification.service';
 import { VehiclesService, Vehicle } from '../../../../core/services/vehicles.service';
 import { FormPersistenceService, FormPersistenceConfig } from '../../../../core/services/form-persistence.service';
 import { CommonModule } from '@angular/common';
@@ -22,7 +22,7 @@ import { MatButtonModule } from '@angular/material/button';
     MatInputModule,
     MatSelectModule,
     MatButtonModule,
-    MatSnackBarModule
+
   ]
 })
 export class VehicleFormComponent {
@@ -50,7 +50,7 @@ export class VehicleFormComponent {
     private vehiclesService: VehiclesService,
     private formPersistenceService: FormPersistenceService,
     private dialogRef: MatDialogRef<VehicleFormComponent>,
-    private snackBar: MatSnackBar,
+    private notificationService: NotificationService,
     @Inject(MAT_DIALOG_DATA) public data: Vehicle | null
   ) {
     this.vehicleForm = this.fb.group({
@@ -85,19 +85,17 @@ export class VehicleFormComponent {
             this.clearDraft();
           }
           
-          this.snackBar.open(
-            `Vehículo ${this.isEdit ? 'actualizado' : 'creado'} con éxito`,
-            'Cerrar',
-            { duration: 3000 }
+          this.notificationService.success(
+            this.isEdit ? 'Vehículo Actualizado' : 'Vehículo Creado',
+            `El vehículo ha sido ${this.isEdit ? 'actualizado' : 'registrado'} exitosamente en el sistema.`
           );
           this.dialogRef.close(true);
         },
         error: (error) => {
           console.error('Error:', error);
-          this.snackBar.open(
-            `Error al ${this.isEdit ? 'actualizar' : 'crear'} el vehículo`,
-            'Cerrar',
-            { duration: 3000 }
+          this.notificationService.error(
+            this.isEdit ? 'Error de Actualización' : 'Error de Registro',
+            `No se pudo ${this.isEdit ? 'actualizar' : 'registrar'} el vehículo. Intenta nuevamente.`
           );
         }
       });

@@ -5,16 +5,22 @@
 }
 
 .vehicles-header {
-  margin-bottom: 24px;
+  text-align: center;
+  margin-bottom: 32px;
+  padding: 28px;
+  background: #ffffff;
+  border-radius: 12px;
+  border: 1px solid #e0e0e0;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
 }
 
 .vehicles-header h1 {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  margin: 0;
-  font-size: 2rem;
-  color: #1a237e;
+  color: #0e2868;
+  font-size: 2.2rem;
+  font-weight: 600;
+  margin-bottom: 8px;
+  text-shadow: none;
+
 }
 
 .vehicles-header p {
@@ -59,9 +65,12 @@
 }
 
 .stat-info h3 {
-  margin: 0;
-  font-size: 1.1rem;
-  color: #666;
+  margin: 0 0 8px 0;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text-secondary, #6c757d);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
 }
 
 .stat-number {
@@ -78,15 +87,15 @@
 
 /* Colores de las tarjetas de estadísticas */
 .stat-card.primary {
-  background-color: #e8eaf6;
+  border-left: 4px solid var(--primary-red, #c62828);
 }
 
 .stat-card.primary .stat-icon {
-  color: #3f51b5;
+  color: #c62828;
 }
 
 .stat-card.success {
-  background-color: #e8f5e9;
+  border-left: 4px solid #28a745;
 }
 
 .stat-card.success .stat-icon {
@@ -94,7 +103,7 @@
 }
 
 .stat-card.warning {
-  background-color: #fff3e0;
+  border-left: 4px solid #ffc107;
 }
 
 .stat-card.warning .stat-icon {
@@ -102,7 +111,7 @@
 }
 
 .stat-card.info {
-  background-color: #e1f5fe;
+  border-left: 4px solid #17a2b8;
 }
 
 .stat-card.info .stat-icon {
@@ -141,6 +150,14 @@
   display: flex;
   gap: 16px;
   flex-wrap: wrap;
+}
+
+.actions-row button {
+  border-radius: 6px;
+  font-weight: 500;
+  text-transform: none;
+  padding: 0 20px;
+  height: 40px;
 }
 
 /* Estilos para la tabla */

@@ -4,7 +4,7 @@ import { MatDialog } from '@angular/material/dialog';
 import { VehiclesService, Vehicle, VehicleStats } from '../../../core/services/vehicles.service';
 import { VehicleFormComponent } from './vehicle-form/vehicle-form.component';
 import { FormPersistenceService, FormPersistenceConfig } from '../../../core/services/form-persistence.service';
-import { MatSnackBar } from '@angular/material/snack-bar';
+import { NotificationService } from '../../../shared/services/notification.service';
 import { CommonModule } from '@angular/common';
 import { MatCardModule } from '@angular/material/card';
 import { MatButtonModule } from '@angular/material/button';
@@ -75,7 +75,7 @@ export class VehiclesComponent implements OnInit {
     private vehiclesService: VehiclesService,
     private formPersistenceService: FormPersistenceService,
     private dialog: MatDialog,
-    private snackBar: MatSnackBar,
+    private notificationService: NotificationService,
     private fb: FormBuilder
   ) {
     this.filterForm = this.fb.group({
@@ -128,9 +128,7 @@ export class VehiclesComponent implements OnInit {
       },
       error: (error) => {
         console.error('Error cargando vehículos:', error);
-        this.snackBar.open('Error al cargar los vehículos', 'Cerrar', {
-          duration: 3000
-        });
+        this.notificationService.error('Error de Carga', 'No se pudieron cargar los vehículos del sistema.');
         this.isLoading = false;
       }
     });
@@ -164,16 +162,12 @@ export class VehiclesComponent implements OnInit {
     if (confirm(`¿Está seguro de eliminar el vehículo ${vehicle.name}?`)) {
       this.vehiclesService.deleteVehicle(vehicle.vehicleId).subscribe({
         next: () => {
-          this.snackBar.open('Vehículo eliminado con éxito', 'Cerrar', {
-            duration: 3000
-          });
+          this.notificationService.success('Vehículo Eliminado', 'El vehículo ha sido eliminado exitosamente del sistema.');
           this.loadVehicles();
         },
         error: (error) => {
           console.error('Error eliminando vehículo:', error);
-          this.snackBar.open('Error al eliminar el vehículo', 'Cerrar', {
-            duration: 3000
-          });
+          this.notificationService.error('Error de Eliminación', 'No se pudo eliminar el vehículo. Intenta nuevamente.');
         }
       });
     }
@@ -231,13 +225,13 @@ export class VehiclesComponent implements OnInit {
 
   saveFilters(): void {
     this.formPersistenceService.saveFormData(this.filterForm, this.persistenceConfig);
-    this.snackBar.open('Filtros guardados', 'Cerrar', { duration: 2000 });
+    this.notificationService.success('Filtros Guardados', 'Los filtros de vehículos han sido guardados correctamente.');
   }
 
   clearSavedFilters(): void {
     this.formPersistenceService.clearFormData(this.persistenceConfig);
     this.filterForm.reset();
-    this.snackBar.open('Filtros limpiados', 'Cerrar', { duration: 2000 });
+    this.notificationService.success('Filtros Limpiados', 'Los filtros de vehículos han sido restablecidos correctamente.');
   }
 
   getFiltersInfo(): { exists: boolean; timestamp?: string; size?: number } {
