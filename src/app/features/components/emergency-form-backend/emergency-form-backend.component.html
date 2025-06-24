@@ -67,7 +67,7 @@
                           <mat-option *ngFor="let vehiculo of availableVehicles" 
                                      [value]="vehiculo.vehicleId">
                             <span>
-                              {{vehiculo.name}} - {{vehiculo.plate}}
+                              {{vehiculo.name}}
                             </span>
                           </mat-option>
                         </mat-select>
@@ -494,7 +494,7 @@
                         <p><strong>Informante:</strong> "{{emergencyForm.get('quienInforma')?.value}}"</p>
                         <p><strong>Tipo Emergencia:</strong> {{getTipoEmergenciaNombre()}}</p>
                         <p><strong>Ubicación:</strong> "{{emergencyForm.get('ubicacion')?.value}}"</p>
-                        <p><strong>Vehículo:</strong> "{{emergencyForm.get('vehiculo')?.value}}"</p>
+                        <p><strong>Vehículos:</strong> {{getVehiculosSeleccionados()}}</p>
                         <p><strong>Turno:</strong> {{getFormattedTurno()}}</p>
                         
                         <h5> CRONOLOGÍA:</h5>
@@ -532,8 +532,8 @@
                         <p><strong>Hora Regreso:</strong> "{{emergencyForm.get('horaRegresoEstacion')?.value}}" - "{{emergencyForm.get('horaRegresoEstacionDescripcion')?.value}}"</p>
                         
                         <h5> PERSONAL:</h5>
-                        <p><strong>Unidades:</strong> "{{emergencyForm.get('unidades')?.value}}"</p>
-                        <p><strong>Guardia:</strong> "{{emergencyForm.get('guardia')?.value}}"</p>
+                        <p><strong>Unidades:</strong> {{getUnidadesSeleccionadas()}}</p>
+                        <p><strong>Guardia:</strong> {{getGuardiaSeleccionada()}}</p>
                       </div>
                     </div>
 

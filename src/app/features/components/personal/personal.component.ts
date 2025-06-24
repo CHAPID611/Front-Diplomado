@@ -58,6 +58,7 @@ export class PersonalComponent implements OnInit {
   cualidades: any[] = [];
   rangos: any[] = [];
   estados: Array<{value: string, label: string}> = [];
+  tiposSangre: any[] = []; // NUEVO: Tipos de sangre para conversión
   
   displayedColumns: string[] = ['foto', 'nombre', 'rango', 'estado', 'experiencia', 'cualidades', 'acciones'];
   
@@ -135,6 +136,24 @@ export class PersonalComponent implements OnInit {
               { rangeId: 5, range: 'Teniente' },
               { rangeId: 6, range: 'Capitán' }
             ];
+            resolve();
+          }
+        });
+      }),
+      
+      // NUEVO: Cargar tipos de sangre
+      new Promise<void>((resolve) => {
+        this.personalService.getTiposSangre().subscribe({
+          next: (tipos) => {
+            this.tiposSangre = tipos;
+            resolve();
+          },
+          error: (error) => {
+            console.warn('Error al cargar tipos de sangre, usando estáticos:', error);
+            this.tiposSangre = this.personalService.getTiposSangreStatic().map((tipo, index) => ({
+              bloodTypeId: index + 1,
+              bloodType: tipo
+            }));
             resolve();
           }
         });
@@ -279,6 +298,41 @@ export class PersonalComponent implements OnInit {
     return 'Rango Desconocido';
   }
 
+  /**
+   * NUEVO: Convierte ID de tipo de sangre a nombre legible
+   */
+  getNombreTipoSangre(tipoSangreId: string | number): string {
+    if (!tipoSangreId) return 'No especificado';
+    
+    // Si ya es un nombre de tipo de sangre (string conocido), retornarlo
+    const tiposSangreConocidos = ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'];
+    if (tiposSangreConocidos.includes(String(tipoSangreId))) {
+      return String(tipoSangreId);
+    }
+    
+    // Si tenemos tipos de sangre cargados, buscar en ellos
+    if (this.tiposSangre && this.tiposSangre.length > 0) {
+      const tipoEncontrado = this.tiposSangre.find(tipo => 
+        String(tipo.bloodTypeId) === String(tipoSangreId) ||
+        tipo.bloodType === String(tipoSangreId)
+      );
+      
+      if (tipoEncontrado) {
+        return tipoEncontrado.bloodType;
+      }
+    }
+    
+    // Fallback con tipos estáticos
+    const tiposEstaticos = ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'];
+    const indice = Number(tipoSangreId) - 1;
+    if (indice >= 0 && indice < tiposEstaticos.length) {
+      return tiposEstaticos[indice];
+    }
+    
+    // Último fallback: retornar el ID como string
+    return String(tipoSangreId);
+  }
+
   getNombreCualidad(cualidadId: string | number): string {
     if (!cualidadId) return 'Sin Cualidad';
     
@@ -392,6 +446,7 @@ export class PersonalComponent implements OnInit {
         getNombreRango: (id: string) => this.getNombreRango(id),
         getNombreCualidad: (id: string) => this.getNombreCualidad(id),
         getEstadoLabel: (estado: string) => this.getEstadoLabel(estado),
+        getNombreTipoSangre: (id: string) => this.getNombreTipoSangre(id), // NUEVO: Método para tipo de sangre
         canEdit: this.canEditPersonal(),
         onEdit: () => {
           dialogRef.close();

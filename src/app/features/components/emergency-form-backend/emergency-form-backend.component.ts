@@ -406,6 +406,18 @@ export class EmergencyFormBackendComponent implements OnInit, OnDestroy {
     }).join(', ');
   }
 
+  getVehiculosSeleccionados(): string {
+    const vehiculos = this.emergencyForm.get('vehiculo')?.value || [];
+    if (!Array.isArray(vehiculos) || vehiculos.length === 0) {
+      return 'Ninguno seleccionado';
+    }
+    
+    return vehiculos.map((id: number) => {
+      const vehicle = this.availableVehicles.find(v => v.vehicleId === id);
+      return vehicle ? vehicle.name : `ID: ${id}`;
+    }).join(', ');
+  }
+
   formatSelectedPersonnelNames(guardiaIds: number[] | number | string): string {
     if (!guardiaIds) return '';
     
@@ -414,6 +426,131 @@ export class EmergencyFormBackendComponent implements OnInit, OnDestroy {
       const person = this.personalDisponible.find(p => p.personalId === Number(id));
       return person ? `${person.rango} ${person.nombre}` : `ID: ${id}`;
     }).join(', ');
+  }
+
+  // ===== NUEVOS MÉTODOS PARA CONVERSIÓN ID <-> NOMBRES =====
+  
+  /**
+   * Convierte IDs de personal a nombres completos con rango
+   */
+  private convertPersonnelIdsToNames(ids: number[]): string[] {
+    if (!ids || !Array.isArray(ids)) return [];
+    
+    return ids.map(id => {
+      const person = this.personalDisponible.find(p => p.personalId === id);
+      return person ? `${person.rango} ${person.nombre}` : `ID: ${id}`;
+    });
+  }
+  
+  /**
+   * Convierte nombres de personal con rango a IDs
+   */
+  private convertPersonnelNamesToIds(names: string[]): number[] {
+    if (!names || !Array.isArray(names)) return [];
+    
+    return names.map(name => {
+      // Buscar por nombre completo (rango + nombre)
+      const person = this.personalDisponible.find(p => 
+        `${p.rango} ${p.nombre}` === name
+      );
+      
+      if (person) {
+        return person.personalId;
+      }
+      
+      // Fallback: buscar solo por nombre si no encuentra con rango
+      const personByName = this.personalDisponible.find(p => 
+        p.nombre === name || name.includes(p.nombre)
+      );
+      
+      return personByName ? personByName.personalId : 0;
+    }).filter(id => id > 0); // Filtrar IDs inválidos
+  }
+  
+  /**
+   * Convierte IDs de vehículos a nombres (solo el nombre, sin placa)
+   */
+  private convertVehicleIdsToNames(ids: number[]): string[] {
+    if (!ids || !Array.isArray(ids)) return [];
+    
+    return ids.map(id => {
+      const vehicle = this.availableVehicles.find(v => v.vehicleId === id);
+      return vehicle ? vehicle.name : `ID: ${id}`;
+    });
+  }
+  
+  /**
+   * Convierte nombres de vehículos a IDs
+   */
+  private convertVehicleNamesToIds(names: string[]): number[] {
+    if (!names || !Array.isArray(names)) return [];
+    
+    return names.map(name => {
+      // Buscar por nombre exacto (solo nombre, sin placa)
+      const vehicle = this.availableVehicles.find(v => 
+        v.name === name
+      );
+      
+      if (vehicle) {
+        return vehicle.vehicleId;
+      }
+      
+      // Fallback: buscar por coincidencia parcial del nombre
+      const vehicleByName = this.availableVehicles.find(v => 
+        v.name.toLowerCase().includes(name.toLowerCase()) ||
+        name.toLowerCase().includes(v.name.toLowerCase())
+      );
+      
+      return vehicleByName ? vehicleByName.vehicleId : 0;
+    }).filter(id => id > 0); // Filtrar IDs inválidos
+  }
+  
+  /**
+   * Restaura IDs desde nombres guardados cuando sea necesario
+   * Convierte los nombres guardados de vuelta a IDs para que el formulario funcione
+   */
+  private restoreIdsFromNames(data: any): void {
+    if (!data) return;
+    
+    try {
+      // Verificar si los datos contienen nombres (arrays de strings)
+      
+             // Restaurar vehículos: convertir nombres a IDs
+       if (data.vehiculo && Array.isArray(data.vehiculo) && data.vehiculo.length > 0) {
+         // Si el primer elemento es string, son nombres que necesitan conversión
+         if (typeof data.vehiculo[0] === 'string') {
+           const vehiculoNombres = [...data.vehiculo]; // Guardar nombres originales para el log
+           const vehiculoIds = this.convertVehicleNamesToIds(data.vehiculo);
+           data.vehiculo = vehiculoIds;
+           console.log('🔄 Restaurados vehículos desde nombres:', vehiculoNombres, '-> IDs:', vehiculoIds);
+         }
+       }
+      
+             // Restaurar unidades: convertir nombres a IDs
+       if (data.unidades && Array.isArray(data.unidades) && data.unidades.length > 0) {
+         // Si el primer elemento es string, son nombres que necesitan conversión
+         if (typeof data.unidades[0] === 'string') {
+           const unidadesNombres = [...data.unidades]; // Guardar nombres originales para el log
+           const unidadesIds = this.convertPersonnelNamesToIds(data.unidades);
+           data.unidades = unidadesIds;
+           console.log('🔄 Restauradas unidades desde nombres:', unidadesNombres, '-> IDs:', unidadesIds);
+         }
+       }
+       
+       // Restaurar guardia: convertir nombres a IDs
+       if (data.guardia && Array.isArray(data.guardia) && data.guardia.length > 0) {
+         // Si el primer elemento es string, son nombres que necesitan conversión
+         if (typeof data.guardia[0] === 'string') {
+           const guardiaNombres = [...data.guardia]; // Guardar nombres originales para el log
+           const guardiaIds = this.convertPersonnelNamesToIds(data.guardia);
+           data.guardia = guardiaIds;
+           console.log('🔄 Restaurada guardia desde nombres:', guardiaNombres, '-> IDs:', guardiaIds);
+         }
+       }
+      
+    } catch (error) {
+      console.error('Error al restaurar IDs desde nombres:', error);
+    }
   }
 
 
@@ -704,12 +841,17 @@ export class EmergencyFormBackendComponent implements OnInit, OnDestroy {
       const formValue = this.emergencyForm.value;
       
       // Preparar datos con tipos correctos para persistencia
+      // NUEVO: Convertir IDs a nombres para mejor legibilidad en persistencia
+      const vehiculoIds = Array.isArray(formValue.vehiculo) ? formValue.vehiculo : (formValue.vehiculo ? [formValue.vehiculo] : []);
+      const unidadesIds = Array.isArray(formValue.unidades) ? formValue.unidades : (formValue.unidades ? [formValue.unidades] : []);
+      const guardiaIds = Array.isArray(formValue.guardia) ? formValue.guardia : (formValue.guardia ? [formValue.guardia] : []);
+      
       const formValueWithExtras = {
         ...formValue,
-        // Asegurar que los arrays se mantengan como arrays
-        vehiculo: Array.isArray(formValue.vehiculo) ? formValue.vehiculo : (formValue.vehiculo ? [formValue.vehiculo] : []),
-        unidades: Array.isArray(formValue.unidades) ? formValue.unidades : (formValue.unidades ? [formValue.unidades] : []),
-        guardia: Array.isArray(formValue.guardia) ? formValue.guardia : (formValue.guardia ? [formValue.guardia] : []),
+        // NUEVO: Guardar solo los nombres para legibilidad (no IDs)
+        vehiculo: this.convertVehicleIdsToNames(vehiculoIds),
+        unidades: this.convertPersonnelIdsToNames(unidadesIds),
+        guardia: this.convertPersonnelIdsToNames(guardiaIds),
         
         // NUEVO: Asegurar que los FormArrays de eventos se guarden correctamente como arrays
         eventosAdicionalesSalida: Array.isArray(formValue.eventosAdicionalesSalida) ? formValue.eventosAdicionalesSalida : [],
@@ -742,11 +884,22 @@ export class EmergencyFormBackendComponent implements OnInit, OnDestroy {
         key: `${this.persistenceConfig.key}_tab_${this.selectedIndex}`
       };
       
-      // Crear formulario temporal con datos extendidos
-      const extendedForm = this.fb.group(formValueWithExtras);
-      
-      // Usar el servicio de persistencia centralizado
-      this.formPersistenceService.saveFormData(extendedForm, tabConfig);
+      // CORRECCIÓN: Guardar los datos extendidos directamente usando localStorage
+      // En lugar de crear un FormGroup temporal que puede causar errores de validación
+      try {
+        const storage = tabConfig.storageType === 'sessionStorage' ? sessionStorage : localStorage;
+        const dataWithMetadata = {
+          data: formValueWithExtras,
+          timestamp: new Date().toISOString(),
+          version: '1.0'
+        };
+        storage.setItem(tabConfig.key, JSON.stringify(dataWithMetadata));
+        console.log(`✅ Datos extendidos guardados en ${tabConfig.storageType || 'localStorage'} con clave: ${tabConfig.key}`);
+      } catch (error) {
+        console.error('Error al guardar datos extendidos:', error);
+        // Fallback: usar solo el formulario básico
+        this.formPersistenceService.saveFormData(this.emergencyForm, tabConfig);
+      }
       
     }
   }
@@ -761,6 +914,9 @@ export class EmergencyFormBackendComponent implements OnInit, OnDestroy {
       
       // Normalizar datos antes de restaurar
       const normalizedData = this.normalizeFormData(formulario.formData);
+      
+      // NUEVO: Restaurar IDs desde nombres si es necesario
+      this.restoreIdsFromNames(normalizedData);
       
       // Restaurar los FormArrays antes de hacer patchValue
       this.restoreFormArrays(normalizedData);
@@ -880,7 +1036,14 @@ export class EmergencyFormBackendComponent implements OnInit, OnDestroy {
           ...this.persistenceConfig,
           key: `${this.persistenceConfig.key}_tab_${index}`
         };
+        // Limpiar tanto con el servicio como directamente por seguridad
         this.formPersistenceService.clearFormData(tabConfig);
+        try {
+          const storage = tabConfig.storageType === 'sessionStorage' ? sessionStorage : localStorage;
+          storage.removeItem(tabConfig.key);
+        } catch (error) {
+          console.error('Error al limpiar datos extendidos:', error);
+        }
         
         // Eliminar el formulario específico
         this.formularios.splice(index, 1);
@@ -1449,7 +1612,23 @@ export class EmergencyFormBackendComponent implements OnInit, OnDestroy {
         key: `${this.persistenceConfig.key}_tab_${this.selectedIndex}`
       };
       
-      const savedData = this.formPersistenceService.loadFormData(tabConfig);
+      // Intentar cargar datos usando el servicio primero
+      let savedData = this.formPersistenceService.loadFormData(tabConfig);
+      
+      // Si no se encuentran datos con el servicio, intentar cargar directamente
+      if (!savedData) {
+        try {
+          const storage = tabConfig.storageType === 'sessionStorage' ? sessionStorage : localStorage;
+          const directData = storage.getItem(tabConfig.key);
+          if (directData) {
+            const parsedData = JSON.parse(directData);
+            savedData = parsedData.data;
+            console.log('📥 Datos extendidos cargados directamente desde storage');
+          }
+        } catch (error) {
+          console.error('Error al cargar datos extendidos directamente:', error);
+        }
+      }
       
       if (savedData) {
         console.log('📥 Datos encontrados para restaurar:', savedData);
@@ -1468,6 +1647,9 @@ export class EmergencyFormBackendComponent implements OnInit, OnDestroy {
           
           // Normalizar datos antes de restaurar para evitar errores de tipo
           const normalizedData = this.normalizeFormData(savedData);
+          
+          // NUEVO: Restaurar IDs desde nombres si es necesario
+          this.restoreIdsFromNames(normalizedData);
           
           // Restaurar datos del formulario con emitEvent: true para activar change detection
           this.emergencyForm.patchValue(normalizedData, { emitEvent: true });
@@ -1525,7 +1707,17 @@ export class EmergencyFormBackendComponent implements OnInit, OnDestroy {
       key: `${this.persistenceConfig.key}_tab_${this.selectedIndex}`
     };
     
+    // Limpiar usando el servicio
     this.formPersistenceService.clearFormData(tabConfig);
+    
+    // También limpiar directamente por seguridad
+    try {
+      const storage = tabConfig.storageType === 'sessionStorage' ? sessionStorage : localStorage;
+      storage.removeItem(tabConfig.key);
+    } catch (error) {
+      console.error('Error al limpiar datos extendidos directamente:', error);
+    }
+    
     console.log(`🗑️ Datos de persistencia limpiados para pestaña ${this.selectedIndex}`);
   }
 
