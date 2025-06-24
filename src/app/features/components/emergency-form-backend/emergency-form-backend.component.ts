@@ -204,15 +204,15 @@ export class EmergencyFormBackendComponent implements OnInit, OnDestroy {
       sinConvenio: [false],
       
       // Cronología
-      horaReporte: ['', Validators.required],
+      horaReporte: ['', [Validators.required, this.timeFormatValidator.bind(this)]],
       horaReporteDescripcion: [''],
-      horaSalida: ['', Validators.required],
+      horaSalida: ['', [Validators.required, this.timeFormatValidator.bind(this)]],
       horaSalidaDescripcion: [''],
-      horaLlegadaEscena: [''],
+      horaLlegadaEscena: ['', this.timeFormatValidator.bind(this)],
       horaLlegadaEscenaDescripcion: [''],
-      horaLlegadaHospital: [''],
+      horaLlegadaHospital: ['', this.timeFormatValidator.bind(this)],
       horaLlegadaHospitalDescripcion: [''],
-      horaRegresoEstacion: ['', Validators.required],
+      horaRegresoEstacion: ['', [Validators.required, this.timeFormatValidator.bind(this)]],
       horaRegresoEstacionDescripcion: [''],
       
       // Personal
@@ -1143,7 +1143,7 @@ export class EmergencyFormBackendComponent implements OnInit, OnDestroy {
   // Métodos para agregar eventos adicionales
   addEventoAdicionalSalida(): void {
     this.eventosAdicionalesSalida.push(this.fb.group({
-      hora: ['', Validators.required],
+      hora: ['', [Validators.required, this.timeFormatValidator.bind(this)]],
       descripcion: ['']
     }));
     
@@ -1160,7 +1160,7 @@ export class EmergencyFormBackendComponent implements OnInit, OnDestroy {
 
   addEventoAdicionalLlegadaEscena(): void {
     this.eventosAdicionalesLlegadaEscena.push(this.fb.group({
-      hora: ['', Validators.required],
+      hora: ['', [Validators.required, this.timeFormatValidator.bind(this)]],
       descripcion: ['']
     }));
     
@@ -1177,7 +1177,7 @@ export class EmergencyFormBackendComponent implements OnInit, OnDestroy {
 
   addEventoAdicionalLlegadaHospital(): void {
     this.eventosAdicionalesLlegadaHospital.push(this.fb.group({
-      hora: ['', Validators.required],
+      hora: ['', [Validators.required, this.timeFormatValidator.bind(this)]],
       descripcion: ['']
     }));
     
@@ -1217,6 +1217,25 @@ export class EmergencyFormBackendComponent implements OnInit, OnDestroy {
     if (!value || !Array.isArray(value) || value.length === 0) {
       return { arrayEmpty: true };
     }
+    return null;
+  }
+
+  // Validador para formato de hora 24 horas
+  timeFormatValidator(control: AbstractControl): ValidationErrors | null {
+    const value = control.value;
+    if (!value) return null; // Campo vacío es válido para campos opcionales
+    
+    const timePattern = /^([01]?[0-9]|2[0-3]):[0-5][0-9]$/;
+    if (!timePattern.test(value)) {
+      return { 
+        timeFormat: { 
+          actualValue: value,
+          requiredPattern: 'HH:MM (24 horas)',
+          message: 'El formato debe ser HH:MM en formato de 24 horas (ej: 14:30)'
+        }
+      };
+    }
+    
     return null;
   }
 
@@ -1283,6 +1302,37 @@ export class EmergencyFormBackendComponent implements OnInit, OnDestroy {
         // Para campos directos del formulario
         this.emergencyForm.get(fieldName)?.setValue(currentTime);
       }
+    }
+  }
+
+  // Función para validar formato de tiempo de 24 horas
+  validateTimeFormat(event: any, fieldName: string, eventControl?: AbstractControl): void {
+    const timeValue = event.target.value;
+    const timePattern = /^([01]?[0-9]|2[0-3]):[0-5][0-9]$/;
+    
+    if (timeValue && !timePattern.test(timeValue)) {
+      // Si el formato no es válido, mostrar error y limpiar el campo
+      this.notificationService.warning(
+        'Formato Incorrecto', 
+        'Por favor ingrese la hora en formato 24 horas (HH:MM). Ejemplo: 14:30'
+      );
+      
+      // Limpiar el campo si no es válido
+      if (eventControl && fieldName === 'hora') {
+        if (eventControl instanceof FormGroup) {
+          eventControl.get('hora')?.setValue('');
+        }
+      } else {
+        this.emergencyForm.get(fieldName)?.setValue('');
+      }
+      
+      // Enfocar nuevamente el campo para que el usuario pueda corregir
+      setTimeout(() => {
+        event.target.focus();
+      }, 100);
+    } else if (timeValue) {
+      // Si el formato es válido, guardar automáticamente
+      this.saveCurrentFormState();
     }
   }
 
