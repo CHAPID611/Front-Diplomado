@@ -111,6 +111,15 @@
                 <ng-template matStepContent>
                   <div class="step-content">
                     
+                    <!-- Instrucción de formato de tiempo -->
+                    <div class="time-format-info">
+                      <mat-icon>schedule</mat-icon>
+                      <div>
+                        <strong>Importante:</strong> Todas las horas deben ingresarse en <strong>formato de 24 horas (HH:MM)</strong>. 
+                        Ejemplo: 14:30 para las 2:30 PM. Use Ctrl+Click para insertar la hora actual.
+                      </div>
+                    </div>
+                    
                     <div class="time-section">
                       <h3>
                         <mat-icon style="font-size: 18px; vertical-align: middle; margin-right: 8px;">access_time</mat-icon>
@@ -123,8 +132,13 @@
                                  type="time" 
                                  formControlName="horaReporte" 
                                  required 
-                                 placeholder="Hora de reporte"
-                                 (click)="onTimeClick($event, 'horaReporte')">
+                                 step="60"
+                                 pattern="[0-9]{2}:[0-9]{2}"
+                                 placeholder="HH:MM (24h)"
+                                 title="Formato: HH:MM (24 horas)"
+                                 (click)="onTimeClick($event, 'horaReporte')"
+                                 (blur)="validateTimeFormat($event, 'horaReporte')">
+                          <mat-hint>Formato 24 horas (ej: 14:30)</mat-hint>
                         </mat-form-field>
                         <mat-form-field class="description-field">
                           <mat-label>Descripción del reporte</mat-label>
@@ -145,8 +159,13 @@
                                  type="time" 
                                  formControlName="horaSalida" 
                                  required 
-                                 placeholder="Hora de salida"
-                                 (click)="onTimeClick($event, 'horaSalida')">
+                                 step="60"
+                                 pattern="[0-9]{2}:[0-9]{2}"
+                                 placeholder="HH:MM (24h)"
+                                 title="Formato: HH:MM (24 horas)"
+                                 (click)="onTimeClick($event, 'horaSalida')"
+                                 (blur)="validateTimeFormat($event, 'horaSalida')">
+                          <mat-hint>Formato 24 horas (ej: 14:30)</mat-hint>
                         </mat-form-field>
                         <mat-form-field class="description-field">
                           <mat-label>Descripción de la salida</mat-label>
@@ -166,9 +185,13 @@
                                    type="time" 
                                    formControlName="hora" 
                                    required 
-                                   placeholder="Hora adicional"
-
-                                   (click)="onTimeClick($event, 'hora', evento)">
+                                   step="60"
+                                   pattern="[0-9]{2}:[0-9]{2}"
+                                   placeholder="HH:MM (24h)"
+                                   title="Formato: HH:MM (24 horas)"
+                                   (click)="onTimeClick($event, 'hora', evento)"
+                                   (blur)="validateTimeFormat($event, 'hora', evento)">
+                            <mat-hint>Formato 24 horas</mat-hint>
                           </mat-form-field>
                           <mat-form-field class="description-field">
                             <mat-label>Descripción</mat-label>
@@ -193,9 +216,13 @@
                           <input matInput 
                                  type="time" 
                                  formControlName="horaLlegadaEscena" 
-                                 placeholder="Hora de llegada a la escena"
-
-                                 (click)="onTimeClick($event, 'horaLlegadaEscena')">
+                                 step="60"
+                                 pattern="[0-9]{2}:[0-9]{2}"
+                                 placeholder="HH:MM (24h)"
+                                 title="Formato: HH:MM (24 horas)"
+                                 (click)="onTimeClick($event, 'horaLlegadaEscena')"
+                                 (blur)="validateTimeFormat($event, 'horaLlegadaEscena')">
+                          <mat-hint>Formato 24 horas (ej: 14:30)</mat-hint>
                         </mat-form-field>
                         <mat-form-field class="description-field">
                           <mat-label>Descripción de la llegada</mat-label>
@@ -215,9 +242,13 @@
                                    type="time" 
                                    formControlName="hora" 
                                    required 
-                                   placeholder="Hora adicional"
-
-                                   (click)="onTimeClick($event, 'hora', evento)">
+                                   step="60"
+                                   pattern="[0-9]{2}:[0-9]{2}"
+                                   placeholder="HH:MM (24h)"
+                                   title="Formato: HH:MM (24 horas)"
+                                   (click)="onTimeClick($event, 'hora', evento)"
+                                   (blur)="validateTimeFormat($event, 'hora', evento)">
+                            <mat-hint>Formato 24 horas</mat-hint>
                           </mat-form-field>
                           <mat-form-field class="description-field">
                             <mat-label>Descripción</mat-label>
@@ -242,9 +273,13 @@
                           <input matInput 
                                  type="time" 
                                  formControlName="horaLlegadaHospital" 
-                                 placeholder="Hora de llegada al hospital"
-
-                                 (click)="onTimeClick($event, 'horaLlegadaHospital')">
+                                 step="60"
+                                 pattern="[0-9]{2}:[0-9]{2}"
+                                 placeholder="HH:MM (24h)"
+                                 title="Formato: HH:MM (24 horas)"
+                                 (click)="onTimeClick($event, 'horaLlegadaHospital')"
+                                 (blur)="validateTimeFormat($event, 'horaLlegadaHospital')">
+                          <mat-hint>Formato 24 horas (ej: 14:30)</mat-hint>
                         </mat-form-field>
                         <mat-form-field class="description-field">
                           <mat-label>Descripción de la llegada al hospital</mat-label>
@@ -264,9 +299,13 @@
                                    type="time" 
                                    formControlName="hora" 
                                    required 
-                                   placeholder="Hora adicional"
-
-                                   (click)="onTimeClick($event, 'hora', evento)">
+                                   step="60"
+                                   pattern="[0-9]{2}:[0-9]{2}"
+                                   placeholder="HH:MM (24h)"
+                                   title="Formato: HH:MM (24 horas)"
+                                   (click)="onTimeClick($event, 'hora', evento)"
+                                   (blur)="validateTimeFormat($event, 'hora', evento)">
+                            <mat-hint>Formato 24 horas</mat-hint>
                           </mat-form-field>
                           <mat-form-field class="description-field">
                             <mat-label>Descripción</mat-label>
@@ -292,9 +331,13 @@
                                  type="time" 
                                  formControlName="horaRegresoEstacion" 
                                  required 
-                                 placeholder="Hora de regreso a la estación"
-
-                                 (click)="onTimeClick($event, 'horaRegresoEstacion')">
+                                 step="60"
+                                 pattern="[0-9]{2}:[0-9]{2}"
+                                 placeholder="HH:MM (24h)"
+                                 title="Formato: HH:MM (24 horas)"
+                                 (click)="onTimeClick($event, 'horaRegresoEstacion')"
+                                 (blur)="validateTimeFormat($event, 'horaRegresoEstacion')">
+                          <mat-hint>Formato 24 horas (ej: 14:30)</mat-hint>
                         </mat-form-field>
                         <mat-form-field class="description-field">
                           <mat-label>Descripción del regreso</mat-label>

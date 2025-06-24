@@ -1076,3 +1076,56 @@ input[type="time"]:focus {
   right: 20px;
   z-index: 2;
 }
+
+/* Instrucción general para formato de tiempo */
+.time-format-info {
+  background: #e3f2fd;
+  border: 1px solid #2196f3;
+  border-radius: 8px;
+  padding: 12px 16px;
+  margin: 16px 0;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 14px;
+  color: #1565c0;
+}
+
+.time-format-info mat-icon {
+  color: #2196f3;
+  font-size: 20px;
+}
+
+.time-format-info strong {
+  color: #0d47a1;
+}
+
+/* Mejorar hint de formato en campos */
+::ng-deep .mat-mdc-form-field .mat-mdc-form-field-hint {
+  color: #6c757d;
+  font-size: 12px;
+  font-weight: 500;
+  margin-top: 4px;
+}
+
+::ng-deep .mat-mdc-form-field.mat-form-field-invalid .mat-mdc-form-field-hint {
+  color: #dc3545;
+}
+
+/* Resaltar campos de tiempo cuando tienen errores de formato */
+::ng-deep .mat-mdc-form-field.mat-form-field-invalid input[type="time"] {
+  border-color: #dc3545 !important;
+  background-color: rgba(220, 53, 69, 0.05) !important;
+}
+
+/* Mostrar indicador de formato correcto */
+input[type="time"]:valid {
+  border-left: 3px solid #28a745;
+  background-color: rgba(40, 167, 69, 0.05);
+}
+
+/* Efecto para campos requeridos vacíos */
+input[type="time"]:invalid:not(:focus):not(:placeholder-shown) {
+  border-color: #ffc107;
+  background-color: rgba(255, 193, 7, 0.05);
+}
