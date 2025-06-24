@@ -99,7 +99,7 @@ import { Personal } from '../../../../core/interfaces/personal.interface';
               </div>
               <div class="info-item">
                 <label>Tipo de Sangre</label>
-                <span>{{ data.personal.tipoSangre }}</span>
+                <span>{{ data.getNombreTipoSangre ? data.getNombreTipoSangre(data.personal.tipoSangre) : data.personal.tipoSangre }}</span>
               </div>
             </div>
           </section>
@@ -315,6 +315,7 @@ export class PersonalDetailsComponent {
       getNombreRango: (id: string) => string;
       getNombreCualidad: (id: string) => string;
       getEstadoLabel: (estado: string) => string;
+      getNombreTipoSangre?: (id: string) => string; // NUEVO: Método opcional para tipo de sangre
       canEdit: boolean;
       onEdit: () => void;
     }

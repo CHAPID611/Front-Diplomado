@@ -719,6 +719,67 @@ export class PersonalFormComponent implements OnInit {
     }
   }
 
+  // ===== MÉTODOS PARA CONVERSIÓN DE TIPO DE SANGRE =====
+  
+  /**
+   * Convierte ID de tipo de sangre a nombre
+   */
+  private convertBloodTypeIdToName(id: number | string): string {
+    if (!id) return '';
+    
+    const bloodType = this.tiposSangre.find(tipo => 
+      (tipo.bloodTypeId && tipo.bloodTypeId == id) || 
+      (tipo.bloodType && tipo.bloodType === id)
+    );
+    
+    return bloodType ? bloodType.bloodType : String(id);
+  }
+  
+  /**
+   * Convierte nombre de tipo de sangre a ID
+   */
+  private convertBloodTypeNameToId(name: string): number | string {
+    if (!name) return '';
+    
+    // Buscar por nombre exacto
+    const bloodType = this.tiposSangre.find(tipo => 
+      tipo.bloodType === name
+    );
+    
+    if (bloodType && bloodType.bloodTypeId) {
+      return bloodType.bloodTypeId;
+    }
+    
+    // Si no se encuentra, retornar el nombre original
+    return name;
+  }
+  
+  /**
+   * Restaura ID desde nombre guardado cuando sea necesario
+   */
+  private restoreBloodTypeIdFromName(data: any): void {
+    if (!data || !data.tipoSangre) return;
+    
+    try {
+      // Si el tipo de sangre es un string (nombre), convertir a ID
+      if (typeof data.tipoSangre === 'string') {
+        // Verificar si es un nombre de tipo de sangre y no un ID string
+        const isBloodTypeName = this.tiposSangre.some(tipo => 
+          tipo.bloodType === data.tipoSangre
+        );
+        
+                 if (isBloodTypeName) {
+           const tipoSangreNombre = data.tipoSangre; // Guardar nombre original para el log
+           const bloodTypeId = this.convertBloodTypeNameToId(data.tipoSangre);
+           data.tipoSangre = bloodTypeId;
+           console.log('🔄 Restaurado tipo de sangre desde nombre:', tipoSangreNombre, '-> ID:', bloodTypeId);
+         }
+      }
+    } catch (error) {
+      console.error('Error al restaurar tipo de sangre desde nombre:', error);
+    }
+  }
+
   // ===== MÉTODOS DE PERSISTENCIA =====
 
   private restoreFormData(): void {
@@ -726,6 +787,9 @@ export class PersonalFormComponent implements OnInit {
       const savedData = this.formPersistenceService.loadFormData(this.persistenceConfig);
       
       if (savedData) {
+        // NUEVO: Restaurar ID desde nombre si es necesario
+        this.restoreBloodTypeIdFromName(savedData);
+        
         // Esperar a que el formulario y constantes estén cargados
         setTimeout(() => {
           this.personalForm.patchValue(savedData, { emitEvent: false });
@@ -757,9 +821,16 @@ export class PersonalFormComponent implements OnInit {
   }
 
   private saveFormWithCualidades(): void {
+    const formValue = this.personalForm.value;
+    
+    // NUEVO: Convertir ID de tipo de sangre a nombre para mejor legibilidad
+    const tipoSangreNombre = this.convertBloodTypeIdToName(formValue.tipoSangre);
+    
     const formValueWithCualidades = {
-      ...this.personalForm.value,
-      cualidades: this.cualidadesSeleccionadas
+      ...formValue,
+      cualidades: this.cualidadesSeleccionadas,
+      // NUEVO: Guardar tipo de sangre por nombre en lugar de ID
+      tipoSangre: tipoSangreNombre || formValue.tipoSangre
     };
     
     // Crear formulario temporal para guardar con cualidades
